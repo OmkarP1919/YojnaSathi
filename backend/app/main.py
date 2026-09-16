@@ -5,8 +5,11 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.ai import process_chat_message
 from app.matching import match_schemes
 from app.schemas import (
+    ChatRequest,
+    ChatResponse,
     RecommendationRequest,
     RecommendationResponse,
     Scheme,
@@ -20,7 +23,7 @@ load_dotenv()
 app = FastAPI(
     title="YojnaSathi API",
     description="Backend API for YojnaSathi - simplifying government scheme access for citizens.",
-    version="0.3.0",
+    version="0.4.0",
 )
 
 # Enable CORS for frontend development
@@ -126,4 +129,20 @@ def recommend_schemes(request: RecommendationRequest):
         ),
         results=results,
     )
+
+
+@app.post("/api/chat", response_model=ChatResponse)
+def chat_endpoint(request: ChatRequest):
+    """
+    Process natural-language citizen chat messages using LangChain + Gemini,
+    extracts/updates citizen profile, matches candidate schemes deterministically,
+    and returns a citizen-friendly explanation.
+    """
+    schemes = load_schemes_data()
+    return process_chat_message(
+        message=request.message,
+        profile=request.profile,
+        schemes=schemes,
+    )
+
 
