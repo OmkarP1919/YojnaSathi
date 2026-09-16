@@ -16,6 +16,7 @@ class AgentState(TypedDict, total=False):
     session_id: str
     input_text: str
     language: str
+    language_hint: Optional[str]
     conversation_history: List[ConversationMessage]
     user_intent: Optional[str]
     extracted_user_info: Any
