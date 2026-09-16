@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.ai import process_chat_message
 from app.matching import match_schemes
 from app.schemas import (
+    DISCLAIMER_MAP,
     ChatRequest,
     ChatResponse,
     RecommendationRequest,
@@ -119,14 +120,11 @@ def recommend_schemes(request: RecommendationRequest):
     Does not make legal eligibility determinations.
     """
     schemes = load_schemes_data()
-    results = match_schemes(request.profile, schemes)
+    results = match_schemes(request.profile, schemes, category=request.category)
     return RecommendationResponse(
         success=True,
         count=len(results),
-        disclaimer=(
-            "These schemes are potentially relevant based on the information provided. "
-            "Final eligibility is determined by the relevant government authority."
-        ),
+        disclaimer=dict(DISCLAIMER_MAP),
         results=results,
     )
 

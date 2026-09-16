@@ -1,476 +1,1261 @@
 [
   {
     "id": "pm-kisan",
-    "name": "Pradhan Mantri Kisan Samman Nidhi (PM-KISAN)",
-    "description": "Provides direct income support of Rs 6,000 per year to eligible landholding farmer families across the country.",
+    "name": {
+      "en": "Pradhan Mantri Kisan Samman Nidhi (PM-KISAN)",
+      "hi": "प्रधानमंत्री किसान सम्मान निधि (PM-KISAN)",
+      "mr": "प्रधानमंत्री किसान सन्मान निधी (PM-KISAN)"
+    },
+    "description": {
+      "en": "Provides direct income support of Rs 6,000 per year to eligible landholding farmer families across the country.",
+      "hi": "देश भर के पात्र भूमिधारक किसान परिवारों को प्रति वर्ष ₹6,000 की सीधी आय सहायता प्रदान करता है।",
+      "mr": "देशभरातील पात्र जमीनधारक शेतकरी कुटुंबांना दरवर्षी ₹6,000 थेट आर्थिक मदत दिली जाते."
+    },
     "category": "agriculture",
-    "target_groups": ["farmers", "rural citizens"],
-    "benefits": [
-      "Financial benefit of Rs 6,000 per year transferred directly into bank accounts in three equal installments of Rs 2,000 every four months."
+    "target_groups": [
+      "farmers",
+      "rural citizens"
     ],
+    "benefits": {
+      "en": [
+        "Financial benefit of Rs 6,000 per year transferred directly into bank accounts in three equal installments of Rs 2,000 every four months."
+      ],
+      "hi": [
+        "प्रति वर्ष ₹6,000 का वित्तीय लाभ हर चार महीने में ₹2,000 की तीन समान किस्तों में सीधे बैंक खाते में जमा किया जाता है।"
+      ],
+      "mr": [
+        "दरवर्षी ₹6,000 ची आर्थिक मदत दर चार महिन्यांनी ₹2,000 च्या तीन समान हप्त्यांमध्ये थेट बँक खात्यात जमा केली जाते."
+      ]
+    },
     "eligibility": [
       "All landholding farmer families with cultivable landholding in their names across the country.",
       "Subject to scheme exclusion criteria (such as institutional landholders, individuals who paid income tax in the last assessment year, constitutional post holders, and serving or retired government/PSU employees excluding Group D/multi-tasking staff)."
     ],
-    "required_information": [
-      "Aadhaar number",
-      "Landholding documentation or land ownership details",
-      "Bank account details linked with Aadhaar",
-      "Mobile number"
-    ],
+    "required_information": {
+      "en": [
+        "Aadhaar number",
+        "Landholding documentation or land ownership details",
+        "Bank account details linked with Aadhaar",
+        "Mobile number"
+      ],
+      "hi": [
+        "आधार संख्या",
+        "जमीन स्वामित्व दस्तावेज या खतौनी विवरण",
+        "आधार से जुड़ा बैंक खाता विवरण",
+        "मोबाइल नंबर"
+      ],
+      "mr": [
+        "आधार क्रमांक",
+        "जमीन मालकी कागदपत्रे किंवा 7/12 उतारा",
+        "आधार लिंक असलेले बँक खाते",
+        "मोबाईल नंबर"
+      ]
+    },
     "state": "all-india",
-    "department": "Department of Agriculture & Farmers Welfare, Ministry of Agriculture & Farmers Welfare",
+    "department": {
+      "en": "Department of Agriculture & Farmers Welfare, Ministry of Agriculture & Farmers Welfare",
+      "hi": "कृषि एवं किसान कल्याण विभाग, कृषि एवं किसान कल्याण मंत्रालय",
+      "mr": "कृषी आणि शेतकरी कल्याण विभाग, कृषी आणि शेतकरी कल्याण मंत्रालय"
+    },
     "application_url": "https://pmkisan.gov.in/",
     "source_url": "https://pmkisan.gov.in/",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {
+      "requires_farmer": true,
+      "requires_land": true
+    }
   },
   {
     "id": "pmfby",
-    "name": "Pradhan Mantri Fasal Bima Yojana (PMFBY)",
-    "description": "Offers comprehensive crop insurance covering yield losses due to non-preventable natural risks like drought, flood, pests, and unseasonal rains.",
+    "name": {
+      "en": "Pradhan Mantri Fasal Bima Yojana (PMFBY)",
+      "hi": "प्रधानमंत्री फसल बीमा योजना (PMFBY)",
+      "mr": "प्रधानमंत्री पीक विमा योजना (PMFBY)"
+    },
+    "description": {
+      "en": "Offers comprehensive crop insurance covering yield losses due to non-preventable natural risks like drought, flood, pests, and unseasonal rains.",
+      "hi": "सूखा, बाढ़, कीट और बेमौसम बारिश जैसी प्राकृतिक आपदाओं से फसल नुकसान के विरुद्ध व्यापक फसल बीमा सुरक्षा प्रदान करता है।",
+      "mr": "दुष्काळ, पूर, कीड आणि अवकाळी पाऊस यांसारख्या नैसर्गिक आपत्तींमुळे पिकांचे नुकसान झाल्यास सर्वसमावेशक पीक विमा संरक्षण देते."
+    },
     "category": "agriculture",
-    "target_groups": ["farmers"],
-    "benefits": [
-      "Insurance coverage and financial support to farmers suffering crop loss or damage.",
-      "Uniform low premium rates: maximum 2% for Kharif crops, 1.5% for Rabi crops, and 5% for commercial/horticultural crops."
+    "target_groups": [
+      "farmers"
     ],
+    "benefits": {
+      "en": [
+        "Insurance coverage and financial support to farmers suffering crop loss or damage.",
+        "Uniform low premium rates: maximum 2% for Kharif crops, 1.5% for Rabi crops, and 5% for commercial/horticultural crops."
+      ],
+      "hi": [
+        "फसल नुकसान या क्षति का सामना करने वाले किसानों को बीमा कवर और वित्तीय सहायता।",
+        "समान न्यूनतम प्रीमियम दरें: खरीफ फसलों के लिए अधिकतम 2%, रबी फसलों के लिए 1.5%, और बागवानी फसलों के लिए 5%।"
+      ],
+      "mr": [
+        "पिकांचे नुकसान झालेल्या शेतकऱ्यांना विमा संरक्षण आणि आर्थिक मदत दिली जाते.",
+        "किमान विमा हप्ता: खरीप पिकांसाठी जास्तीत जास्त 2%, रब्बी पिकांसाठी 1.5%, आणि नगदी/बागायती पिकांसाठी 5%."
+      ]
+    },
     "eligibility": [
       "All farmers including sharecroppers and tenant farmers growing notified crops in notified areas.",
       "Available for both loanee and non-loanee farmers."
     ],
-    "required_information": [
-      "Aadhaar number",
-      "Land records (Khasra/Khatauni number)",
-      "Sowing certificate or declaration",
-      "Bank account details"
-    ],
+    "required_information": {
+      "en": [
+        "Aadhaar number",
+        "Land records (Khasra/Khatauni number)",
+        "Sowing certificate or declaration",
+        "Bank account details"
+      ],
+      "hi": [
+        "आधार संख्या",
+        "भूमि अभिलेख (खसरा / खतौनी नंबर)",
+        "बुआई प्रमाण पत्र या स्व-घोषणा",
+        "बैंक खाता विवरण"
+      ],
+      "mr": [
+        "आधार क्रमांक",
+        "जमिनीचा 7/12 व 8-अ उतारा",
+        "पीक पेरणी स्वयंघोषणा पत्र",
+        "बँक खाते तपशील"
+      ]
+    },
     "state": "all-india",
-    "department": "Ministry of Agriculture & Farmers Welfare",
+    "department": {
+      "en": "Ministry of Agriculture & Farmers Welfare",
+      "hi": "कृषि एवं किसान कल्याण मंत्रालय",
+      "mr": "कृषी आणि शेतकरी कल्याण मंत्रालय"
+    },
     "application_url": "https://pmfby.gov.in/",
     "source_url": "https://www.myscheme.gov.in/schemes/pmfby",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {
+      "requires_farmer": true,
+      "requires_land": false
+    }
   },
   {
     "id": "pm-jay",
-    "name": "Ayushman Bharat - Pradhan Mantri Jan Arogya Yojana (PM-JAY)",
-    "description": "World's largest health assurance scheme providing health cover up to Rs 5 lakh per family per year for secondary and tertiary care hospitalization.",
+    "name": {
+      "en": "Ayushman Bharat - Pradhan Mantri Jan Arogya Yojana (PM-JAY)",
+      "hi": "आयुष्मान भारत - प्रधानमंत्री जन आरोग्य योजना (PM-JAY)",
+      "mr": "आयुष्मान भारत - प्रधानमंत्री जन आरोग्य योजना (PM-JAY)"
+    },
+    "description": {
+      "en": "World's largest health assurance scheme providing health cover up to Rs 5 lakh per family per year for secondary and tertiary care hospitalization.",
+      "hi": "अस्पताल में भर्ती एवं गंभीर उपचार के लिए प्रति परिवार प्रति वर्ष ₹5 लाख तक का कैशलेस स्वास्थ्य सुरक्षा कवर प्रदान करता है।",
+      "mr": "दुय्यम आणि तृतीयक उपचारांसाठी प्रति कुटुंब प्रति वर्ष ₹5 लाखांपर्यंत मोफत कॅशलेस आरोग्य विमा संरक्षण देते."
+    },
     "category": "health",
-    "target_groups": ["low-income families", "rural citizens", "urban poor", "senior citizens"],
-    "benefits": [
-      "Cashless and paperless inpatient healthcare cover up to Rs 5 lakh per eligible family per year at empaneled public and private hospitals.",
-      "Covers pre-existing conditions, diagnostics, medicines, and post-hospitalization expenses."
+    "target_groups": [
+      "low-income families",
+      "rural citizens",
+      "urban poor",
+      "senior citizens"
     ],
+    "benefits": {
+      "en": [
+        "Cashless and paperless inpatient healthcare cover up to Rs 5 lakh per eligible family per year at empaneled public and private hospitals.",
+        "Covers pre-existing conditions, diagnostics, medicines, and post-hospitalization expenses."
+      ],
+      "hi": [
+        "सूचीबद्ध सरकारी एवं निजी अस्पतालों में प्रति पात्र परिवार प्रति वर्ष ₹5 लाख तक कैशलेस एवं पेपरलेस उपचार।",
+        "पहले से मौजूद बीमारियां, जांच, दवाइयां और अस्पताल से छुट्टी के बाद का खर्च शामिल।"
+      ],
+      "mr": [
+        "नोंदणीकृत सरकारी व खाजगी रुग्णालयांमध्ये प्रति पात्र कुटुंब दरवर्षी ₹5 लाखांपर्यंत कॅशलेस उपचार.",
+        "जुने आजार, वैद्यकीय तपासण्या, औषधे आणि डिस्चार्जनंतरचा खर्च समाविष्ट."
+      ]
+    },
     "eligibility": [
       "Families identified under the Socio-Economic Caste Census (SECC 2011) deprivation and occupational criteria.",
       "All senior citizens aged 70 years and above (Ayushman Vay Vandana card) regardless of income."
     ],
-    "required_information": [
-      "Aadhaar card",
-      "Ration card or family identification document",
-      "Registered mobile number"
-    ],
+    "required_information": {
+      "en": [
+        "Aadhaar card",
+        "Ration card or family identification document",
+        "Registered mobile number"
+      ],
+      "hi": [
+        "आधार कार्ड",
+        "राशन कार्ड या पारिवारिक पहचान पत्र",
+        "पंजीकृत मोबाइल नंबर"
+      ],
+      "mr": [
+        "आधार कार्ड",
+        "रेशन कार्ड किंवा कुटुंब ओळखपत्र",
+        "नोंदणीकृत मोबाईल नंबर"
+      ]
+    },
     "state": "all-india",
-    "department": "National Health Authority, Ministry of Health and Family Welfare",
+    "department": {
+      "en": "National Health Authority, Ministry of Health and Family Welfare",
+      "hi": "राष्ट्रीय स्वास्थ्य प्राधिकरण, स्वास्थ्य एवं परिवार कल्याण मंत्रालय",
+      "mr": "राष्ट्रीय आरोग्य प्राधिकरण, आरोग्य आणि कुटुंब कल्याण मंत्रालय"
+    },
     "application_url": "https://beneficiary.nha.gov.in/",
     "source_url": "https://www.myscheme.gov.in/schemes/ab-pmjay",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {}
   },
   {
     "id": "pm-svanidhi",
-    "name": "PM Street Vendor's AtmaNirbhar Nidhi (PM SVANidhi)",
-    "description": "Special micro-credit facility providing collateral-free working capital loans to urban and peri-urban street vendors.",
+    "name": {
+      "en": "PM Street Vendor's AtmaNirbhar Nidhi (PM SVANidhi)",
+      "hi": "पीएम स्ट्रीट वेंडर्स आत्मनिर्भर निधि (पीएम स्वनिधि)",
+      "mr": "पीएम स्ट्रीट व्हेंडर्स आत्मनिर्भर निधी (पीएम स्वनिधी)"
+    },
+    "description": {
+      "en": "Micro-credit facility for urban street vendors providing collateral-free working capital loans with interest subsidies and digital transaction incentives.",
+      "hi": "शहरी रेहड़ी-पटरी विक्रेताओं के लिए बिना गारंटी कार्यशील पूंजी ऋण, ब्याज सब्सिडी और डिजिटल लेनदेन प्रोत्साहन योजना।",
+      "mr": "शहरी भागातील फेरीवाले आणि हातगाडी चालकांसाठी विनातारण खेळते भांडवल कर्ज, व्याज अनुदान आणि डिजिटल प्रोत्साहन योजना."
+    },
     "category": "small businesses",
-    "target_groups": ["street vendors", "urban poor", "micro entrepreneurs"],
-    "benefits": [
-      "Initial collateral-free working capital loan up to Rs 10,000 with a 1-year tenure.",
-      "Higher loan limits up to Rs 20,000 on second tranche and Rs 50,000 on third tranche upon timely repayment.",
-      "Interest subsidy of 7% per annum on timely repayments and monthly cashback on digital transactions."
+    "target_groups": [
+      "street vendors",
+      "urban poor",
+      "micro entrepreneurs"
     ],
+    "benefits": {
+      "en": [
+        "Initial working capital loan up to Rs 10,000, progressing to Rs 20,000 and Rs 50,000 on timely repayment.",
+        "Interest subsidy of 7% per annum credited directly to bank account on regular repayment."
+      ],
+      "hi": [
+        "शुरुआती ₹10,000 का कार्यशील पूंजी ऋण, समय पर भुगतान करने पर ₹20,000 और ₹50,000 तक की वृद्धि।",
+        "नियमित पुनर्भुगतान पर 7% प्रति वर्ष की ब्याज सब्सिडी सीधे बैंक खाते में जमा।"
+      ],
+      "mr": [
+        "सुरुवातीला ₹10,000 पर्यंत खेळते भांडवल कर्ज, वेळेवर परतफेड केल्यास ₹20,000 आणि ₹50,000 पर्यंत वाढ.",
+        "नियमित परतफेडीवर 7% वार्षिक व्याज अनुदान थेट बँक खात्यात जमा."
+      ]
+    },
     "eligibility": [
       "Street vendors vending in urban areas on or before March 24, 2020.",
       "Possession of Certificate of Vending / Identity Card issued by Urban Local Body (ULB) or Letter of Recommendation (LoR)."
     ],
-    "required_information": [
-      "Aadhaar card",
-      "Vending Certificate or ID card / Letter of Recommendation from ULB",
-      "Bank account details",
-      "Mobile number linked to Aadhaar"
-    ],
+    "required_information": {
+      "en": [
+        "Aadhaar card",
+        "Vending Certificate or ID card / Letter of Recommendation from ULB",
+        "Bank account details",
+        "Mobile number linked to Aadhaar"
+      ],
+      "hi": [
+        "आधार कार्ड",
+        "शहरी निकाय से वेंडिंग प्रमाण पत्र / पहचान पत्र / सिफारिश पत्र",
+        "बैंक खाता विवरण",
+        "आधार से जुड़ा मोबाइल नंबर"
+      ],
+      "mr": [
+        "आधार कार्ड",
+        "स्थानिक स्वराज्य संस्थेकडील फेरीवाला प्रमाणपत्र / ओळखपत्र / शिफारस पत्र",
+        "बँक खाते तपशील",
+        "आधार लिंक मोबाईल नंबर"
+      ]
+    },
     "state": "all-india",
-    "department": "Ministry of Housing and Urban Affairs",
+    "department": {
+      "en": "Ministry of Housing and Urban Affairs",
+      "hi": "आवासन एवं शहरी कार्य मंत्रालय",
+      "mr": "गृहनिर्माण आणि शहरी व्यवहार मंत्रालय"
+    },
     "application_url": "https://pmsvanidhi.mohua.gov.in/",
     "source_url": "https://www.myscheme.gov.in/schemes/pm-svanidhi",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {
+      "rural_or_urban": "urban"
+    }
   },
   {
     "id": "pmmy",
-    "name": "Pradhan Mantri Mudra Yojana (PMMY)",
-    "description": "Provides loans up to Rs 20 lakh to non-corporate, non-farm small and micro enterprises to facilitate business establishment and expansion.",
+    "name": {
+      "en": "Pradhan Mantri Mudra Yojana (PMMY)",
+      "hi": "प्रधानमंत्री मुद्रा योजना (PMMY)",
+      "mr": "प्रधानमंत्री मुद्रा योजना (PMMY)"
+    },
+    "description": {
+      "en": "Provides loans up to Rs 20 lakh to non-corporate, non-farm small and micro-enterprises to foster entrepreneurship and self-employment.",
+      "hi": "स्वरोजगार और उद्यमिता को बढ़ावा देने के लिए गैर-कॉर्पोरेट और गैर-कृषि लघु एवं सूक्ष्म उद्यमों को ₹20 लाख तक का ऋण प्रदान करता है।",
+      "mr": "उद्योजकता आणि स्वयंरोजगाराला चालना देण्यासाठी बिगर-कॉर्पोरेट आणि बिगर-शेती सूक्ष्म व लघु उद्योगांना ₹20 लाखांपर्यंत कर्ज दिले जाते."
+    },
     "category": "financial inclusion",
-    "target_groups": ["small business owners", "micro entrepreneurs", "women entrepreneurs", "self-employed"],
-    "benefits": [
-      "Collateral-free institutional credit categorized into Shishu (up to Rs 50,000), Kishore (Rs 50,000 to Rs 5 lakh), and Tarun (Rs 5 lakh to Rs 20 lakh).",
-      "Nominal processing charges and affordable interest rates."
+    "target_groups": [
+      "small business owners",
+      "micro entrepreneurs",
+      "women entrepreneurs",
+      "self-employed"
     ],
+    "benefits": {
+      "en": [
+        "Collateral-free institutional loans categorized into Shishu (up to Rs 50,000), Kishore (Rs 50,000 to Rs 5 lakh), and Tarun (Rs 5 lakh to Rs 10/20 lakh).",
+        "Competitive interest rates and accessible through all commercial banks, RRBs, and MFIs."
+      ],
+      "hi": [
+        "बिना गारंटी संस्थागत ऋण तीन श्रेणियों में: शिशु (₹50,000 तक), किशोर (₹50,000 से ₹5 लाख), और तरुण (₹5 लाख से ₹10/20 लाख तक)।",
+        "सभी वाणिज्यिक बैंकों, क्षेत्रीय ग्रामीण बैंकों और एमएफआई के माध्यम से सुलभ।"
+      ],
+      "mr": [
+        "विनातारण संस्थागत कर्ज: शिशु (₹50,000 पर्यंत), किशोर (₹50,000 ते ₹5 लाख), आणि तरुण (₹5 लाख ते ₹10/20 लाखांपर्यंत).",
+        "सर्व व्यावसायिक बँका, ग्रामीण बँका आणि पतसंस्थांद्वारे सुलभ कर्ज उपलब्धता."
+      ]
+    },
     "eligibility": [
       "Any Indian citizen who has a business plan for a non-farm sector income-generating activity such as manufacturing, processing, trading, or service sector."
     ],
-    "required_information": [
-      "Identity proof (Aadhaar, Voter ID, PAN card)",
-      "Proof of residence",
-      "Business proof and registration certificates",
-      "Quotation of machinery/items to be purchased and bank statement"
-    ],
+    "required_information": {
+      "en": [
+        "Identity proof (Aadhaar, Voter ID, PAN card)",
+        "Proof of residence",
+        "Business proof and registration certificates",
+        "Quotation of machinery/items to be purchased and bank statement"
+      ],
+      "hi": [
+        "पहचान प्रमाण (आधार, वोटर आईडी, पैन कार्ड)",
+        "निवास प्रमाण पत्र",
+        "व्यवसाय प्रमाण और पंजीकरण दस्तावेज",
+        "खरीदी जाने वाली सामग्री का कोटेशन व बैंक स्टेटमेंट"
+      ],
+      "mr": [
+        "ओळख पुरावा (आधार, मतदार ओळखपत्र, पॅन कार्ड)",
+        "रहिवासी पुरावा",
+        "व्यवसाय नोंदणी प्रमाणपत्र / पुरावा",
+        "खरेदी साहित्याचे कोटेशन व बँक स्टेटमेंट"
+      ]
+    },
     "state": "all-india",
-    "department": "Department of Financial Services, Ministry of Finance",
+    "department": {
+      "en": "Department of Financial Services, Ministry of Finance",
+      "hi": "वित्तीय सेवाएं विभाग, वित्त मंत्रालय",
+      "mr": "वित्तीय सेवा विभाग, वित्त मंत्रालय"
+    },
     "application_url": "https://www.mudra.org.in/",
     "source_url": "https://www.myscheme.gov.in/schemes/pmmy",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {}
   },
   {
     "id": "pmjdy",
-    "name": "Pradhan Mantri Jan Dhan Yojana (PMJDY)",
-    "description": "National mission for financial inclusion ensuring access to financial services including banking savings accounts, credit, insurance, and pensions.",
+    "name": {
+      "en": "Pradhan Mantri Jan Dhan Yojana (PMJDY)",
+      "hi": "प्रधानमंत्री जन धन योजना (PMJDY)",
+      "mr": "प्रधानमंत्री जन धन योजना (PMJDY)"
+    },
+    "description": {
+      "en": "National mission for financial inclusion ensuring universal access to banking facilities with a basic savings bank account, RuPay debit card, and overdraft facility.",
+      "hi": "वित्तीय समावेशन का राष्ट्रीय मिशन जो जीरो-बैलेंस बचत खाता, रुपे डेबिट कार्ड, दुर्घटना बीमा और ओवरड्राफ्ट सुविधा प्रदान करता है।",
+      "mr": "झिरो-बॅलन्स बँक खाते, रुपे डेबिट कार्ड, मोफत अपघात विमा आणि ओव्हरड्राफ्ट सुविधेसह सर्वसमावेशक वित्तीय समावेशन योजना."
+    },
     "category": "financial inclusion",
-    "target_groups": ["unbanked citizens", "low-income families", "rural citizens"],
-    "benefits": [
-      "Zero-balance savings bank account with no minimum balance requirements.",
-      "Free RuPay debit card with built-in accident insurance cover of Rs 2 lakh.",
-      "Overdraft facility up to Rs 10,000 to eligible account holders."
+    "target_groups": [
+      "unbanked citizens",
+      "low-income families",
+      "rural citizens"
     ],
+    "benefits": {
+      "en": [
+        "Zero-balance savings account with no minimum balance maintenance charges.",
+        "Free RuPay debit card with built-in accident insurance cover of Rs 2 lakh.",
+        "Overdraft facility up to Rs 10,000 for eligible account holders."
+      ],
+      "hi": [
+        "बिना न्यूनतम बैलेंस शुल्क वाला जीरो-बैलेंस बचत बैंक खाता।",
+        "₹2 लाख के इन-बिल्ट दुर्घटना बीमा कवर के साथ निःशुल्क रुपे डेबिट कार्ड।",
+        "पात्र खाताधारकों के लिए ₹10,000 तक की ओवरड्राफ्ट सुविधा।"
+      ],
+      "mr": [
+        "किमान शिलकीची अट नसलेले झिरो-बॅलन्स बँक बचत खाते.",
+        "₹2 लाखांच्या मोफत अपघात विम्यासह रुपे डेबिट कार्ड.",
+        "पात्र खातेदारांसाठी ₹10,000 पर्यंत ओव्हरड्राफ्ट सुविधा."
+      ]
+    },
     "eligibility": [
       "Any Indian citizen aged 10 years and above who does not already hold a bank account."
     ],
-    "required_information": [
-      "Aadhaar card or officially valid document (Voter ID, Driving License, PAN)",
-      "Passport-size photographs",
-      "Address proof"
-    ],
+    "required_information": {
+      "en": [
+        "Aadhaar card or officially valid document (Voter ID, Driving License, PAN)",
+        "Passport-size photographs",
+        "Address proof"
+      ],
+      "hi": [
+        "आधार कार्ड या अन्य मान्य दस्तावेज (वोटर आईडी, ड्राइविंग लाइसेंस, पैन)",
+        "पासपोर्ट साइज फोटो",
+        "पते का प्रमाण"
+      ],
+      "mr": [
+        "आधार कार्ड किंवा अधिकृत वैध कागदपत्र (मतदार ओळखपत्र, पॅन कार्ड)",
+        "पासपोर्ट आकाराचे फोटो",
+        "पत्ता पुरावा"
+      ]
+    },
     "state": "all-india",
-    "department": "Department of Financial Services, Ministry of Finance",
+    "department": {
+      "en": "Department of Financial Services, Ministry of Finance",
+      "hi": "वित्तीय सेवाएं विभाग, वित्त मंत्रालय",
+      "mr": "वित्तीय सेवा विभाग, वित्त मंत्रालय"
+    },
     "application_url": "https://pmjdy.gov.in/",
     "source_url": "https://www.myscheme.gov.in/schemes/pmjdy",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {
+      "age_min": 10
+    }
   },
   {
     "id": "pm-ujjwala",
-    "name": "Pradhan Mantri Ujjwala Yojana (PMUY 2.0)",
-    "description": "Provides clean cooking fuel (LPG connections) to adult women from poor households to safeguard family health from indoor air pollution.",
+    "name": {
+      "en": "Pradhan Mantri Ujjwala Yojana (PMUY)",
+      "hi": "प्रधानमंत्री उज्ज्वला योजना (PMUY)",
+      "mr": "प्रधानमंत्री उज्ज्वला योजना (PMUY)"
+    },
+    "description": {
+      "en": "Provides deposit-free LPG gas connections to adult women from poor and marginalized households to safeguard women's health from indoor air pollution.",
+      "hi": "गरीब परिवारों की वयस्क महिलाओं को स्वच्छ रसोई ईंधन उपलब्ध कराने हेतु निःशुल्क एलपीजी गैस कनेक्शन प्रदान करता है।",
+      "mr": "धूरमुक्त स्वयंपाकघरासाठी गरीब आणि वंचित कुटुंबातील प्रौढ महिलांना मोफत एलपीजी गॅस सिलेंडर जोडणी दिली जाते."
+    },
     "category": "women",
-    "target_groups": ["women", "low-income families", "rural households"],
-    "benefits": [
-      "Deposit-free LPG connection including a security deposit of cylinder, pressure regulator, LPG hose, domestic gas consumer card, and installation charges.",
-      "First LPG refill and hotplate/stove provided free of cost."
+    "target_groups": [
+      "women",
+      "low-income families",
+      "rural households"
     ],
+    "benefits": {
+      "en": [
+        "Deposit-free LPG connection including security deposit for cylinder, regulator, safety hose, and domestic gas consumer card.",
+        "First LPG refill and cooking stove (hotplate) provided free of cost."
+      ],
+      "hi": [
+        "सिलेंडर सुरक्षा जमा, रेगुलेटर, गैस नली और उपभोक्ता कार्ड सहित निःशुल्क एलपीजी कनेक्शन।",
+        "पहला रिफिल सिलेंडर और गैस चूल्हा बिल्कुल मुफ्त प्रदान किया जाता है।"
+      ],
+      "mr": [
+        "सिलेंडर डिपॉझिट, रेग्युलेटर, सुरक्षा नळी व गॅस पासबुकसह मोफत एलपीजी गॅस जोडणी.",
+        "पहिला भरलेला गॅस सिलेंडर आणि शेगडी पूर्णपणे मोफत दिली जाते."
+      ]
+    },
     "eligibility": [
       "Adult woman belonging to poor households (SC/ST, PMAY beneficiaries, Antyodaya Anna Yojana, forest dwellers, most backward classes, tea garden tribes, or 14-point declaration).",
       "No other LPG connection in the same household."
     ],
-    "required_information": [
-      "Aadhaar card of the applicant woman and adult family members",
-      "Ration card or family composition proof",
-      "Bank account number with IFSC code",
-      "Proof of current address"
-    ],
+    "required_information": {
+      "en": [
+        "Aadhaar card of the applicant woman and adult family members",
+        "Ration card or family composition proof",
+        "Bank account number with IFSC code",
+        "Proof of current address"
+      ],
+      "hi": [
+        "आवेदक महिला और वयस्क पारिवारिक सदस्यों का आधार कार्ड",
+        "राशन कार्ड या पारिवारिक संरचना प्रमाण",
+        "आईएफएससी कोड सहित बैंक खाता संख्या",
+        "वर्तमान पते का प्रमाण"
+      ],
+      "mr": [
+        "अर्जदार महिला व कुटुंबातील प्रौढ सदस्यांचे आधार कार्ड",
+        "रेशन कार्ड किंवा कुटुंब नोंद पुरावा",
+        "आयएफएससी कोडसह बँक खाते तपशील",
+        "सध्याचा पत्ता पुरावा"
+      ]
+    },
     "state": "all-india",
-    "department": "Ministry of Petroleum and Natural Gas",
+    "department": {
+      "en": "Ministry of Petroleum and Natural Gas",
+      "hi": "पेट्रोलियम एवं प्राकृतिक गैस मंत्रालय",
+      "mr": "पेट्रोलियम आणि नैसर्गिक वायू मंत्रालय"
+    },
     "application_url": "https://www.pmuy.gov.in/",
     "source_url": "https://www.myscheme.gov.in/schemes/pmuy",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {
+      "gender": "female",
+      "age_min": 18
+    }
   },
   {
     "id": "pmmvy",
-    "name": "Pradhan Mantri Matru Vandana Yojana (PMMVY)",
-    "description": "Maternity benefit cash incentive program compensating for wage loss and encouraging health-seeking behavior among pregnant women and lactating mothers.",
+    "name": {
+      "en": "Pradhan Mantri Matru Vandana Yojana (PMMVY)",
+      "hi": "प्रधानमंत्री मातृ वंदना योजना (PMMVY)",
+      "mr": "प्रधानमंत्री मातृ वंदना योजना (PMMVY)"
+    },
+    "description": {
+      "en": "Maternity benefit cash incentive for pregnant women and lactating mothers to compensate for wage loss and promote institutional childbirth and nutrition.",
+      "hi": "गर्भवती महिलाओं और स्तनपान कराने वाली माताओं को पोषण और मजदूरी क्षतिपूर्ति हेतु प्रत्यक्ष नकद मातृत्व लाभ प्रदान करता है।",
+      "mr": "गर्भवती महिला आणि स्तनदा मातांच्या पोषणासाठी व मजुरीच्या नुकसानीची भरपाई म्हणून थेट आर्थिक मातृत्व लाभ दिला जातो."
+    },
     "category": "women",
-    "target_groups": ["women", "pregnant women", "lactating mothers"],
-    "benefits": [
-      "Cash incentive of Rs 5,000 in two installments for the first living child upon early registration and institutional delivery.",
-      "Additional Rs 6,000 in a single installment for the birth of a second child if the child is a girl."
+    "target_groups": [
+      "women",
+      "pregnant women",
+      "lactating mothers"
     ],
+    "benefits": {
+      "en": [
+        "Cash incentive of Rs 5,000 for the first child in two installments upon pregnancy registration and child vaccination.",
+        "Additional Rs 6,000 incentive for the birth of a second girl child to promote child sex ratio."
+      ],
+      "hi": [
+        "पहले बच्चे के जन्म पर दो किस्तों में गर्भावस्था पंजीकरण और टीकाकरण के बाद ₹5,000 की नकद सहायता।",
+        "बाल लिंगानुपात को बढ़ावा देने के लिए दूसरी संतान कन्या होने पर ₹6,000 की अतिरिक्त सहायता।"
+      ],
+      "mr": [
+        "पहिल्या अपत्यासाठी गर्भधारणा नोंदणी आणि लसीकरणानंतर ₹5,000 ची थेट आर्थिक मदत.",
+        "दुसरे अपत्य मुलगी झाल्यास ₹6,000 चे अतिरिक्त विशेष प्रोत्साहन अनुदान."
+      ]
+    },
     "eligibility": [
       "Pregnant women and lactating mothers belonging to socially and economically disadvantaged sections.",
       "Excluded: Regular employees of Central/State Governments or Public Sector Undertakings."
     ],
-    "required_information": [
-      "Mother and Child Protection (MCP) card",
-      "Aadhaar card of woman beneficiary and husband",
-      "Bank account details linked with Aadhaar",
-      "Child birth certificate (for subsequent installment)"
-    ],
+    "required_information": {
+      "en": [
+        "Mother and Child Protection (MCP) card",
+        "Aadhaar card of woman beneficiary and husband",
+        "Bank account details linked with Aadhaar",
+        "Child birth certificate (for subsequent installment)"
+      ],
+      "hi": [
+        "मातृ एवं शिशु संरक्षण (एमसीपी) कार्ड",
+        "महिला लाभार्थी और पति का आधार कार्ड",
+        "आधार से जुड़ा बैंक खाता विवरण",
+        "बच्चे का जन्म प्रमाण पत्र"
+      ],
+      "mr": [
+        "माता व बाल संरक्षण (MCP) कार्ड",
+        "महिला लाभार्थी व पतीचे आधार कार्ड",
+        "आधार लिंक बँक खाते तपशील",
+        "बाळाचा जन्म दाखला"
+      ]
+    },
     "state": "all-india",
-    "department": "Ministry of Women and Child Development",
+    "department": {
+      "en": "Ministry of Women and Child Development",
+      "hi": "महिला एवं बाल विकास मंत्रालय",
+      "mr": "महिला आणि बाल विकास मंत्रालय"
+    },
     "application_url": "https://pmmvy.wcd.gov.in/",
     "source_url": "https://www.myscheme.gov.in/schemes/pmmvy",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {
+      "gender": "female",
+      "age_min": 19
+    }
   },
   {
     "id": "pmay-g",
-    "name": "Pradhan Mantri Awaas Yojana - Gramin (PMAY-G)",
-    "description": "Provides financial assistance to rural homeless and households living in kutcha/dilapidated houses to construct pucca houses with basic amenities.",
+    "name": {
+      "en": "Pradhan Mantri Awas Yojana - Gramin (PMAY-G)",
+      "hi": "प्रधानमंत्री आवास योजना - ग्रामीण (PMAY-G)",
+      "mr": "प्रधानमंत्री आवास योजना - ग्रामीण (PMAY-G)"
+    },
+    "description": {
+      "en": "Aims to provide a pucca house with basic amenities to all houseless and households living in kutcha and dilapidated houses in rural areas.",
+      "hi": "ग्रामीण क्षेत्रों में बेघर और कच्चे या जीर्ण-शीर्ण मकानों में रहने वाले परिवारों को बुनियादी सुविधाओं से युक्त पक्का मकान प्रदान करता है।",
+      "mr": "ग्रामीण भागातील बेघर आणि कच्च्या किंवा मोडकळीस आलेल्या घरात राहणाऱ्या कुटुंबांना सर्व सोयींयुक्त पक्के घर बांधून देणारी योजना."
+    },
     "category": "housing",
-    "target_groups": ["rural citizens", "homeless", "low-income families"],
-    "benefits": [
-      "Unit financial assistance of Rs 1,20,000 in plain areas and Rs 1,30,000 in hilly/difficult/IAP areas.",
-      "Additional 90 to 95 person-days of unskilled labor support through MGNREGA.",
-      "Rs 12,000 assistance for toilet construction via Swachh Bharat Mission - Gramin."
+    "target_groups": [
+      "rural citizens",
+      "homeless",
+      "low-income families"
     ],
+    "benefits": {
+      "en": [
+        "Financial assistance of Rs 1,20,000 in plain areas and Rs 1,30,000 in hilly/difficult areas for house construction.",
+        "Additional assistance of 90-95 person-days of unskilled labor under MGNREGA and Rs 12,000 for toilet construction under Swachh Bharat Mission."
+      ],
+      "hi": [
+        "मकान निर्माण हेतु मैदानी क्षेत्रों में ₹1,20,000 और पहाड़ी/कठिन क्षेत्रों में ₹1,30,000 की वित्तीय सहायता।",
+        "मनरेगा के तहत 90-95 दिनों की अकुशल मजदूरी और स्वच्छ भारत मिशन से शौचालय निर्माण हेतु ₹12,000 अतिरिक्त।"
+      ],
+      "mr": [
+        "घर बांधकामासाठी मैदानी भागात ₹1,20,000 तर डोंगराळ भागात ₹1,30,000 चे थेट आर्थिक अनुदान.",
+        "मनरेगा अंतर्गत 90-95 दिवसांची मजुरी आणि शौचालय बांधकामासाठी ₹12,000 चे अतिरिक्त अनुदान."
+      ]
+    },
     "eligibility": [
       "Rural families who are houseless or living in zero, one, or two-room houses with kutcha walls and kutcha roof as per SECC 2011 and Awaas+ list.",
       "Verified by the local Gram Sabha."
     ],
-    "required_information": [
-      "Aadhaar number",
-      "Bank account details",
-      "Job card number under MGNREGA",
-      "Consent for Aadhaar usage"
-    ],
+    "required_information": {
+      "en": [
+        "Aadhaar number",
+        "Bank account details",
+        "Job card number under MGNREGA",
+        "Consent for Aadhaar usage"
+      ],
+      "hi": [
+        "आधार संख्या",
+        "बैंक खाता विवरण",
+        "मनरेगा जॉब कार्ड संख्या",
+        "आधार सहमति"
+      ],
+      "mr": [
+        "आधार क्रमांक",
+        "बँक खाते तपशील",
+        "मनरेगा जॉब कार्ड क्रमांक",
+        "आधार संमती"
+      ]
+    },
     "state": "all-india",
-    "department": "Department of Rural Development, Ministry of Rural Development",
+    "department": {
+      "en": "Department of Rural Development, Ministry of Rural Development",
+      "hi": "ग्रामीण विकास विभाग, ग्रामीण विकास मंत्रालय",
+      "mr": "ग्रामीण विकास विभाग, ग्रामीण विकास मंत्रालय"
+    },
     "application_url": "https://pmayg.nic.in/",
     "source_url": "https://www.myscheme.gov.in/schemes/pmay-g",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {
+      "rural_or_urban": "rural",
+      "requires_no_pucca_house": true
+    }
   },
   {
     "id": "pmay-u",
-    "name": "Pradhan Mantri Awas Yojana - Urban (PMAY-U)",
-    "description": "Facilitates pucca housing for all eligible urban households including Economically Weaker Section (EWS), Low Income Group (LIG), and Middle Income Group (MIG).",
+    "name": {
+      "en": "Pradhan Mantri Awas Yojana - Urban (PMAY-U)",
+      "hi": "प्रधानमंत्री आवास योजना - शहरी (PMAY-U)",
+      "mr": "प्रधानमंत्री आवास योजना - शहरी (PMAY-U)"
+    },
+    "description": {
+      "en": "Addresses urban housing shortage among EWS, LIG, and MIG categories by providing central assistance to build or purchase pucca houses in cities.",
+      "hi": "शहरी क्षेत्रों में आर्थिक रूप से कमजोर (EWS) और निम्न आय वर्ग (LIG) परिवारों को पक्का मकान बनाने या खरीदने हेतु केंद्रीय सहायता प्रदान करता है।",
+      "mr": "शहरांमधील आर्थिकदृष्ट्या दुर्बल (EWS) आणि अल्प उत्पन्न गटातील (LIG) नागरिकांना पक्के घर बांधण्यासाठी किंवा खरेदीसाठी केंद्रीय अनुदान देणारी योजना."
+    },
     "category": "housing",
-    "target_groups": ["urban poor", "low-income families", "middle-income families"],
-    "benefits": [
-      "Central financial assistance up to Rs 1.5 lakh to Rs 2.67 lakh depending on the component (In-situ Slum Redevelopment, Credit Linked Subsidy, Affordable Housing in Partnership, Beneficiary-led Construction).",
-      "Interest subsidy on home loans for first-time home buyers."
+    "target_groups": [
+      "urban poor",
+      "low-income families",
+      "middle-income families"
     ],
+    "benefits": {
+      "en": [
+        "Up to Rs 2.5 lakh central assistance for Beneficiary-led Individual House Construction or Affordable Housing in Partnership.",
+        "Interest subsidy on home loans for economically weaker sections."
+      ],
+      "hi": [
+        "व्यक्तिगत मकान निर्माण या साझेदारी में किफायती आवास हेतु ₹2.5 लाख तक की केंद्रीय सहायता।",
+        "आर्थिक रूप से कमजोर वर्गों के लिए गृह ऋण पर ब्याज सब्सिडी।"
+      ],
+      "mr": [
+        "वैयक्तिक घर बांधकामासाठी किंवा परवडणाऱ्या घरांसाठी ₹2.5 लाखांपर्यंत थेट केंद्रीय अनुदान.",
+        "गृहकर्जावर व्याज अनुदान सवलत."
+      ]
+    },
     "eligibility": [
       "Beneficiary family must not own a pucca house anywhere in India.",
       "EWS annual household income up to Rs 3 lakh; LIG annual income Rs 3 lakh to Rs 6 lakh."
     ],
-    "required_information": [
-      "Aadhaar card of all family members",
-      "Income certificate or proof of income",
-      "Land ownership documents (for Beneficiary-led Construction component)",
-      "Bank account details"
-    ],
+    "required_information": {
+      "en": [
+        "Aadhaar card of all family members",
+        "Income certificate or proof of income",
+        "Land ownership documents (for Beneficiary-led Construction component)",
+        "Bank account details"
+      ],
+      "hi": [
+        "परिवार के सभी सदस्यों का आधार कार्ड",
+        "आय प्रमाण पत्र या आय का प्रमाण",
+        "जमीन स्वामित्व दस्तावेज (स्वयं निर्माण घटक हेतु)",
+        "बैंक खाता विवरण"
+      ],
+      "mr": [
+        "कुटुंबातील सर्व सदस्यांचे आधार कार्ड",
+        "उत्पन्नाचा दाखला",
+        "जागेचे मालकी हक्क कागदपत्रे",
+        "बँक खाते तपशील"
+      ]
+    },
     "state": "all-india",
-    "department": "Ministry of Housing and Urban Affairs",
+    "department": {
+      "en": "Ministry of Housing and Urban Affairs",
+      "hi": "आवासन एवं शहरी कार्य मंत्रालय",
+      "mr": "गृहनिर्माण आणि शहरी व्यवहार मंत्रालय"
+    },
     "application_url": "https://pmay-urban.gov.in/",
     "source_url": "https://www.myscheme.gov.in/schemes/pmay-u",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {
+      "rural_or_urban": "urban",
+      "income_max": 900000.0,
+      "requires_no_pucca_house": true
+    }
   },
   {
     "id": "pm-yasasvi",
-    "name": "PM Young Achievers Scholarship Award Scheme for Vibrant India (PM-YASASVI)",
-    "description": "Scholarship initiative supporting meritorious students belonging to OBC, EBC, and DNT categories to pursue secondary and higher secondary education.",
+    "name": {
+      "en": "PM Young Achievers Scholarship Award Scheme for Vibrant India (PM-YASASVI)",
+      "hi": "पीएम यशस्वी छात्रवृत्ति योजना (PM-YASASVI)",
+      "mr": "पीएम यशस्वी शिष्यवृत्ती योजना (PM-YASASVI)"
+    },
+    "description": {
+      "en": "Merit-based scholarship scheme for meritorious students from Other Backward Classes (OBC), Economically Backward Classes (EBC), and De-Notified Tribes (DNT).",
+      "hi": "अन्य पिछड़ा वर्ग (OBC), आर्थिक रूप से पिछड़ा वर्ग (EBC) और विमुक्त जनजातियों (DNT) के मेधावी छात्रों के लिए छात्रवृत्ति योजना।",
+      "mr": "इतर मागासवर्गीय (OBC), आर्थिकदृष्ट्या मागास (EBC) आणि विमुक्त जाती-भटक्या जमातींमधील (DNT) गुणवंत विद्यार्थ्यांसाठी शिष्यवृत्ती योजना."
+    },
     "category": "education",
-    "target_groups": ["students", "youth"],
-    "benefits": [
-      "Pre-matric scholarship of Rs 4,000 per annum for students studying in Class 9 and 10.",
-      "Post-matric scholarship covering academic allowance and tuition fees for higher secondary and collegiate education."
+    "target_groups": [
+      "students",
+      "youth"
     ],
+    "benefits": {
+      "en": [
+        "Scholarship up to Rs 75,000 per year for Class 9 and 10 students.",
+        "Scholarship up to Rs 1,25,000 per year for Class 11 and 12 students covering tuition and hostel fees."
+      ],
+      "hi": [
+        "कक्षा 9 और 10 के छात्रों के लिए प्रति वर्ष ₹75,000 तक की छात्रवृत्ति।",
+        "कक्षा 11 और 12 के छात्रों के लिए शिक्षण और छात्रावास शुल्क कवर करने हेतु प्रति वर्ष ₹1,25,000 तक की छात्रवृत्ति।"
+      ],
+      "mr": [
+        "इयत्ता 9 वी आणि 10 वी च्या विद्यार्थ्यांसाठी दरवर्षी ₹75,000 पर्यंत शिष्यवृत्ती.",
+        "इयत्ता 11 वी आणि 12 वी च्या विद्यार्थ्यांसाठी शिक्षण व वसतिगृह शुल्कासह दरवर्षी ₹1,25,000 पर्यंत शिष्यवृत्ती."
+      ]
+    },
     "eligibility": [
       "Students belonging to OBC, EBC, or DNT categories studying in identified schools/institutions.",
       "Total annual family income must not exceed Rs 2.5 lakh."
     ],
-    "required_information": [
-      "Aadhaar card of student",
-      "Category/Caste certificate (OBC/EBC/DNT)",
-      "Income certificate",
-      "Previous year academic mark sheet",
-      "Bank account details"
-    ],
+    "required_information": {
+      "en": [
+        "Aadhaar card of student",
+        "Category/Caste certificate (OBC/EBC/DNT)",
+        "Income certificate",
+        "Previous year academic mark sheet",
+        "Bank account details"
+      ],
+      "hi": [
+        "छात्र का आधार कार्ड",
+        "जाति प्रमाण पत्र (ओबीसी / ईबीसी / डीएनटी)",
+        "आय प्रमाण पत्र",
+        "गत वर्ष की अंकतालिका",
+        "बैंक खाता विवरण"
+      ],
+      "mr": [
+        "विद्यार्थ्याचे आधार कार्ड",
+        "जात प्रमाणपत्र (OBC / EBC / DNT)",
+        "उत्पन्नाचा दाखला",
+        "मागील शैक्षणिक वर्षाचे गुणपत्रक",
+        "बँक खाते तपशील"
+      ]
+    },
     "state": "all-india",
-    "department": "Department of Social Justice and Empowerment, Ministry of Social Justice and Empowerment",
+    "department": {
+      "en": "Department of Social Justice and Empowerment, Ministry of Social Justice and Empowerment",
+      "hi": "सामाजिक न्याय एवं अधिकारिता विभाग, सामाजिक न्याय एवं अधिकारिता मंत्रालय",
+      "mr": "सामाजिक न्याय आणि सक्षमीकरण विभाग, सामाजिक न्याय आणि सक्षमीकरण मंत्रालय"
+    },
     "application_url": "https://scholarships.gov.in/",
     "source_url": "https://www.myscheme.gov.in/schemes/pm-yasasvi-pre-matric",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {
+      "requires_student": true,
+      "social_categories": [
+        "obc",
+        "ebc",
+        "dnt"
+      ],
+      "income_max": 250000.0
+    }
   },
   {
     "id": "post-matric-sc",
-    "name": "Centrally Sponsored Post-Matric Scholarship for SC Students",
-    "description": "Provides financial assistance to Scheduled Caste students studying at post-matriculation or post-secondary stages to complete their education.",
+    "name": {
+      "en": "Post-Matric Scholarship for SC Students",
+      "hi": "अनुसूचित जाति (SC) छात्रों के लिए पोस्ट-मैट्रिक छात्रवृत्ति",
+      "mr": "अनुसूचित जाती (SC) विद्यार्थ्यांसाठी मॅट्रिकोत्तर शिष्यवृत्ती"
+    },
+    "description": {
+      "en": "Provides financial assistance to Scheduled Caste students studying at post-matriculation or post-secondary stages to complete their higher education.",
+      "hi": "अनुसूचित जाति (SC) के विद्यार्थियों को उच्च शिक्षा पूरी करने हेतु 10वीं के बाद वित्तीय सहायता और छात्रवृत्ति प्रदान करता है।",
+      "mr": "अनुसूचित जातीच्या (SC) विद्यार्थ्यांना 10 वी नंतरचे उच्च व व्यावसायिक शिक्षण पूर्ण करण्यासाठी संपूर्ण आर्थिक शिष्यवृत्ती दिली जाते."
+    },
     "category": "education",
-    "target_groups": ["students", "youth"],
-    "benefits": [
-      "Full reimbursement of non-refundable compulsory fees charged by the recognized educational institution.",
-      "Monthly academic maintenance allowance ranging from Rs 2,500 to Rs 13,500 per annum depending on the course group."
+    "target_groups": [
+      "students",
+      "youth"
     ],
+    "benefits": {
+      "en": [
+        "Full tuition fee reimbursement and compulsory non-refundable fees paid directly to institutions or students.",
+        "Monthly academic allowance ranging from Rs 2,500 to Rs 13,500 per annum depending on course group."
+      ],
+      "hi": [
+        "पूर्ण शिक्षण शुल्क प्रतिपूर्ति और अनिवार्य गैर-वापसी योग्य शैक्षणिक शुल्क माफी।",
+        "पाठ्यक्रम के आधार पर ₹2,500 से ₹13,500 प्रति वर्ष तक का मासिक शैक्षणिक निर्वाह भत्ता।"
+      ],
+      "mr": [
+        "संपूर्ण शैक्षणिक शुल्क प्रतिपूर्ती आणि परीक्षा शुल्काची माफी.",
+        "अभ्यासक्रमाच्या प्रकारानुसार दरवर्षी ₹2,500 ते ₹13,500 पर्यंत शैक्षणिक निर्वाह भत्ता."
+      ]
+    },
     "eligibility": [
       "Students belonging to the Scheduled Caste (SC) community.",
       "Studying in a recognized post-matriculation course.",
       "Annual family income from all sources not exceeding Rs 2.50 lakh."
     ],
-    "required_information": [
-      "Aadhaar card",
-      "Caste certificate issued by competent authority",
-      "Income certificate",
-      "Admission fee receipt and institutional verification",
-      "Active bank account linked with Aadhaar"
-    ],
+    "required_information": {
+      "en": [
+        "Aadhaar card",
+        "Caste certificate issued by competent authority",
+        "Income certificate",
+        "Admission fee receipt and institutional verification",
+        "Active bank account linked with Aadhaar"
+      ],
+      "hi": [
+        "आधार कार्ड",
+        "सक्षम प्राधिकारी द्वारा जारी अनुसूचित जाति (SC) प्रमाण पत्र",
+        "आय प्रमाण पत्र",
+        "प्रवेश शुल्क रसीद एवं कॉलेज सत्यापन",
+        "आधार से जुड़ा सक्रिय बैंक खाता"
+      ],
+      "mr": [
+        "आधार कार्ड",
+        "सक्षम प्राधिकार्‍याने दिलेला अनुसूचित जाती (SC) दाखला",
+        "उत्पन्नाचा दाखला",
+        "प्रवेश पावती व महाविद्यालयीन पडताळणी",
+        "आधार लिंक सक्रिय बँक खाते"
+      ]
+    },
     "state": "all-india",
-    "department": "Department of Social Justice and Empowerment, Ministry of Social Justice and Empowerment",
+    "department": {
+      "en": "Ministry of Social Justice and Empowerment",
+      "hi": "सामाजिक न्याय एवं अधिकारिता मंत्रालय",
+      "mr": "सामाजिक न्याय आणि सक्षमीकरण मंत्रालय"
+    },
     "application_url": "https://scholarships.gov.in/",
     "source_url": "https://www.myscheme.gov.in/schemes/post-matric-scholarship-sc",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {
+      "requires_student": true,
+      "social_categories": [
+        "sc"
+      ],
+      "income_max": 250000.0
+    }
   },
   {
     "id": "mgnrega",
-    "name": "Mahatma Gandhi National Rural Employment Guarantee Act (MGNREGA)",
-    "description": "Guarantees at least 100 days of wage employment in a financial year to every rural household whose adult members volunteer to do unskilled manual work.",
+    "name": {
+      "en": "Mahatma Gandhi National Rural Employment Guarantee Act (MGNREGA)",
+      "hi": "महात्मा गांधी राष्ट्रीय ग्रामीण रोजगार गारंटी अधिनियम (मनरेगा)",
+      "mr": "महात्मा गांधी राष्ट्रीय ग्रामीण रोजगार हमी कायदा (मनरेगा)"
+    },
+    "description": {
+      "en": "Guarantees at least 100 days of wage employment in a financial year to every rural household whose adult members volunteer to do unskilled manual work.",
+      "hi": "ग्रामीण परिवारों के वयस्क सदस्यों को एक वित्तीय वर्ष में कम से कम 100 दिनों के गारंटीशुदा अकुशल शारीरिक रोजगार का कानूनी अधिकार देता है।",
+      "mr": "ग्रामीण भागातील प्रत्येक अकुशल शारीरिक काम करू इच्छिणाऱ्या कुटुंबाला वर्षाला किमान 100 दिवसांच्या रोजगाराची कायदेशीर हमी देणारा कायदा."
+    },
     "category": "employment",
-    "target_groups": ["rural citizens", "job seekers", "unskilled workers"],
-    "benefits": [
-      "Guaranteed minimum 100 days of paid unskilled manual employment per household per year.",
-      "Statutory minimum wage paid directly into bank/post office accounts within 15 days of work completion.",
-      "Unemployment allowance payable if work is not provided within 15 days of application."
+    "target_groups": [
+      "rural citizens",
+      "job seekers",
+      "unskilled workers"
     ],
+    "benefits": {
+      "en": [
+        "Statutory right to 100 days of guaranteed wage employment per financial year per rural household.",
+        "Wages disbursed directly into bank/post office accounts with unemployment allowance payable if work is not provided within 15 days of demand."
+      ],
+      "hi": [
+        "प्रत्येक ग्रामीण परिवार को प्रति वित्तीय वर्ष 100 दिनों के गारंटीशुदा रोजगार का वैधानिक अधिकार।",
+        "मजदूरी सीधे बैंक या डाकघर खाते में जमा; 15 दिनों में काम न मिलने पर बेरोजगारी भत्ता देय।"
+      ],
+      "mr": [
+        "प्रत्येक ग्रामीण कुटुंबाला वर्षाला 100 दिवस रोजगाराचा वैधानिक हक्क.",
+        "मजुरी थेट बँक किंवा पोस्ट खात्यात जमा; कामाची मागणी केल्यावर 15 दिवसांत काम न मिळाल्यास बेरोजगारी भत्ता मिळण्याचा अधिकार."
+      ]
+    },
     "eligibility": [
       "Adult members of rural households willing to do unskilled manual work.",
       "Must reside within the local Gram Panchayat area."
     ],
-    "required_information": [
-      "Proof of residence in Gram Panchayat",
-      "Aadhaar card",
-      "Photographs of adult applicants",
-      "Bank or Post Office savings account details"
-    ],
+    "required_information": {
+      "en": [
+        "Proof of residence in Gram Panchayat",
+        "Aadhaar card",
+        "Photographs of adult applicants",
+        "Bank or Post Office savings account details"
+      ],
+      "hi": [
+        "ग्राम पंचायत में निवास का प्रमाण",
+        "आधार कार्ड",
+        "वयस्क आवेदकों के फोटो",
+        "बैंक या डाकघर बचत खाता विवरण"
+      ],
+      "mr": [
+        "ग्रामपंचायतीमधील रहिवासी पुरावा",
+        "आधार कार्ड",
+        "प्रौढ अर्जदारांचे पासपोर्ट फोटो",
+        "बँक किंवा पोस्ट बचत खाते तपशील"
+      ]
+    },
     "state": "all-india",
-    "department": "Department of Rural Development, Ministry of Rural Development",
+    "department": {
+      "en": "Ministry of Rural Development",
+      "hi": "ग्रामीण विकास मंत्रालय",
+      "mr": "ग्रामीण विकास मंत्रालय"
+    },
     "application_url": "https://nrega.nic.in/",
     "source_url": "https://www.myscheme.gov.in/schemes/mgnrega",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {
+      "rural_or_urban": "rural"
+    }
   },
   {
     "id": "pmkvy",
-    "name": "Pradhan Mantri Kaushal Vikas Yojana (PMKVY 4.0)",
-    "description": "Flagship skill certification scheme aimed at enabling youth to take up industry-relevant, market-driven skill training to secure better livelihoods.",
+    "name": {
+      "en": "Pradhan Mantri Kaushal Vikas Yojana (PMKVY)",
+      "hi": "प्रधानमंत्री कौशल विकास योजना (PMKVY)",
+      "mr": "प्रधानमंत्री कौशल विकास योजना (PMKVY)"
+    },
+    "description": {
+      "en": "Flagship skill certification scheme providing industry-relevant, free-of-cost skill training to Indian youth to improve their employability and livelihoods.",
+      "hi": "भारतीय युवाओं को रोजगार योग्य बनाने और आजीविका संवारने हेतु उद्योग-आधारित निःशुल्क कौशल प्रशिक्षण और प्रमाणन प्रदान करता है।",
+      "mr": "तरुणांना रोजगाराभिमुख आणि उद्योगपूरक मोफत कौशल्य प्रशिक्षण व सरकारी प्रमाणपत्र देणारी कौशल्य विकास योजना."
+    },
     "category": "employment",
-    "target_groups": ["youth", "unemployed", "job seekers"],
-    "benefits": [
-      "Free short-term skill training, upskilling, and reskilling courses aligned with National Skill Qualification Framework (NSQF).",
-      "Government-recognized skill certification and placement assistance / apprenticeship support.",
-      "Assessment and certification fees fully funded by the government."
+    "target_groups": [
+      "youth",
+      "unemployed",
+      "job seekers"
     ],
+    "benefits": {
+      "en": [
+        "Completely free skill training with government-recognized certification and skill card upon successful assessment.",
+        "Placement assistance, career counseling, and monetary reward for certified candidates."
+      ],
+      "hi": [
+        "सफल मूल्यांकन पर सरकारी मान्यता प्राप्त प्रमाणपत्र और स्किल कार्ड सहित पूर्णतः निःशुल्क कौशल प्रशिक्षण।",
+        "प्रमाणित उम्मीदवारों को रोजगार सहायता और करियर काउंसलिंग।"
+      ],
+      "mr": [
+        "शासकीय मान्यताप्राप्त प्रमाणपत्र व स्किल कार्डसह संपूर्णपणे मोफत कौशल्य प्रशिक्षण.",
+        "प्रशिक्षण पूर्ण केलेल्या उमेदवारांना नोकरी व रोजगार सहाय्य आणि करिअर समुपदेशन."
+      ]
+    },
     "eligibility": [
       "Indian youth aged 15 to 45 years who are unemployed, school or college dropouts, or seeking formal skill certification."
     ],
-    "required_information": [
-      "Aadhaar card",
-      "Educational qualification certificates",
-      "Active mobile number and email ID",
-      "Bank account details"
-    ],
+    "required_information": {
+      "en": [
+        "Aadhaar card",
+        "Educational qualification certificates",
+        "Active mobile number and email ID",
+        "Bank account details"
+      ],
+      "hi": [
+        "आधार कार्ड",
+        "शैक्षणिक योग्यता प्रमाण पत्र",
+        "सक्रिय मोबाइल नंबर एवं ईमेल",
+        "बैंक खाता विवरण"
+      ],
+      "mr": [
+        "आधार कार्ड",
+        "शैक्षणिक पात्रता कागदपत्रे / गुणपत्रक",
+        "सक्रिय मोबाईल नंबर व ईमेल",
+        "बँक खाते तपशील"
+      ]
+    },
     "state": "all-india",
-    "department": "Ministry of Skill Development and Entrepreneurship",
+    "department": {
+      "en": "Ministry of Skill Development and Entrepreneurship",
+      "hi": "कौशल विकास एवं उद्यमिता मंत्रालय",
+      "mr": "कौशल्य विकास आणि उद्योजकता मंत्रालय"
+    },
     "application_url": "https://www.skillindiadigital.gov.in/",
     "source_url": "https://www.myscheme.gov.in/schemes/pmkvy-short-term-training",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {
+      "age_min": 15,
+      "age_max": 45
+    }
   },
   {
     "id": "apy",
-    "name": "Atal Pension Yojana (APY)",
-    "description": "Guaranteed pension scheme administered by PFRDA primarily focused on workers in the unorganized sector to provide post-retirement financial security.",
+    "name": {
+      "en": "Atal Pension Yojana (APY)",
+      "hi": "अटल पेंशन योजना (APY)",
+      "mr": "अटल पेन्शन योजना (APY)"
+    },
+    "description": {
+      "en": "Guaranteed pension scheme primarily focused on unorganized sector workers, providing a fixed monthly pension from age 60 based on contributions.",
+      "hi": "असंगठित क्षेत्र के कामगारों के लिए सरकार द्वारा गारंटीशुदा मासिक पेंशन योजना, जो 60 वर्ष की आयु के बाद आजीवन पेंशन प्रदान करती है।",
+      "mr": "असंघटित क्षेत्रातील कामगारांसाठी भारत सरकारची खात्रीशीर मासिक पेन्शन योजना, जी वयाच्या 60 नंतर निश्चित मासिक पेन्शन देते."
+    },
     "category": "insurance",
-    "target_groups": ["unorganized sector workers", "self-employed", "low-income workers"],
-    "benefits": [
-      "Guaranteed monthly pension of Rs 1,000, Rs 2,000, Rs 3,000, Rs 4,000, or Rs 5,000 from age 60 until demise based on contributions.",
-      "Spouse receives the same pension upon the subscriber's demise, followed by return of corpus to the nominee."
+    "target_groups": [
+      "unorganized sector workers",
+      "self-employed",
+      "low-income workers"
     ],
+    "benefits": {
+      "en": [
+        "Government-guaranteed monthly pension of Rs 1,000, Rs 2,000, Rs 3,000, Rs 4,000, or Rs 5,000 from age 60 until death.",
+        "Same pension payable to spouse upon subscriber's death, and accumulated corpus returned to nominee upon death of both."
+      ],
+      "hi": [
+        "60 वर्ष की आयु के बाद मृत्यु तक ₹1,000 से ₹5,000 प्रति माह की गारंटीशुदा पेंशन।",
+        "ग्राहक की मृत्यु के बाद पति/पत्नी को समान पेंशन और दोनों की मृत्यु के बाद संचित राशि नॉमिनी को वापस।"
+      ],
+      "mr": [
+        "वयाच्या 60 वर्षांनंतर आयुष्यभर ₹1,000 ते ₹5,000 पर्यंत निश्चित मासिक पेन्शनची शासकीय हमी.",
+        "सभासदाच्या मृत्यूनंतर पती/पत्नीला तेवढीच पेन्शन, आणि दोघांनंतर जमा झालेली रक्कम वारसाला परत."
+      ]
+    },
     "eligibility": [
       "Any Indian citizen aged between 18 and 40 years holding a savings bank account.",
       "Subscriber must not be an income taxpayer (effective October 1, 2022)."
     ],
-    "required_information": [
-      "Aadhaar number",
-      "Active savings bank account with auto-debit facility",
-      "Mobile number",
-      "Nominee details"
-    ],
+    "required_information": {
+      "en": [
+        "Aadhaar number",
+        "Active savings bank account with auto-debit facility",
+        "Mobile number",
+        "Nominee details"
+      ],
+      "hi": [
+        "आधार संख्या",
+        "ऑटो-डेबिट सुविधा युक्त सक्रिय बचत बैंक खाता",
+        "मोबाइल नंबर",
+        "नॉमिनी विवरण"
+      ],
+      "mr": [
+        "आधार क्रमांक",
+        "ऑटो-डेबिट सुविधा असलेले सक्रिय बँक बचत खाते",
+        "मोबाईल नंबर",
+        "वारसदाराचे (नॉमिनी) तपशील"
+      ]
+    },
     "state": "all-india",
-    "department": "Pension Fund Regulatory and Development Authority (PFRDA), Ministry of Finance",
+    "department": {
+      "en": "Pension Fund Regulatory and Development Authority (PFRDA), Ministry of Finance",
+      "hi": "पेंशन निधि विनियामक एवं विकास प्राधिकरण (PFRDA), वित्त मंत्रालय",
+      "mr": "पेन्शन फंड नियामक आणि विकास प्राधिकरण (PFRDA), वित्त मंत्रालय"
+    },
     "application_url": "https://www.npscra.nsdl.co.in/scheme-details.php",
     "source_url": "https://www.myscheme.gov.in/schemes/apy",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {
+      "age_min": 18,
+      "age_max": 40
+    }
   },
   {
     "id": "pmsby",
-    "name": "Pradhan Mantri Suraksha Bima Yojana (PMSBY)",
-    "description": "One-year renewable accidental insurance scheme offering high-coverage protection against accidental death and permanent disability at a very low premium.",
+    "name": {
+      "en": "Pradhan Mantri Suraksha Bima Yojana (PMSBY)",
+      "hi": "प्रधानमंत्री सुरक्षा बीमा योजना (PMSBY)",
+      "mr": "प्रधानमंत्री सुरक्षा विमा योजना (PMSBY)"
+    },
+    "description": {
+      "en": "One-year renewable accident insurance scheme offering high-coverage accidental death and disability protection at a nominal annual premium of Rs 20.",
+      "hi": "मात्र ₹20 के नाममात्र वार्षिक प्रीमियम पर आकस्मिक मृत्यु और स्थायी दिव्यांगता के विरुद्ध ₹2 लाख का सुरक्षा कवर प्रदान करता है।",
+      "mr": "फक्त ₹20 च्या वार्षिक हप्त्यावर अपघाती मृत्यू किंवा कायमचे अपंगत्व आल्यास ₹2 लाखांपर्यंतचे परवडणारे अपघात विमा संरक्षण."
+    },
     "category": "insurance",
-    "target_groups": ["all citizens", "low-income workers", "unorganized sector workers"],
-    "benefits": [
-      "Risk coverage of Rs 2,00,000 for accidental death or total permanent disability.",
-      "Risk coverage of Rs 1,00,000 for permanent partial disability.",
-      "Extremely affordable premium of Rs 20 per annum auto-debited from bank account."
+    "target_groups": [
+      "all citizens",
+      "low-income workers",
+      "unorganized sector workers"
     ],
+    "benefits": {
+      "en": [
+        "Accidental death and total permanent disability cover of Rs 2 lakh.",
+        "Partial permanent disability cover of Rs 1 lakh with simple annual auto-debit of Rs 20."
+      ],
+      "hi": [
+        "दुर्घटना में मृत्यु या पूर्ण स्थायी दिव्यांगता होने पर ₹2 लाख का बीमा कवर।",
+        "आंशिक स्थायी दिव्यांगता पर ₹1 लाख का कवर, वार्षिक ₹20 के ऑटो-डेबिट के साथ।"
+      ],
+      "mr": [
+        "अपघातात मृत्यू किंवा पूर्ण कायमस्वरूपी अपंगत्व आल्यास ₹2 लाखांचे विमा कवच.",
+        "अंशतः कायमस्वरूपी अपंगत्वासाठी ₹1 लाख, वार्षिक ₹20 च्या सोप्या ऑटो-डेबिट सुविधेसह."
+      ]
+    },
     "eligibility": [
       "Individuals aged between 18 and 70 years with an active savings bank or post office account.",
       "Consent to enable annual auto-debit of the premium."
     ],
-    "required_information": [
-      "Aadhaar card",
-      "Savings bank account details",
-      "Nominee information",
-      "Auto-debit mandate consent"
-    ],
+    "required_information": {
+      "en": [
+        "Aadhaar card",
+        "Savings bank account details",
+        "Nominee information",
+        "Auto-debit mandate consent"
+      ],
+      "hi": [
+        "आधार कार्ड",
+        "बचत बैंक खाता विवरण",
+        "नॉमिनी जानकारी",
+        "ऑटो-डेबिट सहमति फॉर्म"
+      ],
+      "mr": [
+        "आधार कार्ड",
+        "बँक बचत खाते तपशील",
+        "वारसदाराचे (नॉमिनी) नाव",
+        "ऑटो-डेबिट संमती फॉर्म"
+      ]
+    },
     "state": "all-india",
-    "department": "Department of Financial Services, Ministry of Finance",
+    "department": {
+      "en": "Department of Financial Services, Ministry of Finance",
+      "hi": "वित्तीय सेवाएं विभाग, वित्त मंत्रालय",
+      "mr": "वित्तीय सेवा विभाग, वित्त मंत्रालय"
+    },
     "application_url": "https://www.jansuraksha.gov.in/",
     "source_url": "https://www.myscheme.gov.in/schemes/pmsby",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {
+      "age_min": 18,
+      "age_max": 70
+    }
   },
   {
     "id": "majhi-ladki-bahin",
-    "name": "Mukhyamantri Majhi Ladki Bahin Yojana",
-    "description": "Maharashtra state government flagship initiative providing direct monthly financial assistance to women to support self-reliance, nutrition, and health.",
+    "name": {
+      "en": "Mukhyamantri Majhi Ladki Bahin Yojana",
+      "hi": "मुख्यमंत्री माझी लाड़की बहिन योजना",
+      "mr": "मुख्यमंत्री माझी लाडकी बहीण योजना"
+    },
+    "description": {
+      "en": "Maharashtra state welfare scheme empowering women by providing direct financial assistance of Rs 1,500 per month directly into bank accounts.",
+      "hi": "महाराष्ट्र सरकार द्वारा महिलाओं के आर्थिक स्वावलंबन और पोषण सुधार हेतु प्रति माह ₹1,500 की सीधी आर्थिक सहायता।",
+      "mr": "महाराष्ट्रातील महिलांचे आर्थिक सक्षमीकरण, स्वावलंबन आणि आरोग्य सुधारण्यासाठी दरमहा ₹1,500 थेट बँक खात्यात देणारी योजना."
+    },
     "category": "women",
-    "target_groups": ["women", "low-income families"],
-    "benefits": [
-      "Direct financial assistance of Rs 1,500 per month transferred directly to the Aadhaar-linked bank account of the woman beneficiary."
+    "target_groups": [
+      "women",
+      "low-income families"
     ],
+    "benefits": {
+      "en": [
+        "Direct financial assistance of Rs 1,500 per month (Rs 18,000 per year) credited via DBT into Aadhaar-linked bank accounts.",
+        "Enhances women's economic independence, nutrition, and self-reliance across Maharashtra."
+      ],
+      "hi": [
+        "प्रति माह ₹1,500 (वार्षिक ₹18,000) की प्रत्यक्ष वित्तीय सहायता आधार से जुड़े बैंक खाते में डीबीटी द्वारा।",
+        "महाराष्ट्र में महिलाओं की आर्थिक स्वतंत्रता और आत्मनिर्भरता को बढ़ावा।"
+      ],
+      "mr": [
+        "दरमहा ₹1,500 (वार्षिक ₹18,000) थेट आधार लिंक बँक खात्यात डीबीटीद्वारे जमा.",
+        "महाराष्ट्रातील महिलांचे आर्थिक स्वातंत्र्य, पोषण व स्वावलंबन वृद्धिंगत करणारी योजना."
+      ]
+    },
     "eligibility": [
       "Permanent resident woman of Maharashtra state aged between 21 and 65 years.",
       "Married, widowed, divorced, abandoned, or destitute women.",
       "Annual family income must not exceed Rs 2.50 lakh.",
       "Family members must not be regular government employees or income tax payers."
     ],
-    "required_information": [
-      "Aadhaar card",
-      "Domicile certificate of Maharashtra (or ration card / school leaving certificate showing 15 years residency)",
-      "Income certificate (up to Rs 2.50 lakh) or yellow/orange ration card",
-      "Aadhaar-seeded bank passbook",
-      "Hamipatra (Self-declaration form)"
-    ],
+    "required_information": {
+      "en": [
+        "Aadhaar card",
+        "Domicile certificate of Maharashtra (or ration card / school leaving certificate showing 15 years residency)",
+        "Income certificate (up to Rs 2.50 lakh) or yellow/orange ration card",
+        "Aadhaar-seeded bank passbook",
+        "Hamipatra (Self-declaration form)"
+      ],
+      "hi": [
+        "आधार कार्ड",
+        "महाराष्ट्र अधिवास प्रमाण पत्र (या 15 वर्ष पुराना राशन कार्ड / स्कूल लीविंग सर्टिफिकेट)",
+        "आय प्रमाण पत्र (₹2.50 लाख तक) या पीला/नारंगी राशन कार्ड",
+        "आधार से जुड़ा बैंक पासबुक",
+        "हमीपत्र (स्व-घोषणा पत्र)"
+      ],
+      "mr": [
+        "आधार कार्ड",
+        "महाराष्ट्राचे अधिवास प्रमाणपत्र (किंवा 15 वर्षे वास्तव्याचा पुरावा: रेशन कार्ड/शाळा सोडल्याचा दाखला)",
+        "वार्षिक उत्पन्न ₹2.50 लाखांपर्यंतचा दाखला किंवा पिवळे/केशरी रेशन कार्ड",
+        "आधार लिंक बँक पासबुक",
+        "हमीपत्र (स्वयंघोषणा पत्र)"
+      ]
+    },
     "state": "maharashtra",
-    "department": "Women and Child Development Department, Government of Maharashtra",
+    "department": {
+      "en": "Women and Child Development Department, Government of Maharashtra",
+      "hi": "महिला एवं बाल विकास विभाग, महाराष्ट्र शासन",
+      "mr": "महिला व बाल विकास विभाग, महाराष्ट्र शासन"
+    },
     "application_url": "https://ladakibahin.maharashtra.gov.in/",
     "source_url": "https://ladakibahin.maharashtra.gov.in/",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {
+      "gender": "female",
+      "age_min": 21,
+      "age_max": 65,
+      "income_max": 250000.0
+    }
   },
   {
     "id": "mjpjay",
-    "name": "Mahatma Jyotirao Phule Jan Arogya Yojana (MJPJAY)",
-    "description": "Maharashtra state government flagship health insurance scheme providing cashless medical and surgical treatment for serious illnesses.",
+    "name": {
+      "en": "Mahatma Jyotirao Phule Jan Arogya Yojana (MJPJAY)",
+      "hi": "महात्मा ज्योतिराव फुले जन आरोग्य योजना (MJPJAY)",
+      "mr": "महात्मा ज्योतिराव फुले जन आरोग्य योजना (MJPJAY)"
+    },
+    "description": {
+      "en": "Flagship universal health insurance scheme of Maharashtra providing cashless medical treatment up to Rs 5 lakh per family per year for identified critical surgeries and hospitalizations.",
+      "hi": "महाराष्ट्र शासन की प्रमुख स्वास्थ्य बीमा योजना, जो राज्य के परिवारों को गंभीर बीमारियों और सर्जरी हेतु प्रति वर्ष ₹5 लाख तक का कैशलेस उपचार प्रदान करती है।",
+      "mr": "महाराष्ट्र शासनाची अग्रगण्य मोफत आरोग्य विमा योजना, जी राज्यातील कुटुंबांना गंभीर आजार व शस्त्रक्रियांसाठी दरवर्षी ₹5 लाखांपर्यंत मोफत कॅशलेस उपचार देते."
+    },
     "category": "health",
-    "target_groups": ["low-income families", "farmers", "rural citizens"],
-    "benefits": [
-      "Cashless hospitalization coverage up to Rs 5 lakh per family per year across empaneled public and private network hospitals.",
-      "Covers 1,356 identified medical and surgical procedures across multiple specialties."
+    "target_groups": [
+      "low-income families",
+      "farmers",
+      "rural citizens"
     ],
+    "benefits": {
+      "en": [
+        "Cashless inpatient medical and surgical care up to Rs 5 lakh per family per year across network empaneled hospitals in Maharashtra.",
+        "Covers 1,356 identified medical and surgical procedures across 34 specialized medical categories."
+      ],
+      "hi": [
+        "महाराष्ट्र के संबद्ध अस्पतालों में प्रति परिवार प्रति वर्ष ₹5 लाख तक का कैशलेस चिकित्सा एवं सर्जिकल उपचार।",
+        "34 विशेष चिकित्सा श्रेणियों में 1,356 प्रकार की गंभीर बीमारियों और ऑपरेशनों का संपूर्ण खर्च शामिल।"
+      ],
+      "mr": [
+        "महाराष्ट्रातील संलग्न रुग्णालयांमध्ये प्रति कुटुंब प्रति वर्ष ₹5 लाखांपर्यंत संपूर्ण मोफत कॅशलेस उपचार.",
+        "34 विशेष वैद्यकीय श्रेणींमधील 1,356 गंभीर आजार आणि शस्त्रक्रियांचा संपूर्ण खर्च समाविष्ट."
+      ]
+    },
     "eligibility": [
       "Residents of Maharashtra holding Yellow, Orange, or Antyodaya Ration Cards.",
       "Farmers from 14 distressed agricultural districts holding white ration cards or 7/12 land extract.",
       "Now universally extended to all Maharashtra families holding valid ration cards and domicile."
     ],
-    "required_information": [
-      "Valid Ration Card (Yellow/Orange/Antyodaya/White with eligibility criteria)",
-      "Aadhaar card of patient and family head",
-      "Maharashtra domicile proof / residence proof",
-      "Medical diagnosis documents from medical authority"
-    ],
+    "required_information": {
+      "en": [
+        "Valid Ration Card (Yellow/Orange/Antyodaya/White with eligibility criteria)",
+        "Aadhaar card of patient and family head",
+        "Maharashtra domicile proof / residence proof",
+        "Medical diagnosis documents from medical authority"
+      ],
+      "hi": [
+        "मान्य राशन कार्ड (पीला / नारंगी / अंत्योदय / श्वेत)",
+        "मरीज और परिवार के मुखिया का आधार कार्ड",
+        "महाराष्ट्र अधिवास / निवास प्रमाण पत्र",
+        "चिकित्सा निदान दस्तावेज"
+      ],
+      "mr": [
+        "वैध रेशन कार्ड (पिवळे / केशरी / अंत्योदय / पांढरे)",
+        "रुग्ण व कुटुंबप्रमुखाचे आधार कार्ड",
+        "महाराष्ट्र रहिवासी / अधिवास दाखला",
+        "वैद्यकीय तपासणी व आजार निदान कागदपत्रे"
+      ]
+    },
     "state": "maharashtra",
-    "department": "State Health Assurance Society, Public Health Department, Government of Maharashtra",
+    "department": {
+      "en": "Public Health Department, Government of Maharashtra",
+      "hi": "सार्वजनिक स्वास्थ्य विभाग, महाराष्ट्र शासन",
+      "mr": "सार्वजनिक आरोग्य विभाग, महाराष्ट्र शासन"
+    },
     "application_url": "https://www.jeevandayee.gov.in/",
     "source_url": "https://www.jeevandayee.gov.in/",
-    "last_verified": "2026-09-16"
+    "last_verified": "2026-09-16",
+    "eligibility_criteria": {}
   }
 ]
