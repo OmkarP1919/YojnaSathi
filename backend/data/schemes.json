@@ -1,0 +1,476 @@
+[
+  {
+    "id": "pm-kisan",
+    "name": "Pradhan Mantri Kisan Samman Nidhi (PM-KISAN)",
+    "description": "Provides direct income support of Rs 6,000 per year to eligible landholding farmer families across the country.",
+    "category": "agriculture",
+    "target_groups": ["farmers", "rural citizens"],
+    "benefits": [
+      "Financial benefit of Rs 6,000 per year transferred directly into bank accounts in three equal installments of Rs 2,000 every four months."
+    ],
+    "eligibility": [
+      "All landholding farmer families with cultivable landholding in their names across the country.",
+      "Subject to scheme exclusion criteria (such as institutional landholders, individuals who paid income tax in the last assessment year, constitutional post holders, and serving or retired government/PSU employees excluding Group D/multi-tasking staff)."
+    ],
+    "required_information": [
+      "Aadhaar number",
+      "Landholding documentation or land ownership details",
+      "Bank account details linked with Aadhaar",
+      "Mobile number"
+    ],
+    "state": "all-india",
+    "department": "Department of Agriculture & Farmers Welfare, Ministry of Agriculture & Farmers Welfare",
+    "application_url": "https://pmkisan.gov.in/",
+    "source_url": "https://pmkisan.gov.in/",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "pmfby",
+    "name": "Pradhan Mantri Fasal Bima Yojana (PMFBY)",
+    "description": "Offers comprehensive crop insurance covering yield losses due to non-preventable natural risks like drought, flood, pests, and unseasonal rains.",
+    "category": "agriculture",
+    "target_groups": ["farmers"],
+    "benefits": [
+      "Insurance coverage and financial support to farmers suffering crop loss or damage.",
+      "Uniform low premium rates: maximum 2% for Kharif crops, 1.5% for Rabi crops, and 5% for commercial/horticultural crops."
+    ],
+    "eligibility": [
+      "All farmers including sharecroppers and tenant farmers growing notified crops in notified areas.",
+      "Available for both loanee and non-loanee farmers."
+    ],
+    "required_information": [
+      "Aadhaar number",
+      "Land records (Khasra/Khatauni number)",
+      "Sowing certificate or declaration",
+      "Bank account details"
+    ],
+    "state": "all-india",
+    "department": "Ministry of Agriculture & Farmers Welfare",
+    "application_url": "https://pmfby.gov.in/",
+    "source_url": "https://www.myscheme.gov.in/schemes/pmfby",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "pm-jay",
+    "name": "Ayushman Bharat - Pradhan Mantri Jan Arogya Yojana (PM-JAY)",
+    "description": "World's largest health assurance scheme providing health cover up to Rs 5 lakh per family per year for secondary and tertiary care hospitalization.",
+    "category": "health",
+    "target_groups": ["low-income families", "rural citizens", "urban poor", "senior citizens"],
+    "benefits": [
+      "Cashless and paperless inpatient healthcare cover up to Rs 5 lakh per eligible family per year at empaneled public and private hospitals.",
+      "Covers pre-existing conditions, diagnostics, medicines, and post-hospitalization expenses."
+    ],
+    "eligibility": [
+      "Families identified under the Socio-Economic Caste Census (SECC 2011) deprivation and occupational criteria.",
+      "All senior citizens aged 70 years and above (Ayushman Vay Vandana card) regardless of income."
+    ],
+    "required_information": [
+      "Aadhaar card",
+      "Ration card or family identification document",
+      "Registered mobile number"
+    ],
+    "state": "all-india",
+    "department": "National Health Authority, Ministry of Health and Family Welfare",
+    "application_url": "https://beneficiary.nha.gov.in/",
+    "source_url": "https://www.myscheme.gov.in/schemes/ab-pmjay",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "pm-svanidhi",
+    "name": "PM Street Vendor's AtmaNirbhar Nidhi (PM SVANidhi)",
+    "description": "Special micro-credit facility providing collateral-free working capital loans to urban and peri-urban street vendors.",
+    "category": "small businesses",
+    "target_groups": ["street vendors", "urban poor", "micro entrepreneurs"],
+    "benefits": [
+      "Initial collateral-free working capital loan up to Rs 10,000 with a 1-year tenure.",
+      "Higher loan limits up to Rs 20,000 on second tranche and Rs 50,000 on third tranche upon timely repayment.",
+      "Interest subsidy of 7% per annum on timely repayments and monthly cashback on digital transactions."
+    ],
+    "eligibility": [
+      "Street vendors vending in urban areas on or before March 24, 2020.",
+      "Possession of Certificate of Vending / Identity Card issued by Urban Local Body (ULB) or Letter of Recommendation (LoR)."
+    ],
+    "required_information": [
+      "Aadhaar card",
+      "Vending Certificate or ID card / Letter of Recommendation from ULB",
+      "Bank account details",
+      "Mobile number linked to Aadhaar"
+    ],
+    "state": "all-india",
+    "department": "Ministry of Housing and Urban Affairs",
+    "application_url": "https://pmsvanidhi.mohua.gov.in/",
+    "source_url": "https://www.myscheme.gov.in/schemes/pm-svanidhi",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "pmmy",
+    "name": "Pradhan Mantri Mudra Yojana (PMMY)",
+    "description": "Provides loans up to Rs 20 lakh to non-corporate, non-farm small and micro enterprises to facilitate business establishment and expansion.",
+    "category": "financial inclusion",
+    "target_groups": ["small business owners", "micro entrepreneurs", "women entrepreneurs", "self-employed"],
+    "benefits": [
+      "Collateral-free institutional credit categorized into Shishu (up to Rs 50,000), Kishore (Rs 50,000 to Rs 5 lakh), and Tarun (Rs 5 lakh to Rs 20 lakh).",
+      "Nominal processing charges and affordable interest rates."
+    ],
+    "eligibility": [
+      "Any Indian citizen who has a business plan for a non-farm sector income-generating activity such as manufacturing, processing, trading, or service sector."
+    ],
+    "required_information": [
+      "Identity proof (Aadhaar, Voter ID, PAN card)",
+      "Proof of residence",
+      "Business proof and registration certificates",
+      "Quotation of machinery/items to be purchased and bank statement"
+    ],
+    "state": "all-india",
+    "department": "Department of Financial Services, Ministry of Finance",
+    "application_url": "https://www.mudra.org.in/",
+    "source_url": "https://www.myscheme.gov.in/schemes/pmmy",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "pmjdy",
+    "name": "Pradhan Mantri Jan Dhan Yojana (PMJDY)",
+    "description": "National mission for financial inclusion ensuring access to financial services including banking savings accounts, credit, insurance, and pensions.",
+    "category": "financial inclusion",
+    "target_groups": ["unbanked citizens", "low-income families", "rural citizens"],
+    "benefits": [
+      "Zero-balance savings bank account with no minimum balance requirements.",
+      "Free RuPay debit card with built-in accident insurance cover of Rs 2 lakh.",
+      "Overdraft facility up to Rs 10,000 to eligible account holders."
+    ],
+    "eligibility": [
+      "Any Indian citizen aged 10 years and above who does not already hold a bank account."
+    ],
+    "required_information": [
+      "Aadhaar card or officially valid document (Voter ID, Driving License, PAN)",
+      "Passport-size photographs",
+      "Address proof"
+    ],
+    "state": "all-india",
+    "department": "Department of Financial Services, Ministry of Finance",
+    "application_url": "https://pmjdy.gov.in/",
+    "source_url": "https://www.myscheme.gov.in/schemes/pmjdy",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "pm-ujjwala",
+    "name": "Pradhan Mantri Ujjwala Yojana (PMUY 2.0)",
+    "description": "Provides clean cooking fuel (LPG connections) to adult women from poor households to safeguard family health from indoor air pollution.",
+    "category": "women",
+    "target_groups": ["women", "low-income families", "rural households"],
+    "benefits": [
+      "Deposit-free LPG connection including a security deposit of cylinder, pressure regulator, LPG hose, domestic gas consumer card, and installation charges.",
+      "First LPG refill and hotplate/stove provided free of cost."
+    ],
+    "eligibility": [
+      "Adult woman belonging to poor households (SC/ST, PMAY beneficiaries, Antyodaya Anna Yojana, forest dwellers, most backward classes, tea garden tribes, or 14-point declaration).",
+      "No other LPG connection in the same household."
+    ],
+    "required_information": [
+      "Aadhaar card of the applicant woman and adult family members",
+      "Ration card or family composition proof",
+      "Bank account number with IFSC code",
+      "Proof of current address"
+    ],
+    "state": "all-india",
+    "department": "Ministry of Petroleum and Natural Gas",
+    "application_url": "https://www.pmuy.gov.in/",
+    "source_url": "https://www.myscheme.gov.in/schemes/pmuy",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "pmmvy",
+    "name": "Pradhan Mantri Matru Vandana Yojana (PMMVY)",
+    "description": "Maternity benefit cash incentive program compensating for wage loss and encouraging health-seeking behavior among pregnant women and lactating mothers.",
+    "category": "women",
+    "target_groups": ["women", "pregnant women", "lactating mothers"],
+    "benefits": [
+      "Cash incentive of Rs 5,000 in two installments for the first living child upon early registration and institutional delivery.",
+      "Additional Rs 6,000 in a single installment for the birth of a second child if the child is a girl."
+    ],
+    "eligibility": [
+      "Pregnant women and lactating mothers belonging to socially and economically disadvantaged sections.",
+      "Excluded: Regular employees of Central/State Governments or Public Sector Undertakings."
+    ],
+    "required_information": [
+      "Mother and Child Protection (MCP) card",
+      "Aadhaar card of woman beneficiary and husband",
+      "Bank account details linked with Aadhaar",
+      "Child birth certificate (for subsequent installment)"
+    ],
+    "state": "all-india",
+    "department": "Ministry of Women and Child Development",
+    "application_url": "https://pmmvy.wcd.gov.in/",
+    "source_url": "https://www.myscheme.gov.in/schemes/pmmvy",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "pmay-g",
+    "name": "Pradhan Mantri Awaas Yojana - Gramin (PMAY-G)",
+    "description": "Provides financial assistance to rural homeless and households living in kutcha/dilapidated houses to construct pucca houses with basic amenities.",
+    "category": "housing",
+    "target_groups": ["rural citizens", "homeless", "low-income families"],
+    "benefits": [
+      "Unit financial assistance of Rs 1,20,000 in plain areas and Rs 1,30,000 in hilly/difficult/IAP areas.",
+      "Additional 90 to 95 person-days of unskilled labor support through MGNREGA.",
+      "Rs 12,000 assistance for toilet construction via Swachh Bharat Mission - Gramin."
+    ],
+    "eligibility": [
+      "Rural families who are houseless or living in zero, one, or two-room houses with kutcha walls and kutcha roof as per SECC 2011 and Awaas+ list.",
+      "Verified by the local Gram Sabha."
+    ],
+    "required_information": [
+      "Aadhaar number",
+      "Bank account details",
+      "Job card number under MGNREGA",
+      "Consent for Aadhaar usage"
+    ],
+    "state": "all-india",
+    "department": "Department of Rural Development, Ministry of Rural Development",
+    "application_url": "https://pmayg.nic.in/",
+    "source_url": "https://www.myscheme.gov.in/schemes/pmay-g",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "pmay-u",
+    "name": "Pradhan Mantri Awas Yojana - Urban (PMAY-U)",
+    "description": "Facilitates pucca housing for all eligible urban households including Economically Weaker Section (EWS), Low Income Group (LIG), and Middle Income Group (MIG).",
+    "category": "housing",
+    "target_groups": ["urban poor", "low-income families", "middle-income families"],
+    "benefits": [
+      "Central financial assistance up to Rs 1.5 lakh to Rs 2.67 lakh depending on the component (In-situ Slum Redevelopment, Credit Linked Subsidy, Affordable Housing in Partnership, Beneficiary-led Construction).",
+      "Interest subsidy on home loans for first-time home buyers."
+    ],
+    "eligibility": [
+      "Beneficiary family must not own a pucca house anywhere in India.",
+      "EWS annual household income up to Rs 3 lakh; LIG annual income Rs 3 lakh to Rs 6 lakh."
+    ],
+    "required_information": [
+      "Aadhaar card of all family members",
+      "Income certificate or proof of income",
+      "Land ownership documents (for Beneficiary-led Construction component)",
+      "Bank account details"
+    ],
+    "state": "all-india",
+    "department": "Ministry of Housing and Urban Affairs",
+    "application_url": "https://pmay-urban.gov.in/",
+    "source_url": "https://www.myscheme.gov.in/schemes/pmay-u",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "pm-yasasvi",
+    "name": "PM Young Achievers Scholarship Award Scheme for Vibrant India (PM-YASASVI)",
+    "description": "Scholarship initiative supporting meritorious students belonging to OBC, EBC, and DNT categories to pursue secondary and higher secondary education.",
+    "category": "education",
+    "target_groups": ["students", "youth"],
+    "benefits": [
+      "Pre-matric scholarship of Rs 4,000 per annum for students studying in Class 9 and 10.",
+      "Post-matric scholarship covering academic allowance and tuition fees for higher secondary and collegiate education."
+    ],
+    "eligibility": [
+      "Students belonging to OBC, EBC, or DNT categories studying in identified schools/institutions.",
+      "Total annual family income must not exceed Rs 2.5 lakh."
+    ],
+    "required_information": [
+      "Aadhaar card of student",
+      "Category/Caste certificate (OBC/EBC/DNT)",
+      "Income certificate",
+      "Previous year academic mark sheet",
+      "Bank account details"
+    ],
+    "state": "all-india",
+    "department": "Department of Social Justice and Empowerment, Ministry of Social Justice and Empowerment",
+    "application_url": "https://scholarships.gov.in/",
+    "source_url": "https://www.myscheme.gov.in/schemes/pm-yasasvi-pre-matric",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "post-matric-sc",
+    "name": "Centrally Sponsored Post-Matric Scholarship for SC Students",
+    "description": "Provides financial assistance to Scheduled Caste students studying at post-matriculation or post-secondary stages to complete their education.",
+    "category": "education",
+    "target_groups": ["students", "youth"],
+    "benefits": [
+      "Full reimbursement of non-refundable compulsory fees charged by the recognized educational institution.",
+      "Monthly academic maintenance allowance ranging from Rs 2,500 to Rs 13,500 per annum depending on the course group."
+    ],
+    "eligibility": [
+      "Students belonging to the Scheduled Caste (SC) community.",
+      "Studying in a recognized post-matriculation course.",
+      "Annual family income from all sources not exceeding Rs 2.50 lakh."
+    ],
+    "required_information": [
+      "Aadhaar card",
+      "Caste certificate issued by competent authority",
+      "Income certificate",
+      "Admission fee receipt and institutional verification",
+      "Active bank account linked with Aadhaar"
+    ],
+    "state": "all-india",
+    "department": "Department of Social Justice and Empowerment, Ministry of Social Justice and Empowerment",
+    "application_url": "https://scholarships.gov.in/",
+    "source_url": "https://www.myscheme.gov.in/schemes/post-matric-scholarship-sc",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "mgnrega",
+    "name": "Mahatma Gandhi National Rural Employment Guarantee Act (MGNREGA)",
+    "description": "Guarantees at least 100 days of wage employment in a financial year to every rural household whose adult members volunteer to do unskilled manual work.",
+    "category": "employment",
+    "target_groups": ["rural citizens", "job seekers", "unskilled workers"],
+    "benefits": [
+      "Guaranteed minimum 100 days of paid unskilled manual employment per household per year.",
+      "Statutory minimum wage paid directly into bank/post office accounts within 15 days of work completion.",
+      "Unemployment allowance payable if work is not provided within 15 days of application."
+    ],
+    "eligibility": [
+      "Adult members of rural households willing to do unskilled manual work.",
+      "Must reside within the local Gram Panchayat area."
+    ],
+    "required_information": [
+      "Proof of residence in Gram Panchayat",
+      "Aadhaar card",
+      "Photographs of adult applicants",
+      "Bank or Post Office savings account details"
+    ],
+    "state": "all-india",
+    "department": "Department of Rural Development, Ministry of Rural Development",
+    "application_url": "https://nrega.nic.in/",
+    "source_url": "https://www.myscheme.gov.in/schemes/mgnrega",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "pmkvy",
+    "name": "Pradhan Mantri Kaushal Vikas Yojana (PMKVY 4.0)",
+    "description": "Flagship skill certification scheme aimed at enabling youth to take up industry-relevant, market-driven skill training to secure better livelihoods.",
+    "category": "employment",
+    "target_groups": ["youth", "unemployed", "job seekers"],
+    "benefits": [
+      "Free short-term skill training, upskilling, and reskilling courses aligned with National Skill Qualification Framework (NSQF).",
+      "Government-recognized skill certification and placement assistance / apprenticeship support.",
+      "Assessment and certification fees fully funded by the government."
+    ],
+    "eligibility": [
+      "Indian youth aged 15 to 45 years who are unemployed, school or college dropouts, or seeking formal skill certification."
+    ],
+    "required_information": [
+      "Aadhaar card",
+      "Educational qualification certificates",
+      "Active mobile number and email ID",
+      "Bank account details"
+    ],
+    "state": "all-india",
+    "department": "Ministry of Skill Development and Entrepreneurship",
+    "application_url": "https://www.skillindiadigital.gov.in/",
+    "source_url": "https://www.myscheme.gov.in/schemes/pmkvy-short-term-training",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "apy",
+    "name": "Atal Pension Yojana (APY)",
+    "description": "Guaranteed pension scheme administered by PFRDA primarily focused on workers in the unorganized sector to provide post-retirement financial security.",
+    "category": "insurance",
+    "target_groups": ["unorganized sector workers", "self-employed", "low-income workers"],
+    "benefits": [
+      "Guaranteed monthly pension of Rs 1,000, Rs 2,000, Rs 3,000, Rs 4,000, or Rs 5,000 from age 60 until demise based on contributions.",
+      "Spouse receives the same pension upon the subscriber's demise, followed by return of corpus to the nominee."
+    ],
+    "eligibility": [
+      "Any Indian citizen aged between 18 and 40 years holding a savings bank account.",
+      "Subscriber must not be an income taxpayer (effective October 1, 2022)."
+    ],
+    "required_information": [
+      "Aadhaar number",
+      "Active savings bank account with auto-debit facility",
+      "Mobile number",
+      "Nominee details"
+    ],
+    "state": "all-india",
+    "department": "Pension Fund Regulatory and Development Authority (PFRDA), Ministry of Finance",
+    "application_url": "https://www.npscra.nsdl.co.in/scheme-details.php",
+    "source_url": "https://www.myscheme.gov.in/schemes/apy",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "pmsby",
+    "name": "Pradhan Mantri Suraksha Bima Yojana (PMSBY)",
+    "description": "One-year renewable accidental insurance scheme offering high-coverage protection against accidental death and permanent disability at a very low premium.",
+    "category": "insurance",
+    "target_groups": ["all citizens", "low-income workers", "unorganized sector workers"],
+    "benefits": [
+      "Risk coverage of Rs 2,00,000 for accidental death or total permanent disability.",
+      "Risk coverage of Rs 1,00,000 for permanent partial disability.",
+      "Extremely affordable premium of Rs 20 per annum auto-debited from bank account."
+    ],
+    "eligibility": [
+      "Individuals aged between 18 and 70 years with an active savings bank or post office account.",
+      "Consent to enable annual auto-debit of the premium."
+    ],
+    "required_information": [
+      "Aadhaar card",
+      "Savings bank account details",
+      "Nominee information",
+      "Auto-debit mandate consent"
+    ],
+    "state": "all-india",
+    "department": "Department of Financial Services, Ministry of Finance",
+    "application_url": "https://www.jansuraksha.gov.in/",
+    "source_url": "https://www.myscheme.gov.in/schemes/pmsby",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "majhi-ladki-bahin",
+    "name": "Mukhyamantri Majhi Ladki Bahin Yojana",
+    "description": "Maharashtra state government flagship initiative providing direct monthly financial assistance to women to support self-reliance, nutrition, and health.",
+    "category": "women",
+    "target_groups": ["women", "low-income families"],
+    "benefits": [
+      "Direct financial assistance of Rs 1,500 per month transferred directly to the Aadhaar-linked bank account of the woman beneficiary."
+    ],
+    "eligibility": [
+      "Permanent resident woman of Maharashtra state aged between 21 and 65 years.",
+      "Married, widowed, divorced, abandoned, or destitute women.",
+      "Annual family income must not exceed Rs 2.50 lakh.",
+      "Family members must not be regular government employees or income tax payers."
+    ],
+    "required_information": [
+      "Aadhaar card",
+      "Domicile certificate of Maharashtra (or ration card / school leaving certificate showing 15 years residency)",
+      "Income certificate (up to Rs 2.50 lakh) or yellow/orange ration card",
+      "Aadhaar-seeded bank passbook",
+      "Hamipatra (Self-declaration form)"
+    ],
+    "state": "maharashtra",
+    "department": "Women and Child Development Department, Government of Maharashtra",
+    "application_url": "https://ladakibahin.maharashtra.gov.in/",
+    "source_url": "https://ladakibahin.maharashtra.gov.in/",
+    "last_verified": "2026-09-16"
+  },
+  {
+    "id": "mjpjay",
+    "name": "Mahatma Jyotirao Phule Jan Arogya Yojana (MJPJAY)",
+    "description": "Maharashtra state government flagship health insurance scheme providing cashless medical and surgical treatment for serious illnesses.",
+    "category": "health",
+    "target_groups": ["low-income families", "farmers", "rural citizens"],
+    "benefits": [
+      "Cashless hospitalization coverage up to Rs 5 lakh per family per year across empaneled public and private network hospitals.",
+      "Covers 1,356 identified medical and surgical procedures across multiple specialties."
+    ],
+    "eligibility": [
+      "Residents of Maharashtra holding Yellow, Orange, or Antyodaya Ration Cards.",
+      "Farmers from 14 distressed agricultural districts holding white ration cards or 7/12 land extract.",
+      "Now universally extended to all Maharashtra families holding valid ration cards and domicile."
+    ],
+    "required_information": [
+      "Valid Ration Card (Yellow/Orange/Antyodaya/White with eligibility criteria)",
+      "Aadhaar card of patient and family head",
+      "Maharashtra domicile proof / residence proof",
+      "Medical diagnosis documents from medical authority"
+    ],
+    "state": "maharashtra",
+    "department": "State Health Assurance Society, Public Health Department, Government of Maharashtra",
+    "application_url": "https://www.jeevandayee.gov.in/",
+    "source_url": "https://www.jeevandayee.gov.in/",
+    "last_verified": "2026-09-16"
+  }
+]
