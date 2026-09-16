@@ -4,8 +4,8 @@ Deterministic scheme-matching engine for YojnaSathi.
 Evaluates citizen profile information against schemes to identify
 potentially relevant schemes without making legal eligibility claims.
 """
-from typing import List, Optional, Set
-from app.schemas import CitizenProfile, Scheme, SchemeMatchResult
+from typing import Any, Dict, List, Optional, Set
+from app.schemas import CitizenProfile, ReasonCodeItem, Scheme, SchemeMatchResult
 
 # Explicit age criteria boundaries: (min_age, max_age, is_exclusive)
 AGE_BOUNDS = {
@@ -19,10 +19,24 @@ AGE_BOUNDS = {
 
 # Explicit income ceilings (Rs)
 INCOME_CEILINGS = {
-    "pmay-u": 600000.0,
+    "pmay-u": 900000.0,
     "pm-yasasvi": 250000.0,
     "post-matric-sc": 250000.0,
     "majhi-ladki-bahin": 250000.0,
+}
+
+# Mapping of website UI categories to backend scheme categories
+CATEGORY_FILTER_MAP = {
+    "farmers": {"agriculture"},
+    "agriculture": {"agriculture"},
+    "women": {"women"},
+    "education": {"education"},
+    "healthcare": {"health"},
+    "health": {"health"},
+    "housing": {"housing"},
+    "employment": {"employment", "insurance"},
+    "business": {"small businesses", "financial inclusion"},
+    "small businesses": {"small businesses", "financial inclusion"},
 }
 
 # Need keywords to scheme categories mapping
@@ -107,20 +121,31 @@ def _resolve_categories_from_needs(needs: Optional[List[str]]) -> Set[str]:
 def match_schemes(
     profile: CitizenProfile,
     schemes: List[Scheme],
+    category: Optional[str] = None,
 ) -> List[SchemeMatchResult]:
     """
     Deterministically evaluates a citizen profile against schemes.
-    
-    Returns candidate schemes sorted by relevance_score descending,
-    with clear matched reasons and missing information.
+    Supports strict domain/category filtering and structured reason codes.
+    Returns candidate schemes sorted by relevance_score descending.
     Does not make legal eligibility determinations.
     """
     results: List[SchemeMatchResult] = []
+
+    # 1. Resolve Category / Domain constraints
+    allowed_categories: Optional[Set[str]] = None
+    if category:
+        normalized_cat = category.strip().lower()
+        if normalized_cat in CATEGORY_FILTER_MAP:
+            allowed_categories = CATEGORY_FILTER_MAP[normalized_cat]
+        else:
+            allowed_categories = {normalized_cat}
 
     # Pre-compute profile attributes
     profile_state = profile.state.strip().lower() if profile.state else None
     profile_gender = profile.gender.strip().lower() if profile.gender else None
     profile_occupation = profile.occupation.strip().lower() if profile.occupation else None
+    profile_social_cat = profile.social_category.strip().lower() if profile.social_category else None
+    profile_rural_urban = profile.rural_or_urban.strip().lower() if profile.rural_or_urban else None
 
     is_farmer_profile = (
         profile.is_farmer is True
@@ -158,12 +183,22 @@ def match_schemes(
         scheme_state = scheme.state.strip().lower()
         scheme_category = scheme.category.strip().lower()
         scheme_target_groups = {tg.strip().lower() for tg in scheme.target_groups}
+        crit = scheme.eligibility_criteria
+
+        # -------------------------------------------------------------
+        # Filter A: Category / Domain Filtering
+        # -------------------------------------------------------------
+        if allowed_categories is not None:
+            if scheme_category not in allowed_categories:
+                # Outside the citizen's selected domain
+                continue
 
         relevance_score = 0
         matched_reasons: List[str] = []
+        reason_codes: List[ReasonCodeItem] = []
 
         # -------------------------------------------------------------
-        # 1. State Compatibility & Scoring (+2)
+        # Filter B: State Compatibility
         # -------------------------------------------------------------
         if scheme_state != "all-india":
             # State-specific scheme (e.g., Maharashtra)
@@ -176,8 +211,9 @@ def match_schemes(
                     matched_reasons.append(
                         f"Specifically available for residents of {scheme.state.strip().title()}"
                     )
+                    reason_codes.append(ReasonCodeItem(code="STATE_SPECIFIC_MATCH", params={"state": scheme.state}))
             else:
-                # profile_state is missing: may remain candidate only if another strong signal matches
+                # profile_state is missing: state-specific schemes require strong signal
                 pass
         else:
             # All-India scheme
@@ -186,116 +222,197 @@ def match_schemes(
                 matched_reasons.append(
                     f"Applicable across India, including {profile.state.strip().title()}"
                 )
+                reason_codes.append(ReasonCodeItem(code="ALL_INDIA_AVAILABLE", params={"state": profile.state}))
+
+        # -------------------------------------------------------------
+        # Filter C: Scheme Eligibility Criteria Exclusions & Signals
+        # -------------------------------------------------------------
+        if crit:
+            # 1. Farmer requirement
+            if crit.requires_farmer is True and profile.is_farmer is False:
+                continue
+
+            # 2. Land ownership requirement (e.g. PM-KISAN requires cultivable landholding)
+            if crit.requires_land is True:
+                if profile.owns_land is False:
+                    # Explicitly stated no land -> PM-KISAN cannot apply
+                    continue
+                elif profile.owns_land is True:
+                    relevance_score += 1
+                    matched_reasons.append("Matches your cultivable land ownership status")
+                    reason_codes.append(ReasonCodeItem(code="LAND_OWNERSHIP_MATCH", params={}))
+
+            # 3. Student requirement
+            if crit.requires_student is True and profile.is_student is False:
+                continue
+
+            # 4. Social category (e.g., SC for Post-Matric SC, OBC for PM-YASASVI)
+            if crit.social_categories:
+                valid_cats = {c.strip().lower() for c in crit.social_categories}
+                if profile_social_cat is not None and profile_social_cat != "general":
+                    if profile_social_cat in valid_cats:
+                        relevance_score += 2
+                        matched_reasons.append(f"Matches your social category ({profile.social_category.upper()})")
+                        reason_codes.append(ReasonCodeItem(code="SOCIAL_CATEGORY_MATCH", params={"category": profile.social_category}))
+                    else:
+                        # Belongs to a different specific reserved category that does not match this scheme
+                        continue
+                elif profile_social_cat == "general":
+                    # General category cannot access SC/OBC specific scholarship schemes
+                    continue
+                else:
+                    # Unknown/Not specified: remains candidate, missing info noted
+                    pass
+
+            # 5. Rural / Urban area requirement (e.g., PMAY-G vs PMAY-U)
+            if crit.rural_or_urban:
+                req_area = crit.rural_or_urban.strip().lower()
+                if profile_rural_urban is not None:
+                    if profile_rural_urban != req_area:
+                        continue
+                    else:
+                        relevance_score += 1
+                        matched_reasons.append(f"Specifically designed for {req_area} areas")
+                        reason_codes.append(ReasonCodeItem(code="AREA_MATCH", params={"area": req_area}))
+
+            # 6. Pucca house ownership check (e.g. PMAY)
+            if crit.requires_no_pucca_house is True:
+                if profile.owns_house is True:
+                    # Citizen family already owns a permanent pucca house -> excluded
+                    continue
+                elif profile.owns_house is False:
+                    relevance_score += 1
+                    matched_reasons.append("Addresses households without a permanent pucca house")
+                    reason_codes.append(ReasonCodeItem(code="HOUSING_NEED_MATCH", params={}))
+
+            # 7. Gender requirement
+            if crit.gender == "female":
+                if profile_gender is not None and profile_gender in {"male", "man"}:
+                    continue
 
         # -------------------------------------------------------------
         # 2. Target Group Matching (+3)
         # -------------------------------------------------------------
         tg_matched = False
-        tg_reasons: List[str] = []
 
-        # Farmer signals
-        if is_farmer_profile:
-            if any(tg in scheme_target_groups for tg in {"farmers", "rural citizens", "rural households"}):
-                tg_matched = True
-                tg_reasons.append("Relevant for farmers and rural citizens")
-
-        # Student signals
-        if is_student_profile:
-            if any(tg in scheme_target_groups for tg in {"students", "youth"}):
-                tg_matched = True
-                tg_reasons.append("Relevant for students and youth")
-
-        # Gender signals (Women)
-        if is_female_profile:
-            if any(
-                tg in scheme_target_groups
-                for tg in {"women", "pregnant women", "lactating mothers", "women entrepreneurs"}
-            ):
-                tg_matched = True
-                tg_reasons.append("Provides targeted support for women")
-
-        # Street vendor / micro-business
-        if is_business_profile:
-            if any(
-                tg in scheme_target_groups
-                for tg in {"street vendors", "micro entrepreneurs", "small business owners", "self-employed"}
-            ):
-                tg_matched = True
-                tg_reasons.append("Relevant for small businesses, vendors, and entrepreneurs")
-
-        # Unskilled / unorganized worker
-        if is_unskilled_profile:
-            if any(
-                tg in scheme_target_groups
-                for tg in {"unskilled workers", "unorganized sector workers", "low-income workers"}
-            ):
-                tg_matched = True
-                tg_reasons.append("Relevant for unorganized and unskilled workers")
-
-        if tg_matched:
+        if is_farmer_profile and any(tg in scheme_target_groups for tg in {"farmers", "rural citizens", "rural households"}):
+            tg_matched = True
             relevance_score += 3
-            for r in tg_reasons:
-                if r not in matched_reasons:
-                    matched_reasons.append(r)
+            matched_reasons.append("Relevant for farmers and rural citizens")
+            reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_FARMER", params={}))
+
+        if is_student_profile and any(tg in scheme_target_groups for tg in {"students", "youth"}):
+            tg_matched = True
+            relevance_score += 3
+            matched_reasons.append("Relevant for students and youth")
+            reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_STUDENT", params={}))
+
+        if is_female_profile and any(
+            tg in scheme_target_groups
+            for tg in {"women", "pregnant women", "lactating mothers", "women entrepreneurs"}
+        ):
+            tg_matched = True
+            relevance_score += 3
+            matched_reasons.append("Provides targeted support for women")
+            reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_WOMEN", params={}))
+
+        if is_business_profile and any(
+            tg in scheme_target_groups
+            for tg in {"street vendors", "micro entrepreneurs", "small business owners", "self-employed"}
+        ):
+            tg_matched = True
+            relevance_score += 3
+            matched_reasons.append("Relevant for small businesses, vendors, and entrepreneurs")
+            reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_BUSINESS", params={}))
+
+        if is_unskilled_profile and any(
+            tg in scheme_target_groups
+            for tg in {"unskilled workers", "unorganized sector workers", "low-income workers"}
+        ):
+            tg_matched = True
+            relevance_score += 3
+            matched_reasons.append("Relevant for unorganized and unskilled workers")
+            reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_WORKER", params={}))
 
         # -------------------------------------------------------------
         # 3. Need / Category Matching (+3)
         # -------------------------------------------------------------
+        need_matched = False
         if scheme_category in relevant_categories:
+            need_matched = True
             relevance_score += 3
             matched_reasons.append(f"Matches your interest in {scheme.category.lower()}")
+            reason_codes.append(ReasonCodeItem(code="NEED_MATCH", params={"category": scheme.category}))
+
+        # Granular Need Match (e.g. crop insurance specifically matches PMFBY)
+        if profile.needs:
+            for n in profile.needs:
+                n_lower = n.lower()
+                if ("crop insurance" in n_lower or "crop" in n_lower or "bima" in n_lower) and scheme_id == "pmfby":
+                    relevance_score += 3
+                elif ("direct support" in n_lower or "income support" in n_lower or "pm-kisan" in n_lower or "farming" in n_lower) and scheme_id == "pm-kisan":
+                    relevance_score += 3
+                elif "working capital" in n_lower and scheme_id == "pm-svanidhi":
+                    relevance_score += 2
 
         # -------------------------------------------------------------
         # 4. Age Criteria (+1 or Exclusion)
         # -------------------------------------------------------------
-        if scheme_id in AGE_BOUNDS:
+        min_age, max_age, is_exclusive = None, None, True
+        if crit and (crit.age_min is not None or crit.age_max is not None):
+            min_age = crit.age_min
+            max_age = crit.age_max
+        elif scheme_id in AGE_BOUNDS:
             min_age, max_age, is_exclusive = AGE_BOUNDS[scheme_id]
-            if profile.age is not None:
-                if min_age is not None and profile.age < min_age:
-                    if is_exclusive:
-                        # Below strict minimum -> exclude
-                        continue
-                elif max_age is not None and profile.age > max_age:
-                    if is_exclusive:
-                        # Above strict maximum -> exclude
-                        continue
-                else:
-                    # In range
+
+        if profile.age is not None:
+            if min_age is not None and profile.age < min_age:
+                if is_exclusive:
+                    continue
+            elif max_age is not None and profile.age > max_age:
+                if is_exclusive:
+                    continue
+            else:
+                if min_age is not None or max_age is not None:
                     relevance_score += 1
                     matched_reasons.append(f"Your age ({profile.age}) matches the scheme criteria")
+                    reason_codes.append(ReasonCodeItem(code="AGE_CRITERIA_MATCH", params={"age": profile.age}))
 
         # -------------------------------------------------------------
         # 5. Income Criteria (+1 or Exclusion)
         # -------------------------------------------------------------
-        if scheme_id in INCOME_CEILINGS:
-            ceiling = INCOME_CEILINGS[scheme_id]
-            if profile.annual_income is not None:
-                if profile.annual_income <= ceiling:
-                    relevance_score += 1
-                    matched_reasons.append("Your income is within the scheme's threshold")
-                else:
-                    # Exceeds genuine ceiling -> exclude
-                    continue
-
-        # -------------------------------------------------------------
-        # 6. State-specific scheme without profile.state guardrail
-        # -------------------------------------------------------------
-        if scheme_state != "all-india" and profile_state is None:
-            # Must have at least another strong signal (target group or category match)
-            if not tg_matched and scheme_category not in relevant_categories:
+        ceiling = crit.income_max if (crit and crit.income_max is not None) else INCOME_CEILINGS.get(scheme_id)
+        if ceiling is not None and profile.annual_income is not None:
+            if profile.annual_income <= ceiling:
+                relevance_score += 1
+                matched_reasons.append("Your income is within the scheme's threshold")
+                reason_codes.append(ReasonCodeItem(code="INCOME_CRITERIA_MATCH", params={"income": profile.annual_income}))
+            else:
+                # Exceeds genuine ceiling -> exclude
                 continue
 
         # -------------------------------------------------------------
-        # 7. Relevance Score Threshold
+        # 6. Primary Signal & Meaningful Score Threshold
         # -------------------------------------------------------------
-        if relevance_score > 0:
-            missing_info = list(scheme.required_information)
+        # A scheme must have a genuine situation match (not just All-India + state match)
+        has_primary_signal = tg_matched or need_matched or (allowed_categories is not None and scheme_category in allowed_categories)
+
+        if has_primary_signal and relevance_score >= 3:
+            # Deduplicate reasons while preserving order
+            unique_reasons = []
+            for r in matched_reasons:
+                if r not in unique_reasons:
+                    unique_reasons.append(r)
+
+            # Extract missing information
+            missing_info = scheme.required_information
 
             results.append(
                 SchemeMatchResult(
                     scheme=scheme,
-                    relevance_score=relevance_score,
-                    matched_reasons=matched_reasons,
+                    relevance_score=min(relevance_score, 10),
+                    matched_reasons=unique_reasons,
+                    reason_codes=reason_codes,
                     missing_information=missing_info,
                 )
             )

@@ -1,129 +1,235 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import Header from './components/Header';
-import WelcomeScreen from './components/WelcomeScreen';
-import ChatMessage from './components/ChatMessage';
-import ChatInput from './components/ChatInput';
-import LoadingMessage from './components/LoadingMessage';
-import { sendChatMessage } from './api';
-import { t } from './constants/strings';
+import CategoryGrid from './components/CategoryGrid';
+import Questionnaire from './components/Questionnaire';
+import ResultsView from './components/ResultsView';
+import SchemeDetailModal from './components/SchemeDetailModal';
+import { getRecommendations } from './api';
+import { DEFAULT_LANGUAGE } from './constants/languages';
+import { getLocaleString } from './constants/strings';
+import { getActiveSteps } from './constants/questionnaires';
 
 function App() {
-  const [messages, setMessages] = useState([]);
-  const [currentProfile, setCurrentProfile] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const messagesEndRef = useRef(null);
+  const [lang, setLang] = useState(DEFAULT_LANGUAGE);
+  const [currentView, setCurrentView] = useState('home'); // 'home' | 'questionnaire' | 'loading' | 'results'
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [profile, setProfile] = useState({});
+  const [results, setResults] = useState([]);
+  const [disclaimer, setDisclaimer] = useState('');
+  const [errorKey, setErrorKey] = useState(null);
+  const [errorCustomMessage, setErrorCustomMessage] = useState(null);
+  const [detailModal, setDetailModal] = useState({ isOpen: false, schemeId: null, schemeName: '' });
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading]);
-
+  // Reset all search state back to Home
   const handleReset = () => {
-    setMessages([]);
-    setCurrentProfile({});
-    setError(null);
-    setIsLoading(false);
+    setCurrentView('home');
+    setSelectedCategory(null);
+    setCurrentStepIndex(0);
+    setAnswers({});
+    setProfile({});
+    setResults([]);
+    setDisclaimer('');
+    setErrorKey(null);
+    setErrorCustomMessage(null);
+    setDetailModal({ isOpen: false, schemeId: null, schemeName: '' });
   };
 
-  const handleSendMessage = async (userText) => {
-    if (!userText.trim() || isLoading) return;
+  // Start guided questionnaire for selected category
+  const handleSelectCategory = (cat) => {
+    setSelectedCategory(cat);
+    setCurrentStepIndex(0);
+    setAnswers({});
+    // Initialize profile only with the category's verified initial fields
+    setProfile({ ...(cat.initialProfile || {}) });
+    setErrorKey(null);
+    setErrorCustomMessage(null);
+    setCurrentView('questionnaire');
+  };
 
-    setError(null);
-    const userMsg = {
-      id: `user-${Date.now()}`,
-      sender: 'user',
-      text: userText.trim(),
-    };
+  // Record user answer and update CitizenProfile patch
+  const handleAnswerChange = (stepId, value, profilePatch) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [stepId]: value,
+    }));
 
-    setMessages((prev) => [...prev, userMsg]);
-    setIsLoading(true);
-
-    try {
-      // Send current conversation profile state with message
-      const response = await sendChatMessage(userText.trim(), currentProfile);
-
-      // Maintain conversational profile state
-      if (response.profile) {
-        setCurrentProfile(response.profile);
-      }
-
-      const assistantMsg = {
-        id: `assistant-${Date.now()}`,
-        sender: 'assistant',
-        text: response.message || response.question || '',
-        schemes: response.schemes || [],
-        disclaimer: response.disclaimer || null,
-        needsMoreInfo: response.needs_more_information || false,
-      };
-
-      setMessages((prev) => [...prev, assistantMsg]);
-    } catch (err) {
-      let friendlyError = t('errorGeneric');
-      if (err.response) {
-        const status = err.response.status;
-        if (status === 400) {
-          friendlyError = t('errorBadRequest');
-        } else if (status === 502) {
-          friendlyError = t('errorBadGateway');
-        } else if (status === 503) {
-          friendlyError = t('errorServiceUnavailable');
-        } else if (err.response.data?.detail) {
-          friendlyError = String(err.response.data.detail);
-        }
-      } else if (err.request) {
-        friendlyError = t('errorNetwork');
-      }
-
-      setError(friendlyError);
-    } finally {
-      setIsLoading(false);
+    if (profilePatch) {
+      setProfile((prev) => ({
+        ...prev,
+        ...profilePatch,
+      }));
     }
   };
 
-  const hasConversation = messages.length > 0;
+  // Next step in questionnaire
+  const handleNext = () => {
+    if (selectedCategory) {
+      const activeSteps = getActiveSteps(selectedCategory, profile);
+      if (currentStepIndex < activeSteps.length - 1) {
+        setCurrentStepIndex((prev) => prev + 1);
+      }
+    }
+  };
+
+  // Previous step in questionnaire
+  const handleBack = () => {
+    if (currentStepIndex > 0) {
+      setCurrentStepIndex((prev) => prev - 1);
+    } else {
+      setCurrentView('home');
+    }
+  };
+
+  // Return to questionnaire from results to tweak answers
+  const handleChangeAnswers = () => {
+    if (selectedCategory) {
+      const activeSteps = getActiveSteps(selectedCategory, profile);
+      setCurrentStepIndex(activeSteps.length - 1);
+      setCurrentView('questionnaire');
+    } else {
+      setCurrentView('home');
+    }
+  };
+
+  // Submit profile to POST /api/recommend
+  const handleSubmitQuestionnaire = async () => {
+    setCurrentView('loading');
+    setErrorKey(null);
+    setErrorCustomMessage(null);
+
+    try {
+      const response = await getRecommendations(profile, selectedCategory?.id);
+      setResults(response.results || []);
+      setDisclaimer(response.disclaimer || '');
+      setCurrentView('results');
+    } catch (err) {
+      if (err.request && !err.response) {
+        setErrorKey('errorNetwork');
+      } else if (err.response?.data?.detail) {
+        setErrorCustomMessage(String(err.response.data.detail));
+      } else {
+        setErrorKey('errorGeneric');
+      }
+      setCurrentView('results');
+    }
+  };
+
+  // Open scheme detail modal (triggers GET /api/schemes/{id})
+  const handleViewDetails = (schemeId, schemeName) => {
+    setDetailModal({
+      isOpen: true,
+      schemeId,
+      schemeName,
+    });
+  };
+
+  const handleCloseDetails = () => {
+    setDetailModal({
+      isOpen: false,
+      schemeId: null,
+      schemeName: '',
+    });
+  };
+
+  const activeError = errorCustomMessage || (errorKey ? getLocaleString(lang, errorKey) : null);
 
   return (
     <div className="app-layout">
-      <Header onReset={handleReset} hasConversation={hasConversation} />
+      <Header
+        currentView={currentView}
+        onReset={handleReset}
+        lang={lang}
+        onLanguageChange={setLang}
+      />
 
-      <main className="chat-main" role="main">
-        {!hasConversation ? (
-          <WelcomeScreen onSelectSuggestion={handleSendMessage} />
-        ) : (
-          <div className="conversation-container" aria-live="polite">
-            {messages.map((msg) => (
-              <ChatMessage key={msg.id} message={msg} />
-            ))}
-            {isLoading && <LoadingMessage />}
-            <div ref={messagesEndRef} />
+      <main className="main-content" role="main">
+        {/* VIEW 1: Home / Category Grid */}
+        {currentView === 'home' && (
+          <CategoryGrid
+            onSelectCategory={handleSelectCategory}
+            lang={lang}
+          />
+        )}
+
+        {/* VIEW 2: Guided Questionnaire */}
+        {currentView === 'questionnaire' && selectedCategory && (
+          <Questionnaire
+            category={selectedCategory}
+            currentStepIndex={currentStepIndex}
+            answers={answers}
+            profile={profile}
+            onAnswerChange={handleAnswerChange}
+            onNext={handleNext}
+            onBack={handleBack}
+            onSubmit={handleSubmitQuestionnaire}
+            lang={lang}
+          />
+        )}
+
+        {/* VIEW 3: Finding Schemes Loading */}
+        {currentView === 'loading' && (
+          <div className="loading-container" role="status">
+            <span className="loading-spinner-large" aria-hidden="true" />
+            <h3 className="loading-title">
+              {getLocaleString(lang, 'findingSchemesLoading')}
+            </h3>
           </div>
         )}
 
-        {error && (
-          <div className="error-banner" role="alert">
-            <span className="error-icon" aria-hidden="true">⚠️</span>
-            <div className="error-content">
-              <p className="error-text">{error}</p>
-            </div>
-            <button
-              type="button"
-              className="btn-dismiss-error"
-              onClick={() => setError(null)}
-              aria-label="Dismiss error"
-            >
-              ✕
-            </button>
-          </div>
+        {/* VIEW 4: Results */}
+        {currentView === 'results' && (
+          <>
+            {activeError && (
+              <div className="error-card" role="alert">
+                <span className="error-icon" aria-hidden="true">⚠️</span>
+                <div className="error-body">
+                  <h4>{getLocaleString(lang, 'errorTitle')}</h4>
+                  <p>{activeError}</p>
+                  <div className="error-actions">
+                    <button
+                      type="button"
+                      className="btn-step-continue"
+                      onClick={handleSubmitQuestionnaire}
+                    >
+                      {getLocaleString(lang, 'tryAgain')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-step-back"
+                      onClick={handleReset}
+                    >
+                      {getLocaleString(lang, 'startOver')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!activeError && (
+              <ResultsView
+                results={results}
+                disclaimer={disclaimer}
+                onChangeAnswers={handleChangeAnswers}
+                onReset={handleReset}
+                onViewDetails={handleViewDetails}
+                lang={lang}
+              />
+            )}
+          </>
         )}
       </main>
 
-      <footer className="chat-footer">
-        <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
-      </footer>
+      {/* Scheme Details Modal */}
+      {detailModal.isOpen && (
+        <SchemeDetailModal
+          schemeId={detailModal.schemeId}
+          schemeName={detailModal.schemeName}
+          onClose={handleCloseDetails}
+          lang={lang}
+        />
+      )}
     </div>
   );
 }

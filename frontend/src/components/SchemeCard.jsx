@@ -1,45 +1,53 @@
-import React, { useState } from 'react';
-import { fetchSchemeDetails } from '../api';
-import { t } from '../constants/strings';
+import React from 'react';
+import { getLocaleString } from '../constants/strings';
+import { getLocalizedField, getLocalizedList, getLocalizedReason } from '../utils/localization';
 
-export function SchemeCard({ scheme }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [details, setDetails] = useState(null);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-  const [detailsError, setDetailsError] = useState(null);
+const CATEGORY_LABELS = {
+  agriculture: { en: "Agriculture", hi: "कृषि", mr: "शेती" },
+  education: { en: "Education", hi: "शिक्षा", mr: "शिक्षण" },
+  women: { en: "Women Welfare", hi: "महिला कल्याण", mr: "महिला कल्याण" },
+  healthcare: { en: "Healthcare", hi: "स्वास्थ्य", mr: "आरोग्य" },
+  housing: { en: "Housing", hi: "आवास", mr: "गृहनिर्माण" },
+  employment: { en: "Employment", hi: "रोजगार", mr: "रोजगार" },
+  business: { en: "Business", hi: "व्यवसाय", mr: "व्यवसाय" },
+  social_welfare: { en: "Social Welfare", hi: "सामाजिक कल्याण", mr: "सामाजिक कल्याण" },
+  financial_services: { en: "Financial Services", hi: "वित्तीय सेवाएं", mr: "वित्तीय सेवा" },
+};
 
-  const toggleDetails = async () => {
-    if (!isExpanded && !details && !loadingDetails) {
-      setLoadingDetails(true);
-      setDetailsError(null);
-      try {
-        const data = await fetchSchemeDetails(scheme.id);
-        setDetails(data);
-      } catch (err) {
-        setDetailsError(t('errorGeneric'));
-      } finally {
-        setLoadingDetails(false);
-      }
-    }
-    setIsExpanded(!isExpanded);
-  };
+export function SchemeCard({ matchResult, onViewDetails, lang }) {
+  const { scheme, relevance_score, matched_reasons, reason_codes, missing_information } = matchResult;
+
+  const schemeName = getLocalizedField(scheme.name, lang);
+  const catObj = CATEGORY_LABELS[scheme.category];
+  const categoryBadge = catObj ? (catObj[lang] || catObj.en) : scheme.category;
+
+  const reasons = (reason_codes && reason_codes.length > 0)
+    ? reason_codes.map((rc) => getLocalizedReason(rc, lang))
+    : (matched_reasons || []);
+
+  const missing = getLocalizedList(missing_information, lang);
 
   return (
-    <article className="scheme-card" aria-label={`Scheme: ${scheme.name}`}>
+    <article className="scheme-result-card" aria-label={`${getLocaleString(lang, 'modalTitle')}: ${schemeName}`}>
       <div className="scheme-card-header">
-        <h4 className="scheme-name">{scheme.name}</h4>
-        <span className="relevance-badge" title="Matching score based on provided profile details">
-          {t('matchRelevance')} <strong>{scheme.relevance_score}</strong>
-        </span>
+        <div className="scheme-title-wrap">
+          <span className="scheme-category-badge">{categoryBadge}</span>
+          <h4 className="scheme-title">{schemeName}</h4>
+        </div>
+        <div className="relevance-score-box">
+          <span className="relevance-score-label">{getLocaleString(lang, 'matchRelevance')}</span>
+          <span className="relevance-score-value">{relevance_score}/10</span>
+        </div>
       </div>
 
-      {scheme.matched_reasons && scheme.matched_reasons.length > 0 && (
-        <div className="scheme-section">
-          <h5 className="section-title">{t('whyRelevant')}</h5>
+      {/* Why this may be relevant */}
+      {reasons && reasons.length > 0 && (
+        <div className="scheme-info-block">
+          <h5 className="info-block-title">{getLocaleString(lang, 'whyRelevant')}</h5>
           <ul className="reasons-list">
-            {scheme.matched_reasons.map((reason, idx) => (
+            {reasons.map((reason, idx) => (
               <li key={idx} className="reason-item">
-                <span className="bullet-icon" aria-hidden="true">✓</span>
+                <span className="bullet-icon-check" aria-hidden="true">✓</span>
                 <span>{reason}</span>
               </li>
             ))}
@@ -47,13 +55,14 @@ export function SchemeCard({ scheme }) {
         </div>
       )}
 
-      {scheme.missing_information && scheme.missing_information.length > 0 && (
-        <div className="scheme-section">
-          <h5 className="section-title">{t('infoNeeded')}</h5>
+      {/* Information you may need */}
+      {missing && missing.length > 0 && (
+        <div className="scheme-info-block">
+          <h5 className="info-block-title">{getLocaleString(lang, 'infoNeeded')}</h5>
           <ul className="missing-list">
-            {scheme.missing_information.map((item, idx) => (
+            {missing.map((item, idx) => (
               <li key={idx} className="missing-item">
-                <span className="bullet-icon" aria-hidden="true">•</span>
+                <span className="bullet-icon-doc" aria-hidden="true">•</span>
                 <span>{item}</span>
               </li>
             ))}
@@ -61,73 +70,17 @@ export function SchemeCard({ scheme }) {
         </div>
       )}
 
+      {/* Action button to view details */}
       <div className="scheme-card-actions">
         <button
           type="button"
-          onClick={toggleDetails}
-          className="btn-toggle-details"
-          aria-expanded={isExpanded}
+          className="btn-view-scheme"
+          onClick={() => onViewDetails(scheme.id, schemeName)}
+          aria-label={`${getLocaleString(lang, 'viewDetails')} for ${schemeName}`}
         >
-          {isExpanded ? `▲ ${t('hideDetails')}` : `▼ ${t('viewDetails')}`}
+          {getLocaleString(lang, 'viewDetails')} →
         </button>
       </div>
-
-      {isExpanded && (
-        <div className="scheme-expanded-details">
-          {loadingDetails && (
-            <p className="details-loading">{t('loadingDetails')}</p>
-          )}
-
-          {detailsError && (
-            <p className="details-error">{detailsError}</p>
-          )}
-
-          {details && (
-            <div className="details-content">
-              {details.department && (
-                <div className="details-field">
-                  <strong>{t('departmentLabel')}</strong> {details.department}
-                </div>
-              )}
-
-              {details.benefits && details.benefits.length > 0 && (
-                <div className="details-field">
-                  <strong>{t('benefitsLabel')}</strong>
-                  <ul className="benefits-list">
-                    {details.benefits.map((benefit, bIdx) => (
-                      <li key={bIdx}>{benefit}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <div className="external-links">
-                {details.application_url && (
-                  <a
-                    href={details.application_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-link-apply"
-                  >
-                    {t('applyButton')} ↗
-                  </a>
-                )}
-
-                {details.source_url && (
-                  <a
-                    href={details.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-link-source"
-                  >
-                    {t('sourceButton')} ↗
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </article>
   );
 }
