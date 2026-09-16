@@ -16,7 +16,10 @@ from app.schemas import (
     Scheme,
     SchemeListResponse,
     SingleSchemeResponse,
+    VoiceProcessRequest,
+    VoiceResetRequest,
 )
+from services.voice_agent.agent import VoiceAgent
 
 # Load environment variables
 load_dotenv()
@@ -142,5 +145,39 @@ def chat_endpoint(request: ChatRequest):
         profile=request.profile,
         schemes=schemes,
     )
+
+
+_voice_agent: Optional[VoiceAgent] = None
+
+
+def get_voice_agent() -> VoiceAgent:
+    """Return singleton instance of VoiceAgent loaded with curated schemes."""
+    global _voice_agent
+    if _voice_agent is None:
+        schemes = load_schemes_data()
+        _voice_agent = VoiceAgent(schemes=schemes)
+    return _voice_agent
+
+
+@app.post("/api/voice/process")
+async def voice_process_endpoint(request: VoiceProcessRequest):
+    """
+    Thin transport layer for shared VoiceAgent service.
+    Accepts text or transcribed voice messages and delegates to the VoiceAgent.
+    """
+    agent = get_voice_agent()
+    return await agent.process(
+        session_id=request.session_id,
+        user_text=request.message,
+        language_hint=request.language,
+    )
+
+
+@app.post("/api/voice/reset")
+def voice_reset_endpoint(request: VoiceResetRequest):
+    """Reset conversational session state for a given session ID."""
+    agent = get_voice_agent()
+    agent.reset(request.session_id)
+    return {"success": True, "session_id": request.session_id}
 
 

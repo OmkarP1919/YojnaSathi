@@ -123,3 +123,13 @@ class ChatResponse(BaseModel):
         "These schemes are potentially relevant based on the information provided. "
         "Final eligibility is determined by the relevant government authority."
     )
+
+
+class VoiceProcessRequest(BaseModel):
+    session_id: str
+    message: str = ""
+    language: Optional[str] = None
+
+
+class VoiceResetRequest(BaseModel):
+    session_id: str
