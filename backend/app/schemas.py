@@ -1,5 +1,5 @@
-from typing import List
-from pydantic import BaseModel
+from typing import List, Optional
+from pydantic import BaseModel, Field
 
 
 class Scheme(BaseModel):
@@ -32,3 +32,39 @@ class SingleSchemeResponse(BaseModel):
 class ErrorResponse(BaseModel):
     success: bool = False
     error: str
+
+
+class CitizenProfile(BaseModel):
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    state: Optional[str] = None
+    occupation: Optional[str] = None
+    annual_income: Optional[float] = None
+    is_student: Optional[bool] = None
+    is_farmer: Optional[bool] = None
+    marital_status: Optional[str] = None
+    owns_land: Optional[bool] = None
+    owns_house: Optional[bool] = None
+    needs: Optional[List[str]] = None
+
+
+class SchemeMatchResult(BaseModel):
+    scheme: Scheme
+    relevance_score: int
+    matched_reasons: List[str]
+    missing_information: List[str]
+
+
+class RecommendationRequest(BaseModel):
+    profile: CitizenProfile = Field(default_factory=CitizenProfile)
+
+
+class RecommendationResponse(BaseModel):
+    success: bool = True
+    count: int
+    disclaimer: str = (
+        "These schemes are potentially relevant based on the information provided. "
+        "Final eligibility is determined by the relevant government authority."
+    )
+    results: List[SchemeMatchResult]
+

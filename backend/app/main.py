@@ -5,7 +5,14 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.schemas import Scheme, SchemeListResponse, SingleSchemeResponse
+from app.matching import match_schemes
+from app.schemas import (
+    RecommendationRequest,
+    RecommendationResponse,
+    Scheme,
+    SchemeListResponse,
+    SingleSchemeResponse,
+)
 
 # Load environment variables
 load_dotenv()
@@ -13,7 +20,7 @@ load_dotenv()
 app = FastAPI(
     title="YojnaSathi API",
     description="Backend API for YojnaSathi - simplifying government scheme access for citizens.",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 # Enable CORS for frontend development
@@ -100,3 +107,23 @@ def get_scheme_by_id(scheme_id: str):
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"Scheme with id '{scheme_id}' not found",
     )
+
+
+@app.post("/api/recommend", response_model=RecommendationResponse)
+def recommend_schemes(request: RecommendationRequest):
+    """
+    Recommend potentially relevant schemes for a citizen profile using deterministic matching.
+    Does not make legal eligibility determinations.
+    """
+    schemes = load_schemes_data()
+    results = match_schemes(request.profile, schemes)
+    return RecommendationResponse(
+        success=True,
+        count=len(results),
+        disclaimer=(
+            "These schemes are potentially relevant based on the information provided. "
+            "Final eligibility is determined by the relevant government authority."
+        ),
+        results=results,
+    )
+
