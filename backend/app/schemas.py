@@ -68,3 +68,30 @@ class RecommendationResponse(BaseModel):
     )
     results: List[SchemeMatchResult]
 
+
+class ChatSchemeItem(BaseModel):
+    id: str
+    name: str
+    relevance_score: int
+    matched_reasons: List[str]
+    missing_information: List[str]
+
+
+class ChatRequest(BaseModel):
+    message: str
+    profile: Optional[CitizenProfile] = None
+
+
+class ChatResponse(BaseModel):
+    success: bool = True
+    message: str
+    profile: CitizenProfile
+    needs_more_information: bool = False
+    question: Optional[str] = None
+    schemes: List[ChatSchemeItem] = Field(default_factory=list)
+    disclaimer: str = (
+        "These schemes are potentially relevant based on the information provided. "
+        "Final eligibility is determined by the relevant government authority."
+    )
+
+
