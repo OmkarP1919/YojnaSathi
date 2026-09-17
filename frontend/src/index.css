@@ -481,17 +481,6 @@ html, body {
   outline-offset: 4px;
 }
 
-/* Idle float on the homepage robot (disabled under reduced-motion). */
-.gateway-voice-primary .gateway-avatar-face {
-  animation: robotFloat 3.4s ease-in-out infinite alternate;
-}
-
-.gateway-voice-avatar {
-  display: grid;
-  place-items: center;
-  color: var(--color-primary);
-}
-
 /* Pulsing rings around the mic = "speak now" affordance without words. */
 .gateway-voice-mic {
   position: relative;
@@ -1422,118 +1411,6 @@ html, body {
 }
 
 /* --------------------------------------------------------------------------
-   Floating robot button
-   -------------------------------------------------------------------------- */
-.voice-robot-wrap {
-  position: relative;
-}
-
-.voice-robot-button {
-  position: relative;
-  width: 64px;
-  height: 64px;
-  border-radius: var(--radius-full);
-  border: none;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
-  color: #ffffff;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  box-shadow: 0 8px 24px rgba(30, 58, 138, 0.32);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-  touch-action: manipulation;
-}
-
-.voice-robot-button:hover {
-  transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 10px 28px rgba(30, 58, 138, 0.4);
-}
-
-.voice-robot-button:active {
-  transform: scale(0.97);
-}
-
-.voice-robot-button:focus-visible {
-  outline: 3px solid var(--color-focus-ring);
-  outline-offset: 3px;
-}
-
-/* Idle floating/breathing only while closed; reduced motion disables it. */
-.voice-robot-wrap:not(.is-open) .voice-robot-face {
-  animation: robotFloat 3.4s ease-in-out infinite alternate;
-}
-
-.voice-robot-face {
-  display: block;
-}
-
-/* Rings used during active voice states. */
-.voice-robot-rings {
-  position: absolute;
-  inset: -8px;
-  border-radius: var(--radius-full);
-  border: 2px solid var(--color-secondary);
-  opacity: 0;
-  pointer-events: none;
-}
-
-.voice-robot-listening .voice-robot-rings,
-.voice-robot-processing .voice-robot-rings,
-.voice-robot-speaking .voice-robot-rings {
-  animation: ringPulse 1.6s ease-out infinite;
-}
-
-.voice-robot-wrap .voice-robot-ring-second {
-  animation-delay: 0.8s;
-}
-
-/* Speech bubble shown while idle and closed. */
-.voice-robot-bubble {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 10px);
-  max-width: 220px;
-  background-color: var(--color-surface);
-  color: var(--color-text-main);
-  border: 2px solid var(--color-card-border);
-  border-radius: 14px 14px 4px 14px;
-  padding: 0.625rem 0.875rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  line-height: 1.4;
-  box-shadow: var(--shadow-md);
-  animation: bubbleIn 0.28s ease;
-  white-space: normal;
-}
-
-.voice-robot-bubble::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  right: 14px;
-  border: 7px solid transparent;
-  border-top-color: var(--color-surface);
-}
-
-/* Open/closed badge on the robot. */
-.voice-robot-open-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-full);
-  background-color: var(--color-secondary);
-  color: #ffffff;
-  font-size: 0.8rem;
-  font-weight: 800;
-  display: grid;
-  place-items: center;
-  border: 2px solid var(--color-surface);
-  box-shadow: var(--shadow-sm);
-}
-
-/* --------------------------------------------------------------------------
    Expanded voice panel
    -------------------------------------------------------------------------- */
 .voice-panel {
@@ -1577,11 +1454,6 @@ html, body {
   align-items: center;
   gap: 0.625rem;
   min-width: 0;
-}
-
-.voice-panel-avatar {
-  flex-shrink: 0;
-  color: var(--color-primary);
 }
 
 .voice-panel-titles {
@@ -1701,11 +1573,6 @@ html, body {
   animation: messageIn 0.28s ease;
 }
 
-.voice-welcome-avatar {
-  color: var(--color-primary);
-  opacity: 0.92;
-}
-
 .voice-welcome-intro {
   margin: 0;
   font-size: 0.9375rem;
@@ -1783,13 +1650,6 @@ html, body {
 
 .voice-message-assistant {
   justify-content: flex-start;
-}
-
-.voice-avatar-assistant {
-  flex-shrink: 0;
-  align-self: flex-start;
-  color: var(--color-primary);
-  margin-top: 0.125rem;
 }
 
 .voice-bubble {
@@ -2210,11 +2070,6 @@ html, body {
   animation: messageIn 0.28s ease;
 }
 
-.voice-lang-select-avatar {
-  color: var(--color-primary);
-  opacity: 0.92;
-}
-
 .voice-lang-select-title {
   margin: 0;
   font-size: 1.0625rem;
@@ -2315,19 +2170,9 @@ html, body {
 /* --------------------------------------------------------------------------
    Robot / voice animations
    -------------------------------------------------------------------------- */
-@keyframes robotFloat {
-  from { transform: translateY(0); }
-  to { transform: translateY(-5px); }
-}
-
 @keyframes ringPulse {
   0% { transform: scale(0.85); opacity: 0.55; }
   100% { transform: scale(1.5); opacity: 0; }
-}
-
-@keyframes bubbleIn {
-  from { opacity: 0; transform: translateY(6px) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes wavePassive {
@@ -2343,20 +2188,6 @@ html, body {
 @keyframes thinkingPulse {
   0%, 100% { opacity: 0.3; transform: scale(0.8); }
   50% { opacity: 1; transform: scale(1); }
-}
-
-.robot-avatar {
-  display: block;
-}
-
-.robot-mouth-speaking {
-  transform-origin: center;
-  animation: mouthTalk 0.55s ease-in-out infinite alternate;
-}
-
-@keyframes mouthTalk {
-  from { transform: scaleY(0.3); }
-  to { transform: scaleY(1); }
 }
 
 /* ==========================================================================
@@ -2655,10 +2486,6 @@ html, body {
     align-items: stretch;
   }
 
-  .voice-robot-wrap {
-    align-self: flex-end;
-  }
-
   .voice-panel {
     width: 100%;
     height: min(600px, calc(100dvh - 108px));
@@ -2672,10 +2499,6 @@ html, body {
     bottom: 0;
     width: 100%;
     height: 100dvh;
-  }
-
-  .voice-launcher.voice-focus-mode .voice-robot-wrap {
-    display: none;
   }
 
   .voice-panel.voice-panel-fullscreen.voice-panel-open {
@@ -2806,22 +2629,11 @@ html, body {
     transform: none;
   }
 
-  .voice-robot-wrap:not(.is-open) .voice-robot-face {
-    animation: none;
-  }
-
-  .gateway-voice-primary .gateway-avatar-face,
   .gateway-voice-primary .gateway-voice-rings {
     animation: none;
-  }
-
-  .gateway-voice-primary .gateway-voice-rings {
     opacity: 0.25;
   }
 
-  .voice-robot-listening .voice-robot-rings,
-  .voice-robot-processing .voice-robot-rings,
-  .voice-robot-speaking .voice-robot-rings,
   .voice-mic-listening .voice-mic-rings,
   .voice-mic-processing .voice-mic-rings,
   .voice-mic-speaking .voice-mic-rings {
@@ -2829,15 +2641,7 @@ html, body {
     opacity: 0.25;
   }
 
-  .voice-robot-bubble {
-    animation: none;
-  }
-
   .voice-mic-speaking .voice-wave-bar {
-    animation: none;
-  }
-
-  .robot-mouth-speaking {
     animation: none;
   }
 

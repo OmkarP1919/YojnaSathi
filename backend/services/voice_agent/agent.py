@@ -9,10 +9,13 @@ from services.voice_agent.graph import build_graph, determine_missing_informatio
 from services.voice_agent.state import AgentState, new_agent_state
 
 
+# Deliberately short: the agent goes straight into the first discovery
+# question after this greeting (no lengthy introduction about YojnaSathi, AI,
+# or features).
 GREETING_MESSAGES = {
-    "en": "Hello! I am YojnaSathi, and I can help you find government schemes. I will ask you a few simple questions first.",
-    "hi": "नमस्ते! मैं योजनासाथी हूँ, और मैं आपको सरकारी योजनाएँ खोजने में मदद कर सकता हूँ। पहले मैं कुछ आसान सवाल पूछूँगा।",
-    "mr": "नमस्कार! मी योजना साथी आहे, आणि मी तुम्हाला सरकारी योजना शोधण्यात मदत करू शकतो. आधी मी काही सोपे प्रश्न विचारतो.",
+    "en": "Hello! Let's find government schemes for you.",
+    "hi": "नमस्ते! आपके लिए सरकारी योजनाएँ ढूंढते हैं।",
+    "mr": "नमस्कार! तुमच्यासाठी सरकारी योजना शोधूया.",
 }
 
 

@@ -4,7 +4,6 @@ import { getLocaleString } from '../../constants/strings';
 import MessageBubble from './MessageBubble';
 import ConversationInputDock from './ConversationInputDock';
 import ThinkingIndicator from './ThinkingIndicator';
-import RobotAvatar from './RobotAvatar';
 
 const BAR_COUNT = 5;
 
@@ -104,7 +103,6 @@ export function VoicePanel({
       {/* Header */}
       <header className="voice-panel-header">
         <div className="voice-panel-identity">
-          <RobotAvatar size={34} state={status} className="voice-panel-avatar" />
           <div className="voice-panel-titles">
             <h2 className="voice-panel-title">{getLocaleString(lang, 'voicePanelTitle')}</h2>
             {statusTextKey && (
@@ -169,7 +167,6 @@ export function VoicePanel({
       >
         {!sessionActive && (
           <div className="voice-lang-select">
-            <RobotAvatar size={64} state="idle" className="voice-lang-select-avatar" />
             <p className="voice-lang-select-title">{getLocaleString(lang, 'voiceSelectLanguage')}</p>
             <p className="voice-lang-select-sub">{getLocaleString(lang, 'voiceLangChoiceHint')}</p>
             <div className="voice-lang-options">
@@ -189,7 +186,6 @@ export function VoicePanel({
 
         {sessionActive && !turns.length && !typing && (
           <div className="voice-welcome">
-            <RobotAvatar size={64} state="idle" className="voice-welcome-avatar" />
             <p className="voice-welcome-greeting">{getLocaleString(lang, 'voiceWelcomeGreeting')}</p>
             <p className="voice-welcome-intro">{getLocaleString(lang, 'voiceRobotGreeting')}</p>
             <div className="voice-starters">

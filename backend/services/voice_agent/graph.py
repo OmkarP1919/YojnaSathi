@@ -315,13 +315,12 @@ def discovery_question_text(question: Optional[str], language: str) -> str:
     return DISCOVERY_QUESTIONS.get(question, {}).get(lang, "")
 
 
-# FREE_QA turn: the session already returned schemes, so the user can now ask
-# arbitrary questions. Answers are generated deterministically from the already
-# retrieved scheme data (no external model calls).
-FREE_QA_INVITE = {
-    "mr": "आता तुम्ही या योजनांबद्दल कोणताही प्रश्न विचारू शकता, जसे त्यांचे फायदे, पात्रता किंवा अर्ज कसा करावा.",
-    "hi": "अब आप इन योजनाओं के बारे में कोई भी प्रश्न पूछ सकते हैं, जैसे उनके लाभ, पात्रता या आवेदन कैसे करें।",
-    "en": "You can now ask me any question about these schemes, such as their benefits, eligibility, or how to apply.",
+# Asked right after the scheme results so the user can pick the next step
+# (apply / required documents) or ask a free-form question about the schemes.
+SCHEME_DETAIL_FOLLOWUP = {
+    "mr": "तुम्हाला पुढील प्रक्रिया किंवा आवश्यक कागदपत्रे जाणून घ्यायची आहेत का?",
+    "hi": "क्या आप आगे की प्रक्रिया या आवश्यक दस्तावेज़ सुनना चाहते हैं?",
+    "en": "Would you like to hear the next steps or the required documents?",
 }
 
 FREE_QA_MESSAGES = {
@@ -399,7 +398,14 @@ FREE_QA_MESSAGES = {
 
 _QA_APPLY_KEYWORDS = (
     "where", "apply", "applic", "form", "footer", "kahan", "kaha", "kuthe",
+    "next steps", "next step", "steps", "step",
+    "how to apply", "help me apply", "how do i apply", "how can i apply",
+    "process", "proceed", "proced",
+    # Hindi
     "आवेदन", "अर्ज", "फॉर्म", "कुठे", "कहां", "कहाँ",
+    "प्रक्रिया", "आगे", "अगली", "अगला", "अगले", "कदम",
+    # Marathi
+    "पुढील", "पुढे", "प्रक्रिया",
 )
 _QA_ELIGIBILITY_KEYWORDS = (
     "eligib", "am i", "who can", "qualified", "आप पात्र", "पात्र", "कौन",
@@ -543,7 +549,7 @@ def generate_response(state: AgentState) -> AgentState:
             "hi": "अंतिम पात्रता संबंधित सरकारी नियमों के अनुसार जांचें।",
             "en": "Please confirm final eligibility with the relevant government authority.",
         }[language])
-        lines.append(FREE_QA_INVITE[language])
+        lines.append(SCHEME_DETAIL_FOLLOWUP[language])
         state["response_text"] = "\n".join(lines)
         state["next_action"] = "completed"
         state["completed"] = True

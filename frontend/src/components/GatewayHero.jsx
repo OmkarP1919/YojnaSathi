@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
 import { getLocaleString } from '../constants/strings';
 import { CALL_TEL_HREF, PHONE_GATEWAY_ENABLED } from '../constants/config';
-import RobotAvatar from './VoiceAssistant/RobotAvatar';
 import CategoryGrid from './CategoryGrid';
 
 /**
@@ -59,7 +58,7 @@ export function GatewayHero({ onOpenVoice, onSelectCategory, lang }) {
         <p className="home-hero-subtitle">{getLocaleString(lang, 'homeHeroSubtitle')}</p>
       </div>
 
-      {/* PRIMARY gateway: the talking robot. Voice-first, iconography-first. */}
+      {/* PRIMARY gateway: the voice assistant. Voice-first, iconography-first. */}
       <div className="gateway-voice-primary-wrap">
         <button
           type="button"
@@ -67,9 +66,6 @@ export function GatewayHero({ onOpenVoice, onSelectCategory, lang }) {
           onClick={onOpenVoice}
           aria-label={getLocaleString(lang, 'gatewayVoicePrimaryAria')}
         >
-          <span className="gateway-voice-avatar">
-            <RobotAvatar size={112} state="idle" className="gateway-avatar-face" />
-          </span>
           <span className="gateway-voice-mic" aria-hidden="true">
             <span className="gateway-voice-rings" />
             <span className="gateway-voice-rings gateway-voice-ring-second" />

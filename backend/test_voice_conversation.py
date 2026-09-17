@@ -59,7 +59,14 @@ def test_start_endpoint_english_greeting_and_first_question():
     assert body["language"] == "en"
     assert body["stage"] == "greeting"
     assert body["next_action"] == "ask_question"
+    # Short greeting: present and concise.
     assert "Hello" in body["response_text"]
+    assert "Let's find" in body["response_text"]
+    assert body["stage"] == "greeting"
+    # Long-form introduction must be gone.
+    assert "I am YojnaSathi" not in body["response_text"]
+    assert "I will ask you" not in body["response_text"]
+    # First discovery question follows immediately.
     assert "What kind of scheme" in body["response_text"]
     assert body["schemes"] == []
     assert body["audio_b64"], "greeting should be TTS-synthesized"
@@ -74,7 +81,12 @@ def test_start_endpoint_hindi_greeting():
     body = resp.json()
     assert body["language"] == "hi"
     assert body["stage"] == "greeting"
+    # Short Hindi greeting.
     assert "नमस्ते" in body["response_text"]
+    assert "ढूंढते" in body["response_text"]
+    # Long introduction must not be present.
+    assert "मैं योजनासाथी हूँ" not in body["response_text"]
+    # First discovery question.
     assert "खेती" in body["response_text"]
 
 
@@ -85,7 +97,12 @@ def test_start_endpoint_marathi_greeting():
     body = resp.json()
     assert body["language"] == "mr"
     assert body["stage"] == "greeting"
+    # Short Marathi greeting.
     assert "नमस्कार" in body["response_text"]
+    assert "शोधूया" in body["response_text"]
+    # Long introduction must not be present.
+    assert "मी योजना साथी" not in body["response_text"]
+    # First discovery question.
     assert "शेती" in body["response_text"]
 
 
@@ -146,7 +163,9 @@ def test_discovery_to_results_to_free_qa_lifecycle():
     assert r2["stage"] == "free_qa"
     assert len(r2["schemes"]) > 0
     assert "pmfby" in [s["id"] for s in r2["schemes"]]
-    assert "ask me any question" in r2["response_text"].lower()
+    # The old broad "ask me any question" invite was replaced with a specific
+    # follow-up that directs the user to next steps or required documents.
+    assert "next steps" in r2["response_text"].lower()
 
 
 def test_free_qa_benefit_question_answers_from_schemes():
@@ -203,6 +222,105 @@ def test_free_qa_does_not_pollute_citizen_profile():
 
 
 # ---------------------------------------------------------------------------
+# Short greeting + results follow-up (next steps / documents choice)
+# ---------------------------------------------------------------------------
+
+def test_short_greeting_immediately_asks_first_question():
+    agent = _agent()
+    res = _run(agent.start("greeting-short", "en"))
+    assert res["stage"] == "greeting"
+    # Greeting is short and immediately followed by the first question.
+    assert "Hello! Let's find" in res["response_text"]
+    assert "What kind of scheme" in res["response_text"]
+    # The old long-form introduction is gone.
+    assert "I am YojnaSathi" not in res["response_text"]
+
+
+def test_short_greeting_hindi():
+    agent = _agent()
+    res = _run(agent.start("greeting-hi", "hi"))
+    assert res["stage"] == "greeting"
+    assert "नमस्ते!" in res["response_text"]
+    assert "ढूंढते हैं" in res["response_text"]
+    assert "मैं योजनासाथी" not in res["response_text"]
+    assert "खेती" in res["response_text"]
+
+
+def test_short_greeting_marathi():
+    agent = _agent()
+    res = _run(agent.start("greeting-mr", "mr"))
+    assert res["stage"] == "greeting"
+    assert "नमस्कार!" in res["response_text"]
+    assert "शोधूया" in res["response_text"]
+    assert "मी योजना साथी" not in res["response_text"]
+    assert "शेती" in res["response_text"]
+
+
+def _setup_agent_to_results(lang="en"):
+    """Helper: run a farmer flow to the results turn in the given language."""
+    agent = _agent()
+    sid = f"followup-{lang}-{id(agent)}"
+    _run(agent.start(sid, lang))
+    _run(agent.process(sid, "I am a farmer from Maharashtra", lang))
+    results = _run(agent.process(sid, "yes", lang))
+    return agent, sid, results
+
+
+def test_results_followup_offers_next_steps_or_documents():
+    agent, sid, results = _setup_agent_to_results("en")
+    assert results["stage"] == "free_qa"
+    assert len(results["schemes"]) > 0
+    assert "next steps" in results["response_text"].lower()
+    assert "documents" in results["response_text"].lower()
+
+
+def test_results_followup_hindi():
+    agent, sid, results = _setup_agent_to_results("hi")
+    assert "प्रक्रिया" in results["response_text"]
+    assert "दस्तावेज़" in results["response_text"]
+
+
+def test_results_followup_marathi():
+    agent, sid, results = _setup_agent_to_results("mr")
+    assert "पुढील प्रक्रिया" in results["response_text"]
+    assert "कागदपत्रे" in results["response_text"]
+
+
+def test_next_steps_choice_returns_apply_details():
+    agent, sid, results = _setup_agent_to_results("en")
+    answer = _run(agent.process(sid, "next steps"))
+    assert answer["stage"] == "free_qa"
+    assert answer["next_action"] == "free_qa"
+    # The apply-branch response should mention the matched scheme.
+    assert results["schemes"][0]["name"] in answer["response_text"]
+    # Apply details include application links or guidance text.
+    assert "apply" in answer["response_text"].lower() or "http" in answer["response_text"].lower()
+
+
+def test_documents_choice_returns_documents_info():
+    agent, sid, results = _setup_agent_to_results("en")
+    answer = _run(agent.process(sid, "required documents"))
+    assert answer["stage"] == "free_qa"
+    assert answer["next_action"] == "free_qa"
+    assert results["schemes"][0]["name"] in answer["response_text"]
+
+
+def test_free_qa_benefit_still_works_after_results_followup():
+    """After the results follow-up, users can still ask free-form questions."""
+    agent, sid, results = _setup_agent_to_results("en")
+    # Pick next steps first, then ask a different question.
+    _run(agent.process(sid, "next steps"))
+    answer = _run(agent.process(sid, "How much money will I get?"))
+    assert answer["stage"] == "free_qa"
+    assert "benefit" in answer["response_text"].lower()
+    assert results["schemes"][0]["name"] in answer["response_text"]
+
+
+def test_detail_followup_does_not_mutate_profile():
+    agent, sid, results = _setup_agent_to_results("en")
+    answer = _run(agent.process(sid, "next steps"))
+    assert answer["profile"] == results["profile"], "Detail follow-up must not mutate the profile"
+    assert answer["profile"].get("age") is None
 # Backward compatibility with the existing gesture-driven flows
 # ---------------------------------------------------------------------------
 

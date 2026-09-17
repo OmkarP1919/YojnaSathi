@@ -4,7 +4,6 @@ import { getLocaleString } from '../../constants/strings';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
-import FloatingRobot from './FloatingRobot';
 import VoicePanel from './VoicePanel';
 
 const VALID_LANGS = ['en', 'hi', 'mr'];
@@ -33,10 +32,10 @@ const MIC_ERROR_KEYS = {
 };
 
 /**
- * Site-wide floating YojnaSathi voice agent.
+ * Site-wide YojnaSathi voice agent.
  * Owns the real voice state (recording, agent round-trips, TTS playback) and
- * renders the floating robot plus the expanded voice panel around it. The
- * microphone remains the primary interaction; the transcript is supporting.
+ * renders the expanded voice panel. The microphone remains the primary
+ * interaction; the transcript is supporting.
  */
 export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLanguageChange }) {
   const [panelOpen, setPanelOpen] = useState(false);
@@ -47,7 +46,6 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
   const [flowError, setFlowError] = useState(null); // { kind: 'network'|'server'|'playback'|'empty', message? }
   const [typing, setTyping] = useState(false);
   const scrollRef = useRef(null);
-  const robotFocusRef = useRef(null);
   const closeButtonRef = useRef(null);
   const startingRef = useRef(false);
   const startedSessionRef = useRef(null);
@@ -131,7 +129,6 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
       if (e.key === 'Escape') {
         e.preventDefault();
         setPanelOpen(false);
-        robotFocusRef.current?.focus();
       }
     };
     document.addEventListener('keydown', onKeyDown);
@@ -442,7 +439,6 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
         setStatus('idle');
       }
       setPanelOpen(false);
-      robotFocusRef.current?.focus();
     } else {
       setPanelOpen(true);
     }
@@ -483,9 +479,6 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
         scrollRef={scrollRef}
         closeButtonRef={closeButtonRef}
       />
-      <div ref={robotFocusRef}>
-        <FloatingRobot open={panelOpen} status={status} lang={lang} onToggle={handleToggle} />
-      </div>
     </div>
   );
 }

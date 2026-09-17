@@ -1,7 +1,6 @@
 import React from 'react';
 import SchemeCard from '../SchemeCard';
 import { getLocaleString } from '../../constants/strings';
-import RobotAvatar from './RobotAvatar';
 
 /**
  * Convert a flattened voice scheme item returned by the VoiceAgent API into the
@@ -20,7 +19,7 @@ function toSchemeMatchResult(voiceScheme) {
 /**
  * One voice-agent turn rendered as chat bubbles:
  * - user transcript: right aligned
- * - assistant reply: left aligned with a robot avatar
+ * - assistant reply: left aligned
  * Scheme results render inside the assistant bubble using the existing SchemeCard.
  */
 export function MessageBubble({ turn, onViewDetails, onPlayAudio, isCurrentlySpeaking, lang }) {
@@ -41,11 +40,6 @@ export function MessageBubble({ turn, onViewDetails, onPlayAudio, isCurrentlySpe
       )}
 
       <div className="voice-message-row voice-message-assistant">
-        <RobotAvatar
-          size={30}
-          state={isCurrentlySpeaking ? 'speaking' : 'idle'}
-          className="voice-avatar-assistant"
-        />
         <div className="voice-bubble voice-bubble-assistant">
           <p className="voice-bubble-label">
             {isCurrentlySpeaking
