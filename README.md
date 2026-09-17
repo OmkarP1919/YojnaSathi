@@ -8,6 +8,8 @@
 [![LangGraph](https://img.shields.io/badge/Agent-LangGraph-FF6F00?style=flat-square)](https://langchain-ai.github.io/langgraph/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
+**Live Demo:** [https://yojnasathi-1.onrender.com/](https://yojnasathi-1.onrender.com/)
+
 YojnaSathi is a civic technology hackathon MVP designed to remove the friction between ordinary citizens and government welfare schemes. Instead of forcing citizens to navigate confusing bureaucracy, complex portals, and dense criteria tables, YojnaSathi provides a single, unified discovery platform available through three distinct entry points: **guided website forms**, an **agent-initiated voice assistant**, and an **integrated telephony channel (CALL-E)**.
 
 ---
