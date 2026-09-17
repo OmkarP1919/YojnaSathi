@@ -7,7 +7,7 @@ from typing import Any, List, Optional
 
 from langgraph.graph import END, StateGraph
 
-from app.matching import match_schemes
+from app.matching import AGE_BOUNDS, CATEGORY_FILTER_MAP, match_schemes
 from app.schemas import CitizenProfile, Scheme, SchemeMatchResult
 from services.voice_agent.extractor import ExtractedUserInfo, ProfileExtractor
 from services.voice_agent.graph_compat import detect_language_fallback
@@ -86,7 +86,96 @@ def update_user_profile(state: AgentState) -> AgentState:
     return state
 
 
-def determine_missing_information(state: AgentState) -> AgentState:
+_AGE_MATERIAL_MIN = 18
+_ANNUAL_INCOME_CATEGORIES = {"education", "women"}
+
+# Recommended question order per category. Fields not listed here are only
+# queried when a candidate scheme's criteria actually reference them.
+_FIELD_ORDER = [
+    "owns_land",
+    "social_category",
+    "rural_or_urban",
+    "owns_house",
+    "gender",
+    "age",
+    "annual_income",
+]
+_FIELD_ORDER_OVERRIDE = {
+    "employment": ["age", "rural_or_urban"],
+}
+
+
+def _referenced_fields(scheme: Scheme) -> set[str]:
+    """Fields that genuinely matter for a scheme (criteria + material age bounds)."""
+    fields: set[str] = set()
+    crit = scheme.eligibility_criteria
+    if crit is None:
+        return fields
+    if crit.requires_farmer is True or crit.requires_land is True:
+        fields.update({"is_farmer", "owns_land"})
+    if crit.requires_student is True:
+        fields.add("is_student")
+    if crit.social_categories:
+        fields.add("social_category")
+    if crit.rural_or_urban:
+        fields.add("rural_or_urban")
+    if crit.requires_no_pucca_house is True:
+        fields.add("owns_house")
+    if crit.gender:
+        fields.add("gender")
+    mat_age = False
+    if crit.age_min is not None or crit.age_max is not None:
+        mat_age = crit.age_max is not None or (crit.age_min is not None and crit.age_min >= _AGE_MATERIAL_MIN)
+    if not mat_age and scheme.id in AGE_BOUNDS:
+        bounds_min, bounds_max, is_exclusive = AGE_BOUNDS[scheme.id]
+        mat_age = is_exclusive and (bounds_max is not None or (bounds_min is not None and bounds_min >= _AGE_MATERIAL_MIN))
+    if mat_age:
+        fields.add("age")
+    if crit.income_max is not None:
+        fields.add("annual_income")
+    return fields
+
+
+def _next_missing_field(state: AgentState, schemes: List[Scheme]) -> Optional[str]:
+    profile = state["user_profile"]
+    category = (state.get("category") or state.get("user_intent") or "").strip().lower()
+    known_state = profile.state.strip().lower() if profile.state else None
+
+    allowed = CATEGORY_FILTER_MAP.get(category, {category})
+    candidates = []
+    for scheme in schemes:
+        s_category = (scheme.category or "").strip().lower()
+        if s_category not in allowed:
+            continue
+        s_state = scheme.state.strip().lower() if scheme.state else None
+        if s_state not in (None, "all-india") and known_state is not None and s_state != known_state:
+            continue
+        candidates.append(scheme)
+
+    referenced: set[str] = set()
+    for scheme in candidates:
+        referenced |= _referenced_fields(scheme)
+    if category not in _ANNUAL_INCOME_CATEGORIES:
+        referenced.discard("annual_income")
+
+    missing = {
+        "owns_land": profile.owns_land is None,
+        "social_category": profile.social_category is None,
+        "rural_or_urban": profile.rural_or_urban is None,
+        "owns_house": profile.owns_house is None,
+        "gender": profile.gender is None,
+        "age": profile.age is None,
+        "annual_income": profile.annual_income is None,
+    }
+    order = _FIELD_ORDER_OVERRIDE.get(category, _FIELD_ORDER)
+    for field in order:
+        if field in referenced and missing.get(field):
+            return field
+    return None
+
+
+def determine_missing_information(state: AgentState, schemes: List[Scheme]) -> AgentState:
+    """Ask only the criteria-aware questions any candidate scheme actually needs."""
     profile = state["user_profile"]
     category = state.get("category") or state.get("user_intent")
 
@@ -94,16 +183,8 @@ def determine_missing_information(state: AgentState) -> AgentState:
         state["current_question"] = "need"
     elif not profile.state:
         state["current_question"] = "state"
-    elif (category in {"agriculture", "farmer", "farming"} or profile.is_farmer is True) and profile.owns_land is None:
-        state["current_question"] = "owns_land"
-    elif (category in {"education", "student", "scholarship"} or profile.is_student is True) and profile.social_category is None:
-        state["current_question"] = "social_category"
-    elif category == "housing" and profile.rural_or_urban is None:
-        state["current_question"] = "rural_or_urban"
-    elif category == "housing" and profile.owns_house is None:
-        state["current_question"] = "owns_house"
     else:
-        state["current_question"] = None
+        state["current_question"] = _next_missing_field(state, schemes)
     return state
 
 
@@ -207,6 +288,21 @@ DISCOVERY_QUESTIONS = {
         "mr": "तुमच्याकडे स्वतःचे पक्के घर आहे का?",
         "hi": "क्या आपके पास अपना पक्का मकान है?",
         "en": "Do you or your family own a permanent pucca house?",
+    },
+    "gender": {
+        "mr": "तुम्ही पुरुष आहात की महिला?",
+        "hi": "आप पुरुष हैं या महिला?",
+        "en": "Are you a man or a woman?",
+    },
+    "age": {
+        "mr": "तुमचे वय किती आहे?",
+        "hi": "आपकी उम्र क्या है?",
+        "en": "What is your age?",
+    },
+    "annual_income": {
+        "mr": "तुमच्या कुटुंबाचे वार्षिक उत्पन्न अंदाजे किती आहे?",
+        "hi": "आपके परिवार की सालाना आय लगभग कितनी है?",
+        "en": "About how much does your family earn in a year?",
     },
 }
 
@@ -422,7 +518,7 @@ def build_graph(schemes: List[Scheme], extractor: Optional[ProfileExtractor] = N
     workflow = StateGraph(AgentState)
     workflow.add_node("understand_input", understand_node)
     workflow.add_node("update_user_profile", update_user_profile)
-    workflow.add_node("determine_missing_information", determine_missing_information)
+    workflow.add_node("determine_missing_information", lambda state: determine_missing_information(state, schemes))
     workflow.add_node("retrieve_schemes", lambda state: retrieve_schemes(state, schemes))
     workflow.add_node("check_eligibility", check_eligibility)
     workflow.add_node("generate_response", generate_response)

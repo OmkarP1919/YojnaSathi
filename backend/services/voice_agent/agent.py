@@ -46,7 +46,7 @@ class VoiceAgent:
         state["stage"] = "greeting"
 
         try:
-            determine_missing_information(state)
+            determine_missing_information(state, self.schemes)
         except Exception:  # pragma: no cover - the discovery logic is stable.
             state["current_question"] = "need"
         question = state.get("current_question") or "need"

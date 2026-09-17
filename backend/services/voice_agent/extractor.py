@@ -85,7 +85,16 @@ INTENT_ALIASES = {
     "healthcare": "health", "इलाज": "health", "आरोग्य": "health",
     "घर": "housing", "आवास": "housing", "मकान": "housing", "housing": "housing",
     "job": "employment", "नोकरी": "employment", "रोजगार": "employment",
-    "business": "small businesses", "व्यवसाय": "small businesses", "loan": "financial inclusion",
+    "unemployed": "employment", "बेरोजगार": "employment",
+    "business": "small businesses", "व्यवसाय": "small businesses",
+    "working capital": "small businesses", "loan": "financial inclusion",
+    "bank": "financial inclusion", "banking": "financial inclusion", "बँक": "financial inclusion",
+    "women": "women", "woman": "women",
+    "maternity": "women", "pregnant": "women", "pregnancy": "women",
+    "गर्भवती": "women", "मातृत्व": "women",
+    "cooking gas": "women", "lpg": "women",
+    "pension": "insurance", "पेन्शन": "insurance",
+    "insurance": "insurance", "accident insurance": "insurance",
 }
 CATEGORY_VALUES = INTENT_VALUES - {"find_schemes"}
 
@@ -217,18 +226,19 @@ def fallback_extract(text: str, current_question: Optional[str]) -> ExtractedUse
     # Rural / Urban
     rural_urban = next((value for alias, value in RURAL_URBAN_ALIASES.items() if _has_alias(alias, lowered)), None)
 
-    age_match = re.search(r"(?:age|aged|वय|उम्र)\D{0,8}(\d{1,3})|\b(\d{1,3})\s*(?:years|वर्ष|साल)\b", lowered)
+    age_match = re.search(
+        r"(?:age|aged|वय|उम्र)\D{0,8}(\d{1,3})|\b(\d{1,3})\s*(?:years?|वर्ष|साल)\b",
+        lowered,
+    )
     age = int(next(group for group in age_match.groups() if group)) if age_match else None
+    if age is None and current_question == "age":
+        num_match = re.search(r"\b(\d{1,3})\b", lowered)
+        if num_match:
+            age = int(num_match.group(1))
 
-    # Income extraction (e.g. 2.5 lakh, 50000, etc.)
-    income = None
-    income_lakh_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:lakh|लाख|लख)", lowered)
-    if income_lakh_match:
-        try:
-            income = float(income_lakh_match.group(1)) * 100000.0
-        except ValueError:
-            pass
-    elif current_question == "annual_income":
+    # Income extraction (e.g. 2.5 lakh, 15000 a month, monthly income, etc.)
+    income = _parse_income(lowered)
+    if income is None and current_question == "annual_income":
         num_match = re.search(r"\b(\d{4,8})\b", lowered)
         if num_match:
             income = float(num_match.group(1))
@@ -236,12 +246,15 @@ def fallback_extract(text: str, current_question: Optional[str]) -> ExtractedUse
     land_answer = extract_owns_land(text, current_question)
     house_answer = extract_owns_house(text, current_question)
 
+    tokens = set(re.findall(r"[\w\u0900-\u097F]+", lowered))
+    gender = "male" if tokens & _MALE_GENDER_TERMS else ("female" if tokens & _FEMALE_GENDER_TERMS else None)
+
     return ExtractedUserInfo(
         intent=intent,
         occupation=occupation,
         state=state,
         age=age,
-        gender="female" if any(value in lowered for value in ("female", "woman", "महिला", "स्त्री")) else None,
+        gender=gender,
         annual_income=income,
         is_farmer=True if occupation == "farmer" else None,
         is_student=True if occupation == "student" else None,
@@ -284,6 +297,43 @@ def _clean(value: str) -> str:
     return unicodedata.normalize("NFKC", value).strip().casefold()
 
 
+_MALE_GENDER_TERMS = {"male", "man", "men", "पुरुष"}
+_FEMALE_GENDER_TERMS = {"female", "woman", "women", "महिला", "स्त्री"}
+
+
+def _parse_income(text: str) -> Optional[float]:
+    """Deterministically parse a stated (annual) income.
+
+    Understands lakh/lakh figures, monthly -> annual conversions, and explicit
+    earn/salary/income phrasing. Returns the ANNUAL income in rupees, or None
+    when no clear income statement is present.
+    """
+    cleaned = text.replace(",", "").replace("₹", "").replace("rs", "").lower()
+    m = re.search(r"(\d+(?:\.\d+)?)\s*(?:lakh|लाख)", cleaned)
+    if m:
+        try:
+            return float(m.group(1)) * 100000.0
+        except ValueError:
+            return None
+    m = re.search(r"(\d+(?:\.\d+)?)\s+(?:per|every|each|a|an)\s+(month|year)\b", cleaned)
+    if m:
+        return float(m.group(1)) * (12.0 if m.group(2) == "month" else 1.0)
+    m = re.search(r"monthly\D{0,12}(\d+(?:\.\d+)?)", cleaned)
+    if m:
+        return float(m.group(1)) * 12.0
+    m = re.search(r"\b(\d+(?:\.\d+)?)\s+monthly\b", cleaned)
+    if m:
+        return float(m.group(1)) * 12.0
+    m = re.search(r"\b(?:earn|earns|earning|salary|my income|family income|annual income|monthly income)\D{0,12}(\d+(?:\.\d+)?)", cleaned)
+    if m:
+        value = float(m.group(1))
+        suffix = cleaned[m.end():]
+        if re.search(r"month|monthly", suffix.split()[0] if suffix.split() else ""):
+            return value * 12.0
+        return value
+    return None
+
+
 def _yes_no(text: str) -> Optional[bool]:
     tokens = set(re.findall(r"[\w\u0900-\u097F]+", text.lower()))
     if any(tok in tokens for tok in ("no", "नाही", "नहीं", "नको", "नाहीये", "not")):
@@ -308,6 +358,9 @@ def extract_owns_land(text: str, current_question: Optional[str] = None) -> Opti
         "have land", "owns land", "cultivable land", "own agricultural land",
     )
     if any(p in lowered for p in pos_phrases):
+        return True
+    pos_regex = re.search(r"\b(?:own|owns|have|has|possess)\b(?:\s+[^\s]+){0,6}\s+(?:agricultural\s+)?land\b", lowered)
+    if pos_regex and not re.search(r"\b(?:don'?t|doesn'?t|do not|does not|never|no)\b", lowered[: pos_regex.start()]):
         return True
     if current_question == "owns_land":
         neg_tokens = ("no", "not", "dont", "नाही", "नहीं", "नको", "नाहीये", "landless", "tenant")

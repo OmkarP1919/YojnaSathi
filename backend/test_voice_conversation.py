@@ -237,3 +237,172 @@ def test_legacy_audio_round_trip_to_schemes_keeps_working():
     assert body["stage"] == "free_qa"
     assert len(body["schemes"]) > 0
     assert body["audio_content_type"] == "text/plain; charset=utf-8"
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: extraction fixes (deterministic fallback parser)
+# ---------------------------------------------------------------------------
+
+def _extract(text, question=None):
+    from services.voice_agent.extractor import ProfileExtractor
+
+    extractor = ProfileExtractor()
+    return _run(extractor.extract(text, current_profile={}, current_question=question))
+
+
+def test_extraction_age_singular_year():
+    info = _extract("I am 25 year old")
+    assert info.age == 25
+
+
+def test_extraction_gender_male_tokens():
+    info = _extract("I am a man from Pune")
+    assert info.gender == "male"
+    female = _extract("I am 30 year old woman from Nagpur")
+    assert female.gender == "female"
+
+
+def test_extraction_women_intent_aliases():
+    for message in ("I need a maternity scheme", "I am pregnant and need help", "I need a cooking gas connection"):
+        assert _extract(message).intent == "women", f"'{message}' should map to women"
+
+
+def test_extraction_insurance_pension_aliases():
+    assert _extract("I need a pension scheme").intent == "insurance"
+    assert _extract("I want accident insurance").intent == "insurance"
+    assert _extract("I need health insurance").intent == "insurance"
+
+
+def test_extraction_financial_inclusion_aliases():
+    assert _extract("I want to open a bank account").intent == "financial inclusion"
+    assert _extract("I need banking services").intent == "financial inclusion"
+    assert _extract("I need a loan").intent == "financial inclusion"
+
+
+def test_extraction_small_business_working_capital():
+    assert _extract("I need working capital").intent == "small businesses"
+
+
+def test_extraction_monthly_income_converts_to_annual():
+    info = _extract("I earn 15000 a month")
+    assert info.annual_income == 180000
+    info2 = _extract("my monthly income is 15000")
+    assert info2.annual_income == 180000
+    info3 = _extract("my annual income is 2 lakh")
+    assert info3.annual_income == 200000
+
+
+def test_extraction_unemployed_maps_to_employment():
+    assert _extract("I am unemployed").intent == "employment"
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: criteria-aware discovery planner
+# ---------------------------------------------------------------------------
+
+def test_employment_asks_age_then_area_then_matches_mgnrega():
+    agent = _agent()
+    sid = "p4-employment"
+    _run(agent.process(sid, "I am unemployed and looking for a job"))
+    r1 = _run(agent.process(sid, "Maharashtra"))
+    assert "age" in r1["response_text"].lower(), f"expected age question, got: {r1['response_text']}"
+    r2 = _run(agent.process(sid, "35"))
+    assert "rural" in r2["response_text"].lower(), f"expected rural/urban question, got: {r2['response_text']}"
+    r3 = _run(agent.process(sid, "village"))
+    assert "mgnrega" in [s["id"] for s in r3["schemes"]], f"schemes: {[s['id'] for s in r3['schemes']]}"
+    assert r3["next_action"] == "completed"
+
+
+def test_small_business_asks_area_then_matches_svanidhi():
+    agent = _agent()
+    sid = "p4-business"
+    _run(agent.process(sid, "I run a small business in Maharashtra"))
+    r1 = _run(agent.process(sid, "urban"))
+    ids = [s["id"] for s in r1["schemes"]]
+    assert "pm-svanidhi" in ids, f"schemes: {ids}"
+    assert r1["next_action"] == "completed"
+
+
+def test_education_asks_income_then_matches_yasasvi():
+    agent = _agent()
+    sid = "p4-student"
+    _run(agent.process(sid, "I am an OBC student from Maharashtra"))
+    r1 = _run(agent.process(sid, "2 lakh"))
+    ids = [s["id"] for s in r1["schemes"]]
+    assert "pm-yasasvi" in ids, f"schemes: {ids}"
+    assert "post-matric-sc" not in ids, "OBC must not match SC-only scheme"
+    assert r1["next_action"] == "completed"
+
+
+def test_women_asks_age_then_income():
+    agent = _agent()
+    sid = "p4-women"
+    r0 = _run(agent.process(sid, "I am a woman from Maharashtra"))
+    assert "age" in r0["response_text"].lower(), f"expected age question, got: {r0['response_text']}"
+    r1 = _run(agent.process(sid, "30"))
+    assert "earn" in r1["response_text"].lower(), f"expected income question, got: {r1['response_text']}"
+
+
+def test_agriculture_never_asks_age_or_income():
+    agent = _agent()
+    sid = "p4-agri"
+    _run(agent.process(sid, "I am a farmer"))
+    r1 = _run(agent.process(sid, "Maharashtra"))
+    assert "owns" in r1["response_text"].lower() or "land" in r1["response_text"].lower()
+    assert "age" not in r1["response_text"].lower() and "income" not in r1["response_text"].lower()
+
+
+def test_health_never_asks_age_or_income():
+    agent = _agent()
+    sid = "p4-health"
+    _run(agent.process(sid, "I need help paying for healthcare"))
+    result = _run(agent.process(sid, "Maharashtra"))
+    assert result["next_action"] == "completed", f"expected results immediately, got: {result['response_text']}"
+    assert "What is your age" not in result["response_text"]
+
+
+def test_housing_never_asks_age_or_income():
+    agent = _agent()
+    sid = "p4-housing"
+    _run(agent.process(sid, "I need a housing scheme"))
+    r1 = _run(agent.process(sid, "Maharashtra"))
+    assert "rural" in r1["response_text"].lower(), f"expected rural/urban question, got: {r1['response_text']}"
+    assert "What is your age" not in r1["response_text"], f"must not ask age: {r1['response_text']}"
+    assert "earn" not in r1["response_text"].lower(), f"must not ask income: {r1['response_text']}"
+
+
+def test_p4_smoke_case_a_farmer_42_with_land_no_followup():
+    agent = _agent()
+    sid = "p4-smoke-a"
+    _run(agent.start(sid, "en"))
+    result = _run(agent.process(sid, "I am a 42 year old male farmer from Maharashtra who owns 3 acres of land"))
+    ids = [s["id"] for s in result["schemes"]]
+    assert "pm-kisan" in ids and "pmfby" in ids, f"schemes: {ids}"
+    assert result["next_action"] == "completed"
+    assert "What is your age" not in result["response_text"]
+    assert result["profile"].get("age") == 42
+    assert result["profile"].get("gender") == "male"
+
+
+def test_p4_smoke_case_b_unemployed_via_http():
+    client = _client()
+    r1 = client.post("/api/voice/process", json={"session_id": "smoke-b", "message": "I am an unemployed person from Maharashtra", "language": "en"})
+    assert r1.status_code == 200, r1.text
+    assert "age" in r1.json()["response_text"].lower(), f"got: {r1.json()['response_text']}"
+    r2 = client.post("/api/voice/process", json={"session_id": "smoke-b", "message": "35", "language": "en"})
+    assert "rural" in r2.json()["response_text"].lower(), f"got: {r2.json()['response_text']}"
+    r3 = client.post("/api/voice/process", json={"session_id": "smoke-b", "message": "village", "language": "en"})
+    body = r3.json()
+    assert body["next_action"] == "completed"
+    assert "mgnrega" in [s["id"] for s in body["schemes"]], f"schemes: {[s['id'] for s in body['schemes']]}"
+
+
+def test_p4_smoke_case_c_small_business_via_http():
+    client = _client()
+    r1 = client.post("/api/voice/process", json={"session_id": "smoke-c", "message": "I run a small business in Maharashtra", "language": "en"})
+    assert r1.status_code == 200, r1.text
+    assert "rural" in r1.json()["response_text"].lower(), f"got: {r1.json()['response_text']}"
+    r2 = client.post("/api/voice/process", json={"session_id": "smoke-c", "message": "urban", "language": "en"})
+    body = r2.json()
+    assert body["next_action"] == "completed"
+    assert "pm-svanidhi" in [s["id"] for s in body["schemes"]], f"schemes: {[s['id'] for s in body['schemes']]}"

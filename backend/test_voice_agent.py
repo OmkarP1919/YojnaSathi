@@ -110,10 +110,14 @@ async def main() -> None:
     assert all(cat in res_edu2["response_text"] for cat in ["General", "SC", "ST", "OBC", "EBC", "DNT"]), \
         f"English question missing categories: {res_edu2['response_text']}"
     res_edu3 = await agent.process("student-test", "OBC")
-    edu_scheme_ids = [s["id"] for s in res_edu3["schemes"]]
+    # Criteria-aware planner now asks annual income (education schemes are income-gated)
+    assert "earn" in res_edu3["response_text"].lower() or "income" in res_edu3["response_text"].lower(), \
+        f"Expected annual income question after social category: {res_edu3['response_text']}"
+    res_edu4 = await agent.process("student-test", "2 lakh")
+    edu_scheme_ids = [s["id"] for s in res_edu4["schemes"]]
     assert "pm-yasasvi" in edu_scheme_ids, "PM-YASASVI should be recommended for OBC student"
     # Ensure no cross-domain schemes leaked
-    for s in res_edu3["schemes"]:
+    for s in res_edu4["schemes"]:
         assert s["category"] == "education", f"Leaked non-education scheme: {s['id']}"
         assert "reason_codes" in s, "Scheme object must include reason_codes"
     print(f"✓ Student schemes: {edu_scheme_ids} (Clean category filtering).")
