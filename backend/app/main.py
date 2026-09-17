@@ -31,6 +31,16 @@ from services.stt.service import STTService, create_stt_service
 from services.tts.service import TTSService, create_tts_service
 from services.voice_agent.agent import VoiceAgent
 
+# Independent web-scheme-discovery pipeline (Tavily). Guarded so a failure
+# here can never break the existing local/voice/CALL-E system.
+try:
+    from services.web_scheme_discovery.routes import web_scheme_router
+
+    _WEB_DISCOVERY_AVAILABLE = True
+except Exception:  # pragma: no cover - import guard
+    web_scheme_router = None  # type: ignore[assignment]
+    _WEB_DISCOVERY_AVAILABLE = False
+
 # Load environment variables. backend/.env takes precedence; the repo-root .env
 # is loaded as a non-overriding fallback so existing root-level secrets (such as
 # GEMINI_API_KEY) keep working when backend/.env only overrides voice settings.
@@ -81,6 +91,10 @@ app.add_middleware(
 
 # Phone channel (CALL-E) - outbound scheme-discovery calls. Routed under /api/calle.
 app.include_router(calle_router)
+
+# Parallel web-scheme-discovery pipeline (optional; never required by /api/recommend).
+if _WEB_DISCOVERY_AVAILABLE and web_scheme_router is not None:
+    app.include_router(web_scheme_router)
 
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "schemes.json"
 

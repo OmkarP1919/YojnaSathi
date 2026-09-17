@@ -189,6 +189,19 @@ export const STRINGS = {
     changeAnswers: "Change Answers",
     startNewSearch: "Start New Search",
 
+    // Web Scheme Discovery (independent Tavily pipeline, user-initiated)
+    webSearchTitle: "More schemes from the web",
+    webSearchDesc: "Found a scheme missing above? Search official government websites for additional schemes beyond our verified list.",
+    webSearchCta: "Search the web for more schemes",
+    webSearchLoading: "Searching official government websites... This may take up to 30 seconds.",
+    webSearchBadge: "Found on web",
+    webSearchVerifyLink: "Verify on official portal",
+    webSearchDisclaimer: "These schemes were found on the web and may be relevant. Always verify benefits and eligibility on the linked official portal. Final eligibility is determined by the relevant government authority.",
+    webSearchRejectedNote: "Additional unverified results withheld",
+    webSearchUnavailable: "Web search is temporarily unavailable or found no additional verified schemes. Your verified results above are unaffected.",
+    webSearchNetworkError: "Could not reach the server. Please check your connection and try again.",
+    webSearchGenericError: "Web search failed. Please try again later.",
+
     // Scheme Card
     matchRelevance: "Match relevance:",
     whyRelevant: "Why this may be relevant",
@@ -476,6 +489,19 @@ export const STRINGS = {
     changeAnswers: "उत्तर बदलें",
     startNewSearch: "नई खोज शुरू करें",
 
+    // Web Scheme Discovery (independent Tavily pipeline, user-initiated)
+    webSearchTitle: "वेब से और योजनाएँ",
+    webSearchDesc: "ऊपर कोई योजना छूटी हो? हमारी सत्यापित सूची के अलावा आधिकारिक सरकारी वेबसाइटों पर अतिरिक्त योजनाएँ खोजें।",
+    webSearchCta: "वेब पर और योजनाएँ खोजें",
+    webSearchLoading: "आधिकारिक सरकारी वेबसाइटों पर खोज हो रही है... इसमें 30 सेकंड तक लग सकते हैं।",
+    webSearchBadge: "वेब पर मिली",
+    webSearchVerifyLink: "आधिकारिक पोर्टल पर सत्यापित करें",
+    webSearchDisclaimer: "ये योजनाएँ वेब पर मिली हैं और प्रासंगिक हो सकती हैं। कृपया लाभ और पात्रता संबंधित आधिकारिक पोर्टल पर सत्यापित करें। अंतिम पात्रता संबंधित सरकारी प्राधिकरण द्वारा निर्धारित की जाती है।",
+    webSearchRejectedNote: "अतिरिक्त असत्यापित परिणाम रोके गए",
+    webSearchUnavailable: "वेब खोज अस्थायी रूप से अनुपलब्ध है या कोई अतिरिक्त सत्यापित योजना नहीं मिली। ऊपर दिए गए सत्यापित परिणाम अप्रभावित हैं।",
+    webSearchNetworkError: "सर्वर से संपर्क नहीं हो सका। कृपया अपना कनेक्शन जाँचें और पुनः प्रयास करें।",
+    webSearchGenericError: "वेब खोज विफल रही। कृपया बाद में पुनः प्रयास करें।",
+
     // Scheme Card
     matchRelevance: "प्रासंगिकता स्कोर:",
     whyRelevant: "यह योजना आपके लिए क्यों प्रासंगिक हो सकती है",
@@ -762,6 +788,19 @@ export const STRINGS = {
     noResultsText: "तुम्ही दिलेल्या माहितीच्या आधारे या प्रवर्गात थेट जुळणाऱ्या योजना सापडल्या नाहीत. कृपया उत्तरे बदलून पुन्हा प्रयत्न करा.",
     changeAnswers: "उत्तरे बदला",
     startNewSearch: "नवीन शोध सुरू करा",
+
+    // Web Scheme Discovery (independent Tavily pipeline, user-initiated)
+    webSearchTitle: "वेबवरील आणखी योजना",
+    webSearchDesc: "वर एखादी योजना राहिली आहे का? आमच्या सत्यापित यादीव्यतिरिक्त अधिकृत सरकारी वेबसाइटवर अतिरिक्त योजना शोधा.",
+    webSearchCta: "वेबवर आणखी योजना शोधा",
+    webSearchLoading: "अधिकृत सरकारी वेबसाइटवर शोध सुरू आहे... यास 30 सेकंदांपर्यंत वेळ लागू शकतो.",
+    webSearchBadge: "वेबवर सापडली",
+    webSearchVerifyLink: "अधिकृत पोर्टलवर पडताळणी करा",
+    webSearchDisclaimer: "या योजना वेबवर सापडल्या असून उपयुक्त ठरू शकतात. कृपया लाभ व पात्रता संबंधित अधिकृत पोर्टलवर पडताळून पहा. अंतिम पात्रता संबंधित सरकारी प्राधिकरण ठरवते.",
+    webSearchRejectedNote: "अतिरिक्त असत्यापित निकाल रोखले",
+    webSearchUnavailable: "वेब शोध तात्पुरता अनुपलब्ध आहे किंवा अतिरिक्त सत्यापित योजना सापडल्या नाहीत. वरील सत्यापित निकालांवर परिणाम झालेला नाही.",
+    webSearchNetworkError: "सर्व्हरशी संपर्क होऊ शकला नाही. कृपया कनेक्शन तपासून पुन्हा प्रयत्न करा.",
+    webSearchGenericError: "वेब शोध अयशस्वी झाला. कृपया नंतर पुन्हा प्रयत्न करा.",
 
     // Scheme Card
     matchRelevance: "सुसंगतता गुण:",
