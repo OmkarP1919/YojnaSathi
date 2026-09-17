@@ -317,9 +317,17 @@ def filter_locations_hierarchy(
 
         loc_tal = (loc.taluka or "").strip().lower() if loc.taluka else None
         if s_tal:
+            # Citizen service centers (CSCs) are hyper-local neighborhood centers;
+            # they must match the requested taluka strictly and never fall back to taluka=None.
+            if loc.office_type == "citizen_service_center" and loc_tal != s_tal:
+                continue
             if loc_tal and loc_tal != s_tal:
                 continue
         else:
+            # Requirement B: When no taluka is supplied, do NOT present citizen service centers
+            # as if they were generic district-level offices.
+            if loc.office_type == "citizen_service_center":
+                continue
             if loc_tal:
                 continue
 
@@ -1027,11 +1035,13 @@ class MaharashtraSewaKendraProvider(LocationSearchProvider):
             if district_id is None:
                 logger.info("Maharashtra Sewa Kendra district not found in directory: %s", s_dist)
                 return None
-            taluka_code = self._fetch_taluka_code(client, district_id, s_tal)
+            taluka_code, other_talukas = self._fetch_taluka_code_and_others(client, district_id, s_tal)
             if taluka_code is None:
                 logger.info("Maharashtra Sewa Kendra taluka not found in directory: %s / %s", s_dist, s_tal)
                 return None
-            centers = self._fetch_centers(client, s_state, s_dist, s_tal, district_id, taluka_code)
+            centers = self._fetch_centers(
+                client, s_state, s_dist, s_tal, district_id, taluka_code, other_talukas=other_talukas
+            )
             if not centers:
                 logger.info("No Maharashtra Sewa Kendra centers returned for %s / %s", s_dist, s_tal)
                 return None
@@ -1090,8 +1100,8 @@ class MaharashtraSewaKendraProvider(LocationSearchProvider):
                 return value
         return None
 
-    def _fetch_taluka_code(self, client: httpx.Client, district_id, taluka: str) -> Optional[str]:
-        cache_key = ("talukas", district_id)
+    def _fetch_talukas_list(self, client: httpx.Client, district_id: str) -> List[Tuple[str, str]]:
+        cache_key: Tuple[str, Any] = ("talukas", str(district_id))
         talukas = self._cache_get(cache_key)
         if talukas is None:
             resp = client.get(
@@ -1099,21 +1109,92 @@ class MaharashtraSewaKendraProvider(LocationSearchProvider):
                 params={"DistrictID": str(district_id)},
                 headers={"X-Requested-With": "XMLHttpRequest"},
             )
-            if resp.status_code != 200:
-                return None
-            if not self._is_approved_response_url(resp):
-                return None
+            if resp.status_code != 200 or not self._is_approved_response_url(resp):
+                return []
             talukas = self._parse_taluka_json(resp.text)
             self._cache_set(cache_key, talukas)
             logger.debug("Maharashtra Sewa Kendra talukas parsed for district %s: %s", district_id, len(talukas))
+        return talukas or []
+
+    def _fetch_taluka_code(self, client: httpx.Client, district_id, taluka: str) -> Optional[str]:
+        code, _ = self._fetch_taluka_code_and_others(client, district_id, taluka)
+        return code
+
+    def _fetch_taluka_code_and_others(
+        self,
+        client: httpx.Client,
+        district_id,
+        taluka: str,
+    ) -> Tuple[Optional[str], List[str]]:
+        talukas = self._fetch_talukas_list(client, str(district_id))
+        if not talukas:
+            return None, []
+
+        norm_target = self.normalize_place_name(taluka)
+        matched_code = None
+
+        # Exact match only: do not use substring or approximate matching
         for code, name in talukas:
-            if self.normalize_place_name(name) == taluka:
-                return code
-        # Token fallback: e.g. directory "Dindori Taluka" data vs "Dindori" request
-        for code, name in talukas:
-            if taluka in re.split(r"[\s\-]+", self.normalize_place_name(name)):
-                return code
-        return None
+            if self.normalize_place_name(name) == norm_target:
+                matched_code = code
+                break
+
+        if not matched_code:
+            return None, []
+
+        other_talukas = [
+            name for code, name in talukas
+            if code != matched_code and self.normalize_place_name(name) != norm_target
+        ]
+        return matched_code, other_talukas
+
+    @classmethod
+    def _is_other_taluka_row(
+        cls,
+        vle_name: str,
+        address: str,
+        requested_taluka: str,
+        other_talukas: List[str],
+    ) -> bool:
+        """
+        Requirement D: Safely inspect row text and filter out centers that explicitly belong
+        to other talukas in the district. Never uses weak substring matching.
+        """
+        norm_taluka = cls.normalize_place_name(requested_taluka)
+        full_text = f"{vle_name} {address}".lower()
+
+        # Check if the text explicitly specifies another taluka in the same district
+        for ot in other_talukas:
+            norm_ot = cls.normalize_place_name(ot)
+            if not norm_ot or norm_ot == norm_taluka:
+                continue
+
+            # Check for explicit taluka markers: "tal <other>", "taluka <other>", "tehsil <other>", "ta <other>"
+            marker_pattern = (
+                r'\b(?:tal|taluka|tehsil|tahsil|ta)\s*[:\.\-–/]?\s*'
+                + re.escape(norm_ot)
+                + r'\b'
+            )
+            if re.search(marker_pattern, full_text):
+                # Ensure it's not a street/road name inside the requested taluka (e.g. "Nashik Kalwan Road, Dindori")
+                road_match = re.search(
+                    r'\b' + re.escape(norm_ot) + r'\s+(?:road|rd|highway|marg|naka|doar)\b',
+                    full_text,
+                )
+                if road_match and norm_taluka in full_text:
+                    continue
+                return True
+
+        # When the requested taluka is not "nashik", filter out centers explicitly located in Nashik city / HQ
+        if norm_taluka != "nashik":
+            nashik_city_markers = [
+                "nashik pune road", "cidco", "panchavati", "dwarka",
+                "satpur", "gangapur road", "mhasrul", "untwadi",
+            ]
+            if any(marker in full_text for marker in nashik_city_markers) and norm_taluka not in full_text:
+                return True
+
+        return False
 
     def _fetch_centers(
         self,
@@ -1123,6 +1204,7 @@ class MaharashtraSewaKendraProvider(LocationSearchProvider):
         taluka: str,
         district_id,
         taluka_code,
+        other_talukas: Optional[List[str]] = None,
     ) -> Optional[List[ApplicationLocation]]:
         resp = client.post(
             self.DETAILS_URL,
@@ -1145,7 +1227,10 @@ class MaharashtraSewaKendraProvider(LocationSearchProvider):
             return None
 
         centers: List[ApplicationLocation] = []
+        others = other_talukas or []
         for idx, cells in enumerate(cells_rows):
+            if len(cells) >= 2 and self._is_other_taluka_row(cells[0], cells[1], taluka, others):
+                continue
             center = self._build_location(cells, idx, scheme_id=None, state=state, district=district, taluka=taluka)
             if center is not None:
                 centers.append(center)
@@ -1172,7 +1257,11 @@ class MaharashtraSewaKendraProvider(LocationSearchProvider):
         pincode_match = re.search(r"\b\d{6}\b", raw_pincode) or re.search(r"\b\d{6}\b", raw_address)
         pincode = pincode_match.group(0) if pincode_match else None
 
-        address_parts = [p for p in (raw_address, f"{taluka} Taluka", f"{district} District") if p]
+        address_parts = [raw_address]
+        if taluka and taluka.lower() not in raw_address.lower():
+            address_parts.append(f"{taluka.title()} Taluka")
+        if district and district.lower() not in raw_address.lower():
+            address_parts.append(f"{district.title()} District")
         address_en = ", ".join(address_parts)
         if pincode and pincode not in address_en:
             address_en = f"{address_en} - {pincode}"
@@ -1182,6 +1271,12 @@ class MaharashtraSewaKendraProvider(LocationSearchProvider):
         if mobile_match:
             phone = raw_mobile.strip()
 
+        office_title = (
+            f"Aaple Sarkar Seva Kendra - {vle_name}"
+            if "aaple sarkar" not in vle_name.lower()
+            else vle_name
+        )
+
         return ApplicationLocation(
             id=f"msk-{district}-{taluka}-{idx + 1}",
             scheme_ids=[scheme_id] if scheme_id else [],
@@ -1189,7 +1284,7 @@ class MaharashtraSewaKendraProvider(LocationSearchProvider):
             state=state,
             district=district,
             taluka=taluka,
-            office_name={"en": vle_name},
+            office_name={"en": office_title},
             office_type="citizen_service_center",
             address={"en": address_en},
             contact_phone=phone,
@@ -1528,34 +1623,47 @@ class GovernmentWebSearchProvider(LocationSearchProvider):
         # Targeted service-center search if Source A explicitly authorizes citizen_service_center
         has_csc = any(loc.office_type == "citizen_service_center" for loc in discovered_offices)
         if s_dist and scheme_authorities.get("citizen_service_center"):
-            if s_state == "maharashtra" and s_tal:
-                # Authoritative Maharashtra Aaple Sarkar Sewa Kendra directory (Step 3C).
-                # Server-side district + taluka filtering; never search-engine snippets.
-                try:
-                    sewa_centers = MaharashtraSewaKendraProvider(client=self._client).search(
-                        scheme_id=s_id,
-                        state=s_state,
-                        district=s_dist,
-                        taluka=s_tal,
-                    )
-                except Exception as exc:
-                    logger.warning(
-                        "Maharashtra Sewa Kendra directory search failed (%s/%s): %s",
-                        s_dist, s_tal, exc,
-                    )
-                    sewa_centers = None
-                if sewa_centers:
-                    # Authoritative directory replaces any earlier generic CSC/Setu entries.
+            if s_state == "maharashtra":
+                if s_tal:
+                    # Authoritative Maharashtra Aaple Sarkar Sewa Kendra directory (Step 3C).
+                    # Server-side district + taluka filtering; never search-engine snippets.
+                    try:
+                        sewa_centers = MaharashtraSewaKendraProvider(client=self._client).search(
+                            scheme_id=s_id,
+                            state=s_state,
+                            district=s_dist,
+                            taluka=s_tal,
+                        )
+                    except Exception as exc:
+                        logger.warning(
+                            "Maharashtra Sewa Kendra directory search failed (%s/%s): %s",
+                            s_dist, s_tal, exc,
+                        )
+                        sewa_centers = None
+                    if sewa_centers:
+                        # Authoritative directory replaces any earlier generic CSC/Setu entries.
+                        discovered_offices = [
+                            loc for loc in discovered_offices
+                            if loc.office_type != "citizen_service_center"
+                        ]
+                        discovered_offices.extend(sewa_centers)
+                    else:
+                        # If taluka cannot be resolved or yields no centers, remove any earlier generic CSCs
+                        # so we do not fall back to district-wide CSC centers.
+                        discovered_offices = [
+                            loc for loc in discovered_offices
+                            if loc.office_type != "citizen_service_center"
+                        ]
+                else:
+                    # When no taluka is supplied, do NOT query or include citizen service centers as district offices.
                     discovered_offices = [
                         loc for loc in discovered_offices
                         if loc.office_type != "citizen_service_center"
                     ]
-                    discovered_offices.extend(sewa_centers)
-            elif not has_csc:
+            elif s_tal and not has_csc:
                 service_query_parts = [f"site:{s_dist}.gov.in"]
                 service_query_parts.append('("setu kendra" OR "maha e-seva" OR "common service centre")')
-                if s_tal:
-                    service_query_parts.append(s_tal)
+                service_query_parts.append(s_tal)
                 service_query = " ".join(service_query_parts)
                 try:
                     service_candidates = self.backend.search_candidates(service_query, max_results=3)

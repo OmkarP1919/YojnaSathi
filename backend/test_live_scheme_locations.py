@@ -248,6 +248,160 @@ def test_scenario_d_missing_taluka_does_not_query_sewa_kendra():
     )
 
     assert requested["subdistrict_code"] is None  # No taluka-specific directory lookup made
+    assert not any(loc.office_type == "citizen_service_center" for loc in options.physical_locations)
+
+
+def test_regression_nashik_dindori_exact_filtering_and_terminology():
+    """
+    Focused test 1:
+    Maharashtra + Nashik + Dindori sends Dindori subdistrict ID (4149),
+    returns ONLY Dindori centers, and uses Aaple Sarkar Seva Kendra terminology.
+    """
+    candidate = DiscoveredScheme(
+        scheme_name="Mukhyamantri Baliraja Shetkari Yojana",
+        description="Electricity tariff concession for farmers in Maharashtra.",
+        benefits=["Free electricity concession"],
+        eligibility=["Must be a farmer residing in Maharashtra with active agricultural pump"],
+        application_process=["Submit at nearest CSC, Maha e-Seva Kendra, or Setu Kendra."],
+        application_url="https://krishi.maharashtra.gov.in/baliraja",
+        source_url="https://krishi.maharashtra.gov.in/baliraja",
+        source_urls=["https://krishi.maharashtra.gov.in/baliraja"],
+        source_type="primary",
+        state="maharashtra",
+        active_status="active",
+        validation_status="verified",
+        confidence=0.95,
+    )
+    scheme = discovered_to_canonical_scheme(candidate)
+    gov_provider, requested = _build_test_gov_provider()
+
+    options = find_application_options(
+        scheme_id=scheme.id,
+        state="maharashtra",
+        district="nashik",
+        taluka="dindori",
+        live_provider=gov_provider,
+        scheme=scheme,
+    )
+
+    assert options.verification_status == "live_verified"
+    assert requested["subdistrict_code"] is not None
+    assert "SubDistrictcode=4149" in requested["subdistrict_code"]
+    assert len(options.physical_locations) == 3
+    for loc in options.physical_locations:
+        assert loc.taluka == "dindori"
+        assert loc.district == "nashik"
+        assert loc.state == "maharashtra"
+        assert "Aaple Sarkar Seva Kendra" in loc.office_name["en"]
+        assert "sinnar" not in loc.address["en"].lower()
+        assert "niphad" not in loc.address["en"].lower()
+
+
+def test_regression_nashik_another_taluka_niphad():
+    """
+    Focused test 2:
+    Maharashtra + Nashik + Niphad sends Niphad subdistrict ID (4155),
+    and returned centers belong only to Niphad.
+    """
+    candidate = DiscoveredScheme(
+        scheme_name="Mukhyamantri Baliraja Shetkari Yojana",
+        description="Electricity tariff concession for farmers in Maharashtra.",
+        benefits=["Free electricity concession"],
+        eligibility=["Must be a farmer residing in Maharashtra with active agricultural pump"],
+        application_process=["Submit at nearest CSC, Maha e-Seva Kendra, or Setu Kendra."],
+        application_url="https://krishi.maharashtra.gov.in/baliraja",
+        source_url="https://krishi.maharashtra.gov.in/baliraja",
+        source_urls=["https://krishi.maharashtra.gov.in/baliraja"],
+        source_type="primary",
+        state="maharashtra",
+        active_status="active",
+        validation_status="verified",
+        confidence=0.95,
+    )
+    scheme = discovered_to_canonical_scheme(candidate)
+
+    niphad_centers_html = '''<!DOCTYPE html>
+<html><body>
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr><th> VLE Name </th><th> Address </th><th> Pincode </th><th> Mobile </th><th> EmailID </th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>NIPHAD SEVA KENDRA</td>
+            <td>Main Road, Niphad, Taluka Niphad, Dist Nashik</td>
+            <td>422303</td>
+            <td>9822123456</td>
+            <td>niphad[at]gmail[dot]com</td>
+        </tr>
+    </tbody>
+</table>
+</body></html>
+'''
+    handler, requested = _sewa_mock_transport_with_gov(centers_html=niphad_centers_html)
+    mock_search_resp = MagicMock(spec=httpx.Response)
+    mock_search_resp.status_code = 200
+    mock_search_resp.json.return_value = {"organic": []}
+    mock_search_client = MagicMock(spec=httpx.Client)
+    mock_search_client.post.return_value = mock_search_resp
+    http_client = _sewa_client(handler)
+    backend = SerperSearchBackend(api_key="test_key", client=mock_search_client)
+    gov_provider = GovernmentWebSearchProvider(backend=backend, http_client=http_client)
+
+    options = find_application_options(
+        scheme_id=scheme.id,
+        state="maharashtra",
+        district="nashik",
+        taluka="niphad",
+        live_provider=gov_provider,
+        scheme=scheme,
+    )
+
+    assert options.verification_status == "live_verified"
+    assert requested["subdistrict_code"] is not None
+    assert "SubDistrictcode=4155" in requested["subdistrict_code"]
+    assert len(options.physical_locations) == 1
+    assert options.physical_locations[0].taluka == "niphad"
+    assert "Aaple Sarkar Seva Kendra" in options.physical_locations[0].office_name["en"]
+
+
+def test_regression_unknown_taluka_no_district_wide_fallback():
+    """
+    Focused test 3 & 4:
+    Unknown taluka does not resolve to an official ID, and returns NO CSC centers
+    rather than falling back to district-wide centers.
+    """
+    candidate = DiscoveredScheme(
+        scheme_name="Mukhyamantri Baliraja Shetkari Yojana",
+        description="Electricity tariff concession for farmers in Maharashtra.",
+        benefits=["Free electricity concession"],
+        eligibility=["Must be a farmer residing in Maharashtra with active agricultural pump"],
+        application_process=["Submit at nearest CSC, Maha e-Seva Kendra, or Setu Kendra."],
+        application_url="https://krishi.maharashtra.gov.in/baliraja",
+        source_url="https://krishi.maharashtra.gov.in/baliraja",
+        source_urls=["https://krishi.maharashtra.gov.in/baliraja"],
+        source_type="primary",
+        state="maharashtra",
+        active_status="active",
+        validation_status="verified",
+        confidence=0.95,
+    )
+    scheme = discovered_to_canonical_scheme(candidate)
+    gov_provider, requested = _build_test_gov_provider()
+
+    options = find_application_options(
+        scheme_id=scheme.id,
+        state="maharashtra",
+        district="nashik",
+        taluka="nonexistent_taluka_xyz",
+        live_provider=gov_provider,
+        scheme=scheme,
+    )
+
+    # Provider must not have sent a POST for SewaKendraDetails
+    assert requested["subdistrict_code"] is None
+    # No CSC centers returned
+    assert not any(loc.office_type == "citizen_service_center" for loc in options.physical_locations)
 
 
 def test_scenario_e_provider_failure_falls_back_to_catalog():
