@@ -49,6 +49,7 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
   const robotFocusRef = useRef(null);
   const closeButtonRef = useRef(null);
   const startingRef = useRef(false);
+  const startedSessionRef = useRef(null);
 
   // Mobile (< <=768px) opens the voice assistant as a dedicated full-screen
   // focused mode instead of the floating desktop card. No portrait/landscape
@@ -208,18 +209,26 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
         setTyping(false);
       }
     },
-    [appendTurn, lang, player],
+    [appendTurn, lang, player.play],
   );
 
-  // Auto-start the conversation whenever the panel opens with no turns yet
-  // (including right after "New Conversation"). The agent speaks first.
+  // Auto-start the conversation whenever the panel opens (including right after
+  // "New Conversation"). The agent speaks first. `startedSessionRef` is keyed to
+  // the session id so this fires exactly ONCE per conversation: it never retries
+  // after a failure (no turn was appended) and never re-greets on later
+  // re-renders, because state updates from the response are not dependencies
+  // here. Reset spins up a fresh session id, which triggers exactly one new start.
   useEffect(() => {
-    if (!panelOpen || turns.length > 0) {
+    if (!panelOpen) {
       return;
     }
     if (startingRef.current) {
       return;
     }
+    if (startedSessionRef.current === sessionRef.current) {
+      return;
+    }
+    startedSessionRef.current = sessionRef.current;
     startingRef.current = true;
     setStatus('processing');
     setTyping(true);
@@ -227,7 +236,7 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
       startingRef.current = false;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [panelOpen, lang, turns.length, startSession]);
+  }, [panelOpen, lang, startSession, sessionRef.current]);
 
   const sendAudio = useCallback(
     async (audioBlob) => {
