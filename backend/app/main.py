@@ -3,6 +3,7 @@ import json
 import logging
 from pathlib import Path
 from typing import List, Optional
+from uuid import uuid4
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,6 +21,7 @@ from app.schemas import (
     SingleSchemeResponse,
     VoiceProcessRequest,
     VoiceResetRequest,
+    VoiceStartRequest,
 )
 from services.calle.routes import router as calle_router
 from services.stt.service import STTService, create_stt_service
@@ -228,6 +230,48 @@ async def voice_process_endpoint(request: VoiceProcessRequest):
     )
 
 
+@app.post("/api/voice/start")
+async def voice_start_endpoint(request: VoiceStartRequest):
+    """
+    Agent-first conversation start.
+
+    Creates (or uses) a session and returns the agent's localized greeting plus
+    the first discovery question without any user input, alongside TTS audio so
+    the frontend can display and auto-play the initial message immediately.
+    """
+    agent = get_voice_agent()
+    session_id = (request.session_id or "").strip() or f"voice-{uuid4().hex}"
+    result = await agent.start(session_id=session_id, language=request.language)
+
+    response_text = result.get("response_text", "")
+    audio_b64 = ""
+    audio_content_type = "text/plain; charset=utf-8"
+    tts_error = None
+    if response_text.strip():
+        try:
+            tts = get_tts_service()
+            audio_bytes = await tts.synthesize(response_text, result.get("language", "en"))
+            audio_b64 = base64.b64encode(audio_bytes).decode("ascii")
+            audio_content_type = getattr(tts, "content_type", "audio/wav")
+        except Exception as exc:
+            logger.warning("TTS failed for session %s: %s", session_id, exc)
+            tts_error = str(exc)
+
+    return {
+        "session_id": result.get("session_id", session_id),
+        "response_text": response_text,
+        "language": result.get("language", "en"),
+        "next_action": result.get("next_action", "ask_question"),
+        "stage": result.get("stage", "greeting"),
+        "should_send_sms": result.get("should_send_sms", False),
+        "profile": result.get("profile", {}),
+        "schemes": result.get("schemes", []),
+        "audio_b64": audio_b64,
+        "audio_content_type": audio_content_type,
+        "tts_error": tts_error,
+    }
+
+
 @app.post("/api/voice/process/audio")
 async def voice_process_audio_endpoint(
     audio: UploadFile = File(...),
@@ -331,6 +375,7 @@ async def voice_process_audio_endpoint(
         "response_text": result.get("response_text", ""),
         "language": result.get("language", "en"),
         "next_action": result.get("next_action", "ask_question"),
+        "stage": result.get("stage", "discovery"),
         "should_send_sms": result.get("should_send_sms", False),
         "profile": result.get("profile", {}),
         "schemes": result.get("schemes", []),

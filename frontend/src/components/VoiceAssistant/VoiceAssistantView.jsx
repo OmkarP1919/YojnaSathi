@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { processVoiceAudio, processVoiceMessage, resetVoiceSession } from '../../api';
+import { processVoiceAudio, processVoiceMessage, resetVoiceSession, startVoiceSession } from '../../api';
 import { getLocaleString } from '../../constants/strings';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
 import { useAudioPlayer } from '../../hooks/useAudioPlayer';
@@ -48,6 +48,7 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
   const scrollRef = useRef(null);
   const robotFocusRef = useRef(null);
   const closeButtonRef = useRef(null);
+  const startingRef = useRef(false);
 
   // Mobile (< <=768px) opens the voice assistant as a dedicated full-screen
   // focused mode instead of the floating desktop card. No portrait/landscape
@@ -156,6 +157,77 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
   const appendTurn = useCallback((turn) => {
     setTurns((prev) => [...prev, turn]);
   }, []);
+
+  // Agent-initiated conversation: fetch the localized greeting + first question
+  // (with TTS audio) and present it as the opening assistant turn.
+  const startSession = useCallback(
+    async (language = lang) => {
+      const currentSession = sessionRef.current;
+      try {
+        const data = await startVoiceSession({ sessionId: currentSession, language });
+        if (sessionRef.current !== currentSession) {
+          setStatus('idle');
+          return;
+        }
+
+        const responseLang = VALID_LANGS.includes(data?.language) ? data.language : language;
+        const turn = {
+          id: nextTurnId(),
+          userText: '',
+          assistantText: (data && data.response_text) || '',
+          language: responseLang,
+          schemes: Array.isArray(data?.schemes) ? data.schemes : [],
+          audioB64: (data && data.audio_b64) || '',
+          audioContentType: (data && data.audio_content_type) || 'audio/wav',
+          ttsError: (data && data.tts_error) || null,
+        };
+
+        appendTurn(turn);
+        setTyping(false);
+
+        if (turn.audioB64) {
+          const ok = await player.play(turn.audioB64, turn.audioContentType);
+          if (ok) {
+            setStatus('speaking');
+          } else {
+            setStatus('idle');
+          }
+        } else {
+          setStatus('idle');
+        }
+      } catch (err) {
+        if (sessionRef.current !== currentSession) {
+          setStatus('idle');
+          setTyping(false);
+          return;
+        }
+        setFlowError(
+          err.request && !err.response ? { kind: 'network' } : { kind: 'server' },
+        );
+        setStatus('idle');
+        setTyping(false);
+      }
+    },
+    [appendTurn, lang, player],
+  );
+
+  // Auto-start the conversation whenever the panel opens with no turns yet
+  // (including right after "New Conversation"). The agent speaks first.
+  useEffect(() => {
+    if (!panelOpen || turns.length > 0) {
+      return;
+    }
+    if (startingRef.current) {
+      return;
+    }
+    startingRef.current = true;
+    setStatus('processing');
+    setTyping(true);
+    startSession(lang).finally(() => {
+      startingRef.current = false;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panelOpen, lang, turns.length, startSession]);
 
   const sendAudio = useCallback(
     async (audioBlob) => {
@@ -324,6 +396,7 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
     player.stop();
     recorder.stopRecording();
     micHeldRef.current = false;
+    startingRef.current = false;
     sessionRef.current = createSessionId();
     setTurns([]);
     setStatus('idle');

@@ -37,6 +37,7 @@ class AgentState(TypedDict, total=False):
     eligibility_information: Dict[str, Any]
     current_question: Optional[str]
     completed: bool
+    stage: str
     response_text: str
     next_action: str
     last_updated: str
@@ -65,6 +66,7 @@ def new_agent_state(session_id: str) -> AgentState:
         eligibility_information={},
         current_question=None,
         completed=False,
+        stage="greeting",
         response_text="",
         next_action="ask_question",
         last_updated=datetime.now(timezone.utc).isoformat(),

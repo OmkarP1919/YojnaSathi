@@ -64,6 +64,26 @@ export async function processVoiceMessage({ sessionId, message, language = null 
 }
 
 /**
+ * Begin a new agent-initiated conversation via POST /api/voice/start.
+ * The backend greets the user with a localized message plus the first
+ * discovery question (TTS audio included), so no user input is required.
+ * @param {object} params - { sessionId, language }
+ * @param {string} params.sessionId - Unique conversation session id
+ * @param {string} [params.language] - Optional language hint ('en' | 'hi' | 'mr')
+ * @returns {Promise<object>} - { session_id, response_text, language, stage, next_action, audio_b64, schemes }
+ */
+export async function startVoiceSession({ sessionId, language = null }) {
+  const payload = {
+    session_id: sessionId,
+  };
+  if (language) {
+    payload.language = language;
+  }
+  const response = await apiClient.post('/api/voice/start', payload);
+  return response.data;
+}
+
+/**
  * Reset a VoiceAgent conversation session via POST /api/voice/reset.
  * @param {string} sessionId - Unique conversation session id
  * @returns {Promise<object>} - { success, session_id }

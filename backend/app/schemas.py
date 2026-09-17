@@ -131,5 +131,12 @@ class VoiceProcessRequest(BaseModel):
     language: Optional[str] = None
 
 
+class VoiceStartRequest(BaseModel):
+    """Agent-first conversation start. A session ID is generated if omitted."""
+
+    session_id: Optional[str] = None
+    language: Optional[str] = None
+
+
 class VoiceResetRequest(BaseModel):
     session_id: str

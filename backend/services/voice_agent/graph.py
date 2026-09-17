@@ -30,14 +30,26 @@ async def understand_input(state: AgentState, extractor: ProfileExtractor) -> Ag
     session_lang = state.get("language")
     language = detect_language(text, client_hint=client_hint, session_lang=session_lang)
     state["language"] = language
+
+    # Stage bookkeeping: a session created by process() (no start()) begins in
+    # discovery as soon as the first user turn arrives. FREE_QA remains FREE_QA.
+    in_free_qa = state.get("stage") == "free_qa"
+    if not in_free_qa:
+        state["stage"] = "discovery"
+
     if "conversation_history" not in state or state["conversation_history"] is None:
         state["conversation_history"] = []
     state["conversation_history"].append({"role": "user", "content": text, "language": language})
-    state["extracted_user_info"] = await extractor.extract(
-        text,
-        current_profile=state["user_profile"].model_dump(exclude_none=True),
-        current_question=state.get("current_question"),
-    )
+    if in_free_qa:
+        # FREE_QA questions are answered from the already retrieved scheme data;
+        # they must not mutate the citizen profile further.
+        state["extracted_user_info"] = ExtractedUserInfo()
+    else:
+        state["extracted_user_info"] = await extractor.extract(
+            text,
+            current_profile=state["user_profile"].model_dump(exclude_none=True),
+            current_question=state.get("current_question"),
+        )
     return state
 
 
@@ -145,6 +157,16 @@ def _get_localized_benefit(benefits: Any, language: str) -> str:
     return str(benefits)
 
 
+def _get_localized_list(field: Any, language: str) -> list:
+    if not field:
+        return []
+    if isinstance(field, dict):
+        return field.get(language) or field.get("en") or field.get("hi") or field.get("mr") or []
+    if isinstance(field, list):
+        return field
+    return [str(field)]
+
+
 def _scheme_summary(result: SchemeMatchResult, language: str) -> str:
     scheme = result.scheme
     name = _get_localized_text(scheme.name, language)
@@ -152,53 +174,209 @@ def _scheme_summary(result: SchemeMatchResult, language: str) -> str:
     return f"{name} — {benefit}"
 
 
+# The single discovery questions the agent asks, in conversation order, one at
+# a time. The next question is always derived from the citizen profile and this
+# fixed discovery logic (never a hard-coded questionnaire).
+DISCOVERY_QUESTIONS = {
+    "need": {
+        "mr": "तुम्हाला कोणत्या प्रकारच्या योजनेची गरज आहे? शेती, शिक्षण, आरोग्य किंवा घरासाठी?",
+        "hi": "आपको किस तरह की योजना चाहिए? खेती, पढ़ाई, इलाज या घर के लिए?",
+        "en": "What kind of scheme do you need: farming, education, health, or housing?",
+    },
+    "state": {
+        "mr": "तुम्ही कोणत्या राज्यात राहता?",
+        "hi": "आप किस राज्य में रहते हैं?",
+        "en": "Which state do you live in?",
+    },
+    "owns_land": {
+        "mr": "तुमच्या नावावर शेतीची जमीन आहे का?",
+        "hi": "क्या आपके नाम पर खेती की जमीन है?",
+        "en": "Do you own agricultural land?",
+    },
+    "social_category": {
+        "mr": "तुम्ही कोणत्या सामाजिक प्रवर्गात मोडता: खुला (General), अनुसूचित जाती (SC), अनुसूचित जमाती (ST), इतर मागासवर्गीय (OBC), ईबीसी (EBC), किंवा डीएनटी (DNT)?",
+        "hi": "आप किस सामाजिक वर्ग में आते हैं: सामान्य (General), अनुसूचित जाति (SC), अनुसूचित जनजाति (ST), अन्य पिछड़ा वर्ग (OBC), ईबीसी (EBC), या डीएनटी (DNT)?",
+        "en": "Which social category do you belong to: General, SC, ST, OBC, EBC, or DNT?",
+    },
+    "rural_or_urban": {
+        "mr": "तुम्ही ग्रामीण भागात राहता की शहरी भागात?",
+        "hi": "आप ग्रामीण क्षेत्र में रहते हैं या शहरी क्षेत्र में?",
+        "en": "Do you reside in a rural village or an urban city area?",
+    },
+    "owns_house": {
+        "mr": "तुमच्याकडे स्वतःचे पक्के घर आहे का?",
+        "hi": "क्या आपके पास अपना पक्का मकान है?",
+        "en": "Do you or your family own a permanent pucca house?",
+    },
+}
+
+
+def discovery_question_text(question: Optional[str], language: str) -> str:
+    """Return the localized discovery question for ``question`` or '' if unknown."""
+    lang = language if language in {"en", "hi", "mr"} else "en"
+    if not question:
+        return ""
+    return DISCOVERY_QUESTIONS.get(question, {}).get(lang, "")
+
+
+# FREE_QA turn: the session already returned schemes, so the user can now ask
+# arbitrary questions. Answers are generated deterministically from the already
+# retrieved scheme data (no external model calls).
+FREE_QA_INVITE = {
+    "mr": "आता तुम्ही या योजनांबद्दल कोणताही प्रश्न विचारू शकता, जसे त्यांचे फायदे, पात्रता किंवा अर्ज कसा करावा.",
+    "hi": "अब आप इन योजनाओं के बारे में कोई भी प्रश्न पूछ सकते हैं, जैसे उनके लाभ, पात्रता या आवेदन कैसे करें।",
+    "en": "You can now ask me any question about these schemes, such as their benefits, eligibility, or how to apply.",
+}
+
+FREE_QA_MESSAGES = {
+    "no_schemes": {
+        "mr": "सध्या माझ्याकडे उपलब्ध योजना नाहीत. तुम्हाला कोणत्या प्रकारच्या योजनेची गरज आहे ते सांगा.",
+        "hi": "अभी मेरे पास कोई योजना नहीं है। बताएं कि आपको किस प्रकार की योजना चाहिए।",
+        "en": "I don't have scheme results yet. Tell me what kind of scheme you need and I can find them.",
+    },
+    "benefit_header": {
+        "mr": "प्रत्येक योजनेचा मुख्य फायदा:",
+        "hi": "हर योजना का मुख्य लाभ:",
+        "en": "The main benefit of each scheme:",
+    },
+    "apply_header": {
+        "mr": "या योजनांसाठी अर्ज कसे करावे:",
+        "hi": "इन योजनाओं के लिए आवेदन कैसे करें:",
+        "en": "Where to apply for these schemes:",
+    },
+    "eligibility_header": {
+        "mr": "प्रत्येक योजनेची पात्रता:",
+        "hi": "हर योजना की पात्रता:",
+        "en": "Eligibility for each scheme:",
+    },
+    "documents_header": {
+        "mr": "प्रत्येक योजनेसाठी आवश्यक माहिती:",
+        "hi": "हर योजना के लिए आवश्यक जानकारी:",
+        "en": "Information you may need for each scheme:",
+    },
+    "eligibility_note": {
+        "mr": "अंतिम पात्रता संबंधित सरकारी कार्यालयानुसार तपासा.",
+        "hi": "अंतिम पात्रता संबंधित सरकारी कार्यालय के अनुसार जांचें।",
+        "en": "Check final eligibility with the relevant government authority.",
+    },
+    "default_intro": {
+        "mr": "मी तुम्हाला या योजना सुचवू शकतो: {names}",
+        "hi": "मैं आपको ये योजनाएं बता सकता हूँ: {names}",
+        "en": "I can tell you about these schemes: {names}",
+    },
+    "default_hint": {
+        "mr": "प्रत्येक योजनेचे फायदे, पात्रता किंवा अर्जाची पद्धत विचारा.",
+        "hi": "हर योजना के लाभ, पात्रता या आवेदन की विधि पूछें।",
+        "en": "Ask me about the benefits, eligibility, or how to apply for any of them.",
+    },
+    "eligibility_final_note": {
+        "mr": "कृपया अंतिम पात्रता संबंधित सरकारी कार्यालयासह तपासा.",
+        "hi": "कृपया अंतिम पात्रता संबंधित सरकारी कार्यालय से जांचें।",
+        "en": "Please confirm final eligibility with the relevant government authority.",
+    },
+}
+
+_QA_APPLY_KEYWORDS = (
+    "where", "apply", "applic", "form", "footer", "kahan", "kaha", "kuthe",
+    "आवेदन", "अर्ज", "फॉर्म", "कुठे", "कहां", "कहाँ",
+)
+_QA_ELIGIBILITY_KEYWORDS = (
+    "eligib", "am i", "who can", "qualified", "आप पात्र", "पात्र", "कौन",
+    "मी पात्र", "क्या मैं",
+)
+_QA_BENEFIT_KEYWORDS = (
+    "how much", "money", "benefit", "amount", "financial", "पैसा", "पैसे",
+    "रकम", "लाभ", "कितना", "कितने", "किती", "फायदा", "mitla", "kitna",
+)
+_QA_DOCUMENTS_KEYWORDS = (
+    "document", "docs", "paper", "कागद", "कागदपत्र", "दस्तावेज", "दस्तऐवज",
+)
+
+
+def _classify_qa_question(question: str) -> str:
+    filtered = re.sub(r"[^\w\u0900-\u097F ]+", " ", question).lower()
+    if any(keyword in filtered for keyword in _QA_APPLY_KEYWORDS):
+        return "apply"
+    if any(keyword in filtered for keyword in _QA_ELIGIBILITY_KEYWORDS):
+        return "eligibility"
+    if any(keyword in filtered for keyword in _QA_BENEFIT_KEYWORDS):
+        return "benefit"
+    if any(keyword in filtered for keyword in _QA_DOCUMENTS_KEYWORDS):
+        return "documents"
+    return "list"
+
+
+def answer_free_qa(state: AgentState, language: str) -> AgentState:
+    question = state.get("input_text", "")
+    qa_intent = _classify_qa_question(question)
+    results = state.get("retrieved_schemes", [])
+
+    if not results:
+        state["response_text"] = FREE_QA_MESSAGES["no_schemes"].get(language, FREE_QA_MESSAGES["no_schemes"]["en"])
+        state["next_action"] = "ask_question"
+        return _finalize_response(state, language)
+
+    lines = []
+    if qa_intent == "benefit":
+        lines.append(FREE_QA_MESSAGES["benefit_header"].get(language, FREE_QA_MESSAGES["benefit_header"]["en"]))
+        for result in results:
+            name = _get_localized_text(result.scheme.name, language)
+            benefit = _get_localized_benefit(result.scheme.benefits, language) or _get_localized_text(result.scheme.description, language)
+            lines.append(f"• {name}: {benefit}")
+    elif qa_intent == "apply":
+        lines.append(FREE_QA_MESSAGES["apply_header"].get(language, FREE_QA_MESSAGES["apply_header"]["en"]))
+        for result in results:
+            name = _get_localized_text(result.scheme.name, language)
+            department = _get_localized_text(result.scheme.department, language)
+            lines.append(f"• {name} ({department}): {result.scheme.application_url}")
+    elif qa_intent == "eligibility":
+        lines.append(FREE_QA_MESSAGES["eligibility_header"].get(language, FREE_QA_MESSAGES["eligibility_header"]["en"]))
+        for result in results:
+            name = _get_localized_text(result.scheme.name, language)
+            criteria = _get_localized_list(result.scheme.eligibility, language)
+            detail = criteria[0] if criteria else FREE_QA_MESSAGES["eligibility_note"].get(language, FREE_QA_MESSAGES["eligibility_note"]["en"])
+            lines.append(f"• {name}: {detail}")
+        lines.append(FREE_QA_MESSAGES["eligibility_final_note"].get(language, FREE_QA_MESSAGES["eligibility_final_note"]["en"]))
+    elif qa_intent == "documents":
+        lines.append(FREE_QA_MESSAGES["documents_header"].get(language, FREE_QA_MESSAGES["documents_header"]["en"]))
+        for result in results:
+            name = _get_localized_text(result.scheme.name, language)
+            documents = _get_localized_list(result.scheme.required_information, language)
+            detail = documents[0] if documents else _get_localized_text(result.scheme.description, language)
+            lines.append(f"• {name}: {detail}")
+    else:
+        names = ", ".join(_get_localized_text(result.scheme.name, language) for result in results)
+        lines.append(FREE_QA_MESSAGES["default_intro"].get(language, FREE_QA_MESSAGES["default_intro"]["en"]).format(names=names))
+        lines.append(FREE_QA_MESSAGES["default_hint"].get(language, FREE_QA_MESSAGES["default_hint"]["en"]))
+
+    state["response_text"] = "\n".join(lines)
+    state["next_action"] = "free_qa"
+    return _finalize_response(state, language)
+
+
+def _finalize_response(state: AgentState, language: str) -> AgentState:
+    if "conversation_history" not in state or state["conversation_history"] is None:
+        state["conversation_history"] = []
+    state["conversation_history"].append({"role": "assistant", "content": state["response_text"], "language": language})
+    state["last_updated"] = datetime.now(timezone.utc).isoformat()
+    return state
+
+
 def generate_response(state: AgentState) -> AgentState:
     language = state.get("language", "en")
     if language not in {"en", "hi", "mr"}:
         language = "en"
+
+    # FREE_QA: the user is past discovery; answer their question from the
+    # already retrieved scheme data instead of asking the next profile question.
+    if state.get("stage") == "free_qa":
+        return answer_free_qa(state, language)
+
     question = state.get("current_question")
-    if question == "need":
-        messages = {
-            "mr": "तुम्हाला कोणत्या प्रकारच्या योजनेची गरज आहे? शेती, शिक्षण, आरोग्य किंवा घरासाठी?",
-            "hi": "आपको किस तरह की योजना चाहिए? खेती, पढ़ाई, इलाज या घर के लिए?",
-            "en": "What kind of scheme do you need: farming, education, health, or housing?",
-        }
-        state["response_text"] = messages[language]
-    elif question == "state":
-        messages = {
-            "mr": "तुम्ही कोणत्या राज्यात राहता?",
-            "hi": "आप किस राज्य में रहते हैं?",
-            "en": "Which state do you live in?",
-        }
-        state["response_text"] = messages[language]
-    elif question == "owns_land":
-        messages = {
-            "mr": "तुमच्या नावावर शेतीची जमीन आहे का?",
-            "hi": "क्या आपके नाम पर खेती की जमीन है?",
-            "en": "Do you own agricultural land?",
-        }
-        state["response_text"] = messages[language]
-    elif question == "social_category":
-        messages = {
-            "mr": "तुम्ही कोणत्या सामाजिक प्रवर्गात मोडता: खुला (General), अनुसूचित जाती (SC), अनुसूचित जमाती (ST), इतर मागासवर्गीय (OBC), ईबीसी (EBC), किंवा डीएनटी (DNT)?",
-            "hi": "आप किस सामाजिक वर्ग में आते हैं: सामान्य (General), अनुसूचित जाति (SC), अनुसूचित जनजाति (ST), अन्य पिछड़ा वर्ग (OBC), ईबीसी (EBC), या डीएनटी (DNT)?",
-            "en": "Which social category do you belong to: General, SC, ST, OBC, EBC, or DNT?",
-        }
-        state["response_text"] = messages[language]
-    elif question == "rural_or_urban":
-        messages = {
-            "mr": "तुम्ही ग्रामीण भागात राहता की शहरी भागात?",
-            "hi": "आप ग्रामीण क्षेत्र में रहते हैं या शहरी क्षेत्र में?",
-            "en": "Do you reside in a rural village or an urban city area?",
-        }
-        state["response_text"] = messages[language]
-    elif question == "owns_house":
-        messages = {
-            "mr": "तुमच्याकडे स्वतःचे पक्के घर आहे का?",
-            "hi": "क्या आपके पास अपना पक्का मकान है?",
-            "en": "Do you or your family own a permanent pucca house?",
-        }
-        state["response_text"] = messages[language]
+    if question:
+        state["response_text"] = discovery_question_text(question, language)
+        state["next_action"] = "ask_question"
+        state["stage"] = "discovery"
     elif not state.get("retrieved_schemes"):
         messages = {
             "mr": "उपलब्ध सरकारी योजनांमध्ये तुमच्यासाठी थेट जुळणारी योजना सापडली नाही.",
@@ -208,6 +386,7 @@ def generate_response(state: AgentState) -> AgentState:
         state["response_text"] = messages[language]
         state["next_action"] = "completed"
         state["completed"] = True
+        state["stage"] = "completed"
     else:
         results = state["retrieved_schemes"]
         intro = {
@@ -223,17 +402,15 @@ def generate_response(state: AgentState) -> AgentState:
             "hi": "अंतिम पात्रता संबंधित सरकारी नियमों के अनुसार जांचें।",
             "en": "Please confirm final eligibility with the relevant government authority.",
         }[language])
+        lines.append(FREE_QA_INVITE[language])
         state["response_text"] = "\n".join(lines)
         state["next_action"] = "completed"
         state["completed"] = True
+        # The citizen has reached the results stage. Expose FREE_QA so the agent
+        # answers arbitrary questions about the returned schemes from here on.
+        state["stage"] = "free_qa"
 
-    if question:
-        state["next_action"] = "ask_question"
-    if "conversation_history" not in state or state["conversation_history"] is None:
-        state["conversation_history"] = []
-    state["conversation_history"].append({"role": "assistant", "content": state["response_text"], "language": language})
-    state["last_updated"] = datetime.now(timezone.utc).isoformat()
-    return state
+    return _finalize_response(state, language)
 
 
 def build_graph(schemes: List[Scheme], extractor: Optional[ProfileExtractor] = None):
