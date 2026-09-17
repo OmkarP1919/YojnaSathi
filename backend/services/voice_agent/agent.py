@@ -133,6 +133,7 @@ class VoiceAgent:
                     "matched_reasons": result.matched_reasons,
                     "reason_codes": [rc.model_dump() for rc in (result.reason_codes or [])],
                     "application_url": result.scheme.application_url,
+                    "application_guidance": result.scheme.application_guidance.model_dump(),
                 }
                 for result in state.get("retrieved_schemes", [])
             ],

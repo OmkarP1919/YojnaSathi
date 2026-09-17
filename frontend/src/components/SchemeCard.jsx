@@ -25,7 +25,26 @@ export function SchemeCard({ matchResult, onViewDetails, lang }) {
     ? reason_codes.map((rc) => getLocalizedReason(rc, lang))
     : (matched_reasons || []);
 
-  const missing = getLocalizedList(missing_information, lang);
+  const guidance = scheme.application_guidance || null;
+  const online = guidance && guidance.online_application ? guidance.online_application : null;
+  const offline = guidance && guidance.offline_application ? guidance.offline_application : null;
+  const portalUrl = online && online.available && online.portal_url
+    ? online.portal_url
+    : (scheme.application_url || null);
+  const offlineChannel = offline && offline.available && offline.authorized_channel
+    ? offline.authorized_channel
+    : null;
+  const offlineInstructions = offline && offline.available && offline.instructions
+    ? offline.instructions
+    : null;
+
+  // Documents: the match result carries `missing_information`; for voice items it
+  // is empty, so fall back to the verified guidance documents when available.
+  const guidanceDocs = guidance && guidance.documents_required ? guidance.documents_required : null;
+  const missing = getLocalizedList(
+    (missing_information && missing_information.length > 0) ? missing_information : guidanceDocs,
+    lang
+  );
 
   return (
     <article className="scheme-result-card" aria-label={`${getLocaleString(lang, 'modalTitle')}: ${schemeName}`}>
@@ -81,6 +100,44 @@ export function SchemeCard({ matchResult, onViewDetails, lang }) {
           {getLocaleString(lang, 'viewDetails')} →
         </button>
       </div>
+
+      {/* What do I do next? - application guidance from the verified scheme data */}
+      {(guidance || scheme.application_url) && (
+        <div className="scheme-info-block guidance-block">
+          <h5 className="info-block-title">{getLocaleString(lang, 'nextStepsTitle')}</h5>
+          <ol className="guidance-steps-list">
+            <li className="guidance-step-item">{getLocaleString(lang, 'stepCheckEligibility')}</li>
+            <li className="guidance-step-item">{getLocaleString(lang, 'stepPrepareDocuments')}</li>
+            {portalUrl && (
+              <li className="guidance-step-item">{getLocaleString(lang, 'stepApplyOnline')}</li>
+            )}
+            {portalUrl && (
+              <li className="guidance-step-item">{getLocaleString(lang, 'stepTrackStatus')}</li>
+            )}
+          </ol>
+          <div className="guidance-actions">
+            {portalUrl && (
+              <a
+                href={portalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-link-apply guidance-apply-link"
+              >
+                {getLocaleString(lang, 'applyOnlineButton')}
+              </a>
+            )}
+            {offlineChannel && (
+              <p className="guidance-offline-note">
+                <strong>{getLocaleString(lang, 'applyOfflineLabel')}:</strong> {offlineChannel}
+                {offlineInstructions ? ` — ${offlineInstructions}` : ''}
+              </p>
+            )}
+            {!portalUrl && !offlineChannel && (
+              <p className="guidance-offline-note">{getLocaleString(lang, 'schemeDataInfoMissing')}</p>
+            )}
+          </div>
+        </div>
+      )}
     </article>
   );
 }

@@ -1232,6 +1232,62 @@ html, body {
   flex-shrink: 0;
 }
 
+/* Guidance / What do I do next? (card + modal) */
+.guidance-block {
+  margin-top: 0.125rem;
+}
+
+.guidance-steps-list {
+  margin: 0;
+  padding-left: 1.375rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.guidance-step-item {
+  font-size: 0.9375rem;
+  color: var(--color-text-main);
+  line-height: 1.4;
+}
+
+.guidance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.guidance-apply-link {
+  font-size: 0.875rem;
+  padding: 0.5rem 0.875rem;
+  min-height: unset;
+}
+
+.guidance-offline-note {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.detail-apply-online-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.detail-portal-link {
+  color: var(--color-secondary);
+  font-weight: 600;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
 .scheme-card-actions {
   display: flex;
   justify-content: flex-end;
@@ -1821,8 +1877,18 @@ html, body {
 }
 
 .voice-panel .reasons-list,
-.voice-panel .missing-list {
+.voice-panel .missing-list,
+.voice-panel .guidance-steps-list {
   font-size: 0.8125rem;
+}
+
+.voice-panel .guidance-step-item {
+  font-size: 0.8125rem;
+}
+
+.voice-panel .guidance-apply-link {
+  padding: 0.375rem 0.625rem;
+  font-size: 0.8rem;
 }
 
 .btn-play-response {

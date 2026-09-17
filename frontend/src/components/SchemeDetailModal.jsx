@@ -59,6 +59,20 @@ export function SchemeDetailModal({ schemeId, schemeName, onClose, lang }) {
   const benefits = details ? getLocalizedList(details.benefits, lang) : [];
   const requiredInfo = details ? getLocalizedList(details.required_information, lang) : [];
 
+  const guidance = details && details.application_guidance ? details.application_guidance : null;
+  const detailOnline = guidance && guidance.online_application ? guidance.online_application : null;
+  const detailOffline = guidance && guidance.offline_application ? guidance.offline_application : null;
+  const detailOnlineUrl = detailOnline && detailOnline.available && detailOnline.portal_url
+    ? detailOnline.portal_url
+    : (details && details.application_url ? details.application_url : null);
+  const detailPortalName = detailOnline && detailOnline.portal_name ? detailOnline.portal_name : null;
+  const detailOfflineChannel = detailOffline && detailOffline.available && detailOffline.authorized_channel
+    ? detailOffline.authorized_channel
+    : null;
+  const detailOfflineInstructions = detailOffline && detailOffline.available && detailOffline.instructions
+    ? detailOffline.instructions
+    : null;
+
   return (
     <div
       className="modal-backdrop"
@@ -168,6 +182,52 @@ export function SchemeDetailModal({ schemeId, schemeName, onClose, lang }) {
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+
+              {/* How to Apply / What do I do next? */}
+              {guidance && (
+                <div className="detail-section">
+                  <h4 className="detail-section-title">
+                    {getLocaleString(lang, 'nextStepsTitle')}
+                  </h4>
+                  <ol className="guidance-steps-list">
+                    <li className="guidance-step-item">{getLocaleString(lang, 'stepCheckEligibility')}</li>
+                    <li className="guidance-step-item">{getLocaleString(lang, 'stepPrepareDocuments')}</li>
+                    {detailOnlineUrl && (
+                      <li className="guidance-step-item">{getLocaleString(lang, 'stepApplyOnline')}</li>
+                    )}
+                    {detailOnlineUrl && (
+                      <li className="guidance-step-item">{getLocaleString(lang, 'stepTrackStatus')}</li>
+                    )}
+                  </ol>
+                  <div className="guidance-actions">
+                    {detailOnlineUrl && (
+                      <p className="detail-apply-online-text">
+                        <span className="bullet-icon-check" aria-hidden="true">✓</span>
+                        <span>
+                          {getLocaleString(lang, 'portalLabel')}{' '}
+                          <a
+                            href={detailOnlineUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="detail-portal-link"
+                          >
+                            {detailPortalName || detailOnlineUrl}
+                          </a>
+                        </span>
+                      </p>
+                    )}
+                    {detailOfflineChannel && (
+                      <p className="guidance-offline-note">
+                        <strong>{getLocaleString(lang, 'applyOfflineLabel')}:</strong> {detailOfflineChannel}
+                        {detailOfflineInstructions ? ` — ${detailOfflineInstructions}` : ''}
+                      </p>
+                    )}
+                    {!detailOnlineUrl && !detailOfflineChannel && (
+                      <p className="guidance-offline-note">{getLocaleString(lang, 'schemeDataInfoMissing')}</p>
+                    )}
+                  </div>
                 </div>
               )}
 

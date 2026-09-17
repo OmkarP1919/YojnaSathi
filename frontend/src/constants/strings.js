@@ -187,6 +187,17 @@ export const STRINGS = {
     viewDetails: "View Scheme Details",
     hideDetails: "Hide Details",
 
+    // Scheme Card Guidance (What do I do next?)
+    nextStepsTitle: "What do I do next?",
+    stepCheckEligibility: "Confirm you meet the eligibility conditions for this scheme",
+    stepPrepareDocuments: "Gather the information and documents listed above",
+    stepApplyOnline: "Fill and submit the online application at the official portal",
+    stepTrackStatus: "Track your application status using the portal's reference number",
+    portalLabel: "Official portal:",
+    applyOnlineButton: "Apply Online ↗",
+    applyOfflineLabel: "Apply Offline",
+    schemeDataInfoMissing: "Application details are not available in the current scheme data.",
+
     // Dynamic Reason Codes
     reason_ALL_INDIA_AVAILABLE: "Applicable across India, including {state}",
     reason_STATE_SPECIFIC_MATCH: "Specifically available for residents of {state}",
@@ -449,6 +460,17 @@ export const STRINGS = {
     viewDetails: "योजना विवरण देखें",
     hideDetails: "विवरण छिपाएं",
 
+    // Scheme Card Guidance (What do I do next?)
+    nextStepsTitle: "अब क्या करें?",
+    stepCheckEligibility: "इस योजना के लिए अपनी पात्रता की पुष्टि करें",
+    stepPrepareDocuments: "ऊपर सूचीबद्ध जानकारी व दस्तावेज तैयार करें",
+    stepApplyOnline: "आधिकारिक पोर्टल पर ऑनलाइन आवेदन भरें और जमा करें",
+    stepTrackStatus: "पोर्टल के संदर्भ संख्या से आवेदन की स्थिति देखें",
+    portalLabel: "आधिकारिक पोर्टल:",
+    applyOnlineButton: "ऑनलाइन आवेदन करें ↗",
+    applyOfflineLabel: "ऑफलाइन आवेदन",
+    schemeDataInfoMissing: "मौजूदा डेटा में इस योजना के आवेदन विवरण उपलब्ध नहीं हैं।",
+
     // Dynamic Reason Codes
     reason_ALL_INDIA_AVAILABLE: "पूरे भारत में उपलब्ध, जिसमें {state} भी शामिल है",
     reason_STATE_SPECIFIC_MATCH: "विशेष रूप से {state} के निवासियों के लिए उपलब्ध",
@@ -710,6 +732,17 @@ export const STRINGS = {
     infoNeeded: "आवश्यक कागदपत्रे व माहिती",
     viewDetails: "योजनेचा तपशील पहा",
     hideDetails: "तपशील लपवा",
+
+    // Scheme Card Guidance (What do I do next?)
+    nextStepsTitle: "आता काय करावे?",
+    stepCheckEligibility: "या योजनेच्या अटींसाठी तुमची पात्रता निश्चित करा",
+    stepPrepareDocuments: "वर सूचीबद्ध माहिती व कागदपत्रे तयार करा",
+    stepApplyOnline: "अधिकृत पोर्टलवर ऑनलाइन अर्ज भरा व सादर करा",
+    stepTrackStatus: "पोर्टलच्या संदर्भ क्रमांकाने अर्जाची स्थिती तपासा",
+    portalLabel: "अधिकृत पोर्टल:",
+    applyOnlineButton: "ऑनलाइन अर्ज करा ↗",
+    applyOfflineLabel: "ऑफलाइन अर्ज",
+    schemeDataInfoMissing: "सध्याच्या डेटामध्ये या योजनेच्या अर्जाची माहिती उपलब्ध नाही.",
 
     // Dynamic Reason Codes
     reason_ALL_INDIA_AVAILABLE: "संपूर्ण भारतात लागू, ज्यामध्ये {state} चा समावेश आहे",

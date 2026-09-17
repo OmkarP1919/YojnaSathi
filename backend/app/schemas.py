@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Optional, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 LocalizedString = Union[str, Dict[str, str]]
 LocalizedList = Union[List[str], Dict[str, List[str]]]
@@ -18,6 +18,24 @@ class SchemeEligibilityCriteria(BaseModel):
     requires_no_pucca_house: Optional[bool] = None
 
 
+class OnlineApplication(BaseModel):
+    available: bool = False
+    portal_name: Optional[str] = None
+    portal_url: Optional[str] = None
+
+
+class OfflineApplication(BaseModel):
+    available: bool = False
+    authorized_channel: Optional[str] = None
+    instructions: Optional[str] = None
+
+
+class ApplicationGuidance(BaseModel):
+    documents_required: Optional[LocalizedList] = None
+    online_application: OnlineApplication = Field(default_factory=OnlineApplication)
+    offline_application: OfflineApplication = Field(default_factory=OfflineApplication)
+
+
 class Scheme(BaseModel):
     id: str
     name: LocalizedString
@@ -33,6 +51,33 @@ class Scheme(BaseModel):
     source_url: str
     last_verified: str
     eligibility_criteria: Optional[SchemeEligibilityCriteria] = None
+
+    @computed_field(
+        return_type=ApplicationGuidance,
+        description=(
+            "Application guidance derived only from the verified scheme data "
+            "fields above. Never fabricates channels: offline stays unavailable "
+            "until an offline channel is recorded in the scheme data."
+        ),
+    )
+    @property
+    def application_guidance(self) -> ApplicationGuidance:
+        url = (self.application_url or "").strip()
+        portal_name = None
+        if url:
+            host = url.split("//")[-1].split("/")[0].lower()
+            if host.startswith("www."):
+                host = host[len("www."):]
+            portal_name = host or None
+        return ApplicationGuidance(
+            documents_required=self.required_information if self.required_information else None,
+            online_application=OnlineApplication(
+                available=bool(url),
+                portal_name=portal_name,
+                portal_url=url or None,
+            ),
+            offline_application=OfflineApplication(available=False),
+        )
 
 
 class SchemeListResponse(BaseModel):

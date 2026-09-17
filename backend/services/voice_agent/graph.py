@@ -350,6 +350,31 @@ FREE_QA_MESSAGES = {
         "hi": "हर योजना के लिए आवश्यक जानकारी:",
         "en": "Information you may need for each scheme:",
     },
+    "documents_none": {
+        "mr": "सध्या उपलब्ध डेटामध्ये या योजनेसाठी आवश्यक माहिती नाही.",
+        "hi": "मौजूदा डेटा में इस योजना के लिए आवश्यक जानकारी उपलब्ध नहीं है।",
+        "en": "Required information is not available in the current scheme data.",
+    },
+    "apply_online_template": {
+        "mr": "ऑनलाइन अर्ज करा: {url}",
+        "hi": "ऑनलाइन आवेदन करें: {url}",
+        "en": "Apply online: {url}",
+    },
+    "apply_offline_template": {
+        "mr": "ऑफलाइन अर्ज: {channel}. {instructions}",
+        "hi": "ऑफलाइन आवेदन: {channel}. {instructions}",
+        "en": "Offline application: {channel}. {instructions}",
+    },
+    "apply_not_available": {
+        "mr": "सध्या उपलब्ध डेटामध्ये या योजनेच्या अर्जाचे तपशील उपलब्ध नाहीत.",
+        "hi": "फिलहाल उपलब्ध डेटा में इस योजना के आवेदन विवरण उपलब्ध नहीं हैं।",
+        "en": "Application details for this scheme are not available in the current scheme data.",
+    },
+    "apply_help_note": {
+        "mr": "मदतीसाठी संपर्क करा: {department}",
+        "hi": "मदद के लिए संपर्क करें: {department}",
+        "en": "For help, contact: {department}",
+    },
     "eligibility_note": {
         "mr": "अंतिम पात्रता संबंधित सरकारी कार्यालयानुसार तपासा.",
         "hi": "अंतिम पात्रता संबंधित सरकारी कार्यालय के अनुसार जांचें।",
@@ -389,6 +414,10 @@ _QA_DOCUMENTS_KEYWORDS = (
 )
 
 
+def _qa_message(language: str, key: str) -> str:
+    return FREE_QA_MESSAGES[key].get(language, FREE_QA_MESSAGES[key]["en"])
+
+
 def _classify_qa_question(question: str) -> str:
     filtered = re.sub(r"[^\w\u0900-\u097F ]+", " ", question).lower()
     if any(keyword in filtered for keyword in _QA_APPLY_KEYWORDS):
@@ -422,9 +451,21 @@ def answer_free_qa(state: AgentState, language: str) -> AgentState:
     elif qa_intent == "apply":
         lines.append(FREE_QA_MESSAGES["apply_header"].get(language, FREE_QA_MESSAGES["apply_header"]["en"]))
         for result in results:
+            guidance = result.scheme.application_guidance
             name = _get_localized_text(result.scheme.name, language)
+            online = guidance.online_application
+            offline = guidance.offline_application
             department = _get_localized_text(result.scheme.department, language)
-            lines.append(f"• {name} ({department}): {result.scheme.application_url}")
+            if online.available and online.portal_url:
+                lines.append(f"• {name}: {_qa_message(language, 'apply_online_template').format(url=online.portal_url)}")
+            else:
+                lines.append(f"• {name}: {_qa_message(language, 'apply_not_available')}")
+            if offline.available:
+                channel = offline.authorized_channel or ""
+                instructions = offline.instructions or ""
+                lines.append(f"  {_qa_message(language, 'apply_offline_template').format(channel=channel, instructions=instructions)}")
+            if department:
+                lines.append(f"  {_qa_message(language, 'apply_help_note').format(department=department)}")
     elif qa_intent == "eligibility":
         lines.append(FREE_QA_MESSAGES["eligibility_header"].get(language, FREE_QA_MESSAGES["eligibility_header"]["en"]))
         for result in results:
@@ -438,8 +479,12 @@ def answer_free_qa(state: AgentState, language: str) -> AgentState:
         for result in results:
             name = _get_localized_text(result.scheme.name, language)
             documents = _get_localized_list(result.scheme.required_information, language)
-            detail = documents[0] if documents else _get_localized_text(result.scheme.description, language)
-            lines.append(f"• {name}: {detail}")
+            if documents:
+                lines.append(f"• {name}:")
+                for document in documents:
+                    lines.append(f"   - {document}")
+            else:
+                lines.append(f"• {name}: {_qa_message(language, 'documents_none')}")
     else:
         names = ", ".join(_get_localized_text(result.scheme.name, language) for result in results)
         lines.append(FREE_QA_MESSAGES["default_intro"].get(language, FREE_QA_MESSAGES["default_intro"]["en"]).format(names=names))
