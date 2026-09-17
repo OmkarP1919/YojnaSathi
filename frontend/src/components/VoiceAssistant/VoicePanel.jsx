@@ -17,7 +17,9 @@ export function VoicePanel({
   open,
   focusMode = false,
   lang,
+  sessionActive = false,
   onLanguageChange,
+  onSelectLanguage,
   status,
   playerIsSpeaking,
   recorder,
@@ -63,13 +65,15 @@ export function VoicePanel({
     }
   }, [status]);
 
-  const statusTextKey = {
-    idle: 'voiceMicIdleHint',
-    listening: 'voiceMicListening',
-    processing: 'voiceMicProcessing',
-    speaking: 'voiceMicSpeaking',
-    error: 'voiceMicIdleHint',
-  }[status];
+  const statusTextKey = !sessionActive
+    ? null
+    : {
+        idle: 'voiceMicIdleHint',
+        listening: 'voiceMicListening',
+        processing: 'voiceMicProcessing',
+        speaking: 'voiceMicSpeaking',
+        error: 'voiceMicIdleHint',
+      }[status];
 
   const micAriaLabel =
     status === 'listening'
@@ -103,13 +107,15 @@ export function VoicePanel({
           <RobotAvatar size={34} state={status} className="voice-panel-avatar" />
           <div className="voice-panel-titles">
             <h2 className="voice-panel-title">{getLocaleString(lang, 'voicePanelTitle')}</h2>
-            <p
-              className={`voice-panel-status-text voice-panel-status-${status}`}
-              role="status"
-              aria-live="polite"
-            >
-              {getLocaleString(lang, statusTextKey)}
-            </p>
+            {statusTextKey && (
+              <p
+                className={`voice-panel-status-text voice-panel-status-${status}`}
+                role="status"
+                aria-live="polite"
+              >
+                {getLocaleString(lang, statusTextKey)}
+              </p>
+            )}
           </div>
         </div>
 
@@ -122,6 +128,12 @@ export function VoicePanel({
                 className={`voice-panel-lang-btn${lang === l.code ? ' active' : ''}`}
                 onClick={() => onLanguageChange(l.code)}
                 aria-pressed={lang === l.code}
+                disabled={sessionActive}
+                title={
+                  sessionActive
+                    ? getLocaleString(lang, 'voiceLangLockedHint')
+                    : getLocaleString(lang, 'languageSelect')
+                }
               >
                 {l.nativeLabel}
               </button>
@@ -155,7 +167,27 @@ export function VoicePanel({
         aria-live="polite"
         aria-label={getLocaleString(lang, 'voiceTranscriptLabel')}
       >
-        {!turns.length && !typing && (
+        {!sessionActive && (
+          <div className="voice-lang-select">
+            <RobotAvatar size={64} state="idle" className="voice-lang-select-avatar" />
+            <p className="voice-lang-select-title">{getLocaleString(lang, 'voiceSelectLanguage')}</p>
+            <p className="voice-lang-select-sub">{getLocaleString(lang, 'voiceLangChoiceHint')}</p>
+            <div className="voice-lang-options">
+              {LANGUAGES.map((l) => (
+                <button
+                  key={l.code}
+                  type="button"
+                  className="voice-lang-option"
+                  onClick={() => onSelectLanguage(l.code)}
+                >
+                  {l.nativeLabel}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {sessionActive && !turns.length && !typing && (
           <div className="voice-welcome">
             <RobotAvatar size={64} state="idle" className="voice-welcome-avatar" />
             <p className="voice-welcome-greeting">{getLocaleString(lang, 'voiceWelcomeGreeting')}</p>
@@ -211,59 +243,63 @@ export function VoicePanel({
           </div>
         )}
 
-        <div className={`voice-mic-center voice-mic-${status}`}>
-          <div className={`voice-waveform${showWaveform ? ' is-visible' : ''}`} aria-hidden="true">
-            {Array.from({ length: BAR_COUNT }, (_, i) => (
-              <span
-                key={i}
-                className="voice-wave-bar"
-                style={barStyle(i)}
-              />
-            ))}
-          </div>
+        {sessionActive && (
+          <>
+            <div className={`voice-mic-center voice-mic-${status}`}>
+              <div className={`voice-waveform${showWaveform ? ' is-visible' : ''}`} aria-hidden="true">
+                {Array.from({ length: BAR_COUNT }, (_, i) => (
+                  <span
+                    key={i}
+                    className="voice-wave-bar"
+                    style={barStyle(i)}
+                  />
+                ))}
+              </div>
 
-          <button
-            type="button"
-            className="voice-mic-button"
-            onPointerDown={onMicPress}
-            onPointerUp={onMicRelease}
-            onPointerCancel={onMicRelease}
-            onKeyDown={(e) => {
-              if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) {
-                e.preventDefault();
-                onMicPress(e);
-              }
-            }}
-            onKeyUp={(e) => {
-              if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                onMicRelease(e);
-              }
-            }}
-            aria-label={micAriaLabel}
-            aria-pressed={status === 'listening'}
-            disabled={micDisabled}
-          >
-            <span className="voice-mic-rings" aria-hidden="true" />
-            <span className="voice-mic-icon" aria-hidden="true">🎙️</span>
-          </button>
-          <p className="voice-mic-hint" role="status" aria-live="polite">
-            <span className={`voice-live-dot voice-live-dot-${status}`} aria-hidden="true" />
-            {status === 'listening'
-              ? getLocaleString(lang, 'voiceMicListening')
-              : status === 'processing'
-                ? getLocaleString(lang, 'voiceMicProcessing')
-                : status === 'speaking'
-                  ? getLocaleString(lang, 'voiceMicSpeaking')
-                  : getLocaleString(lang, 'voiceTapToSpeak')}
-          </p>
-        </div>
+              <button
+                type="button"
+                className="voice-mic-button"
+                onPointerDown={onMicPress}
+                onPointerUp={onMicRelease}
+                onPointerCancel={onMicRelease}
+                onKeyDown={(e) => {
+                  if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) {
+                    e.preventDefault();
+                    onMicPress(e);
+                  }
+                }}
+                onKeyUp={(e) => {
+                  if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    onMicRelease(e);
+                  }
+                }}
+                aria-label={micAriaLabel}
+                aria-pressed={status === 'listening'}
+                disabled={micDisabled}
+              >
+                <span className="voice-mic-rings" aria-hidden="true" />
+                <span className="voice-mic-icon" aria-hidden="true">🎙️</span>
+              </button>
+              <p className="voice-mic-hint" role="status" aria-live="polite">
+                <span className={`voice-live-dot voice-live-dot-${status}`} aria-hidden="true" />
+                {status === 'listening'
+                  ? getLocaleString(lang, 'voiceMicListening')
+                  : status === 'processing'
+                    ? getLocaleString(lang, 'voiceMicProcessing')
+                    : status === 'speaking'
+                      ? getLocaleString(lang, 'voiceMicSpeaking')
+                      : getLocaleString(lang, 'voiceTapToSpeak')}
+              </p>
+            </div>
 
-        <ConversationInputDock
-          onSend={onSendText}
-          disabled={status === 'processing' || status === 'speaking' || status === 'listening'}
-          lang={lang}
-        />
+            <ConversationInputDock
+              onSend={onSendText}
+              disabled={status === 'processing' || status === 'speaking' || status === 'listening'}
+              lang={lang}
+            />
+          </>
+        )}
       </footer>
     </div>
   );

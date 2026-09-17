@@ -670,10 +670,25 @@ html, body {
   gap: 0.5rem;
 }
 
-.gateway-note {
-  font-size: 0.8125rem;
+.gateway-phone-status {
+  align-self: center;
+  padding: 0.15rem 0.625rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-subtle);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.gateway-phone-judge-note {
+  font-size: 0.75rem;
+  line-height: 1.5;
   color: var(--color-text-subtle);
   text-align: center;
+  margin: 0;
 }
 
 /* Quick-topic shortcuts below the gateways */
@@ -2181,6 +2196,81 @@ html, body {
   50% {
     opacity: 0.25;
   }
+}
+
+/* Language selection (first interaction before any voice session starts) */
+.voice-lang-select {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+  padding: 1.5rem 0.875rem 1rem;
+  margin: auto 0;
+  animation: messageIn 0.28s ease;
+}
+
+.voice-lang-select-avatar {
+  color: var(--color-primary);
+  opacity: 0.92;
+}
+
+.voice-lang-select-title {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+  line-height: 1.35;
+}
+
+.voice-lang-select-sub {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.voice-lang-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.625rem;
+  margin-top: 0.5rem;
+}
+
+.voice-lang-option {
+  min-width: 8.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-card-border);
+  background-color: var(--color-surface);
+  color: var(--color-text-main);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.voice-lang-option:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.voice-lang-option:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.voice-lang-option:active {
+  transform: scale(0.97);
+}
+
+/* Lock the conversation language once a session has started */
+.voice-panel-lang-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 /* Text-fallback input (accessibility; voice remains primary) */

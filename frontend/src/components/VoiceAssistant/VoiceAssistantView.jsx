@@ -42,6 +42,7 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
   const [panelOpen, setPanelOpen] = useState(false);
   const [turns, setTurns] = useState([]);
   const [status, setStatus] = useState('idle'); // 'idle' | 'listening' | 'processing' | 'speaking' | 'error'
+  const [sessionLang, setSessionLang] = useState(null); // null = language-selection screen, string = active session language
   const [micErrorKey, setMicErrorKey] = useState(null);
   const [flowError, setFlowError] = useState(null); // { kind: 'network'|'server'|'playback'|'empty', message? }
   const [typing, setTyping] = useState(false);
@@ -64,6 +65,10 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
   const statusRef = useRef(status);
   const micHeldRef = useRef(false);
   const recordingStartRef = useRef(0);
+
+  // Effective panel language: the selected voice-session language once chosen,
+  // otherwise the current site language.
+  const effectiveLang = sessionLang || lang;
 
   useEffect(() => {
     statusRef.current = status;
@@ -151,8 +156,16 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
   }, [panelOpen]);
 
   const starters = useMemo(
-    () => STARTER_KEYS.map((key) => ({ key, text: getLocaleString(lang, key) })),
-    [lang],
+    () => STARTER_KEYS.map((key) => ({ key, text: getLocaleString(effectiveLang, key) })),
+    [effectiveLang],
+  );
+
+  const handleSelectLanguage = useCallback(
+    (code) => {
+      setSessionLang(code);
+      onLanguageChange(code);
+    },
+    [onLanguageChange],
   );
 
   const appendTurn = useCallback((turn) => {
@@ -162,7 +175,7 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
   // Agent-initiated conversation: fetch the localized greeting + first question
   // (with TTS audio) and present it as the opening assistant turn.
   const startSession = useCallback(
-    async (language = lang) => {
+    async (language) => {
       const currentSession = sessionRef.current;
       try {
         const data = await startVoiceSession({ sessionId: currentSession, language });
@@ -209,17 +222,14 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
         setTyping(false);
       }
     },
-    [appendTurn, lang, player.play],
+    [appendTurn, player.play],
   );
 
-  // Auto-start the conversation whenever the panel opens (including right after
-  // "New Conversation"). The agent speaks first. `startedSessionRef` is keyed to
-  // the session id so this fires exactly ONCE per conversation: it never retries
-  // after a failure (no turn was appended) and never re-greets on later
-  // re-renders, because state updates from the response are not dependencies
-  // here. Reset spins up a fresh session id, which triggers exactly one new start.
+  // Auto-start the conversation once the panel is open AND the user has
+  // explicitly selected a language. `startedSessionRef` fires exactly ONCE
+  // per session so failures do not loop and re-renders do not re-greet.
   useEffect(() => {
-    if (!panelOpen) {
+    if (!panelOpen || sessionLang === null) {
       return;
     }
     if (startingRef.current) {
@@ -232,11 +242,11 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
     startingRef.current = true;
     setStatus('processing');
     setTyping(true);
-    startSession(lang).finally(() => {
+    startSession(sessionLang).finally(() => {
       startingRef.current = false;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [panelOpen, lang, startSession, sessionRef.current]);
+  }, [panelOpen, sessionLang, startSession, sessionRef.current]);
 
   const sendAudio = useCallback(
     async (audioBlob) => {
@@ -249,7 +259,7 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
         const data = await processVoiceAudio({
           sessionId: currentSession,
           audioBlob,
-          language: lang,
+          language: sessionLang,
         });
 
         // Ignore responses that arrive after the user reset the conversation.
@@ -304,11 +314,11 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
         setStatus('idle');
       }
     },
-    [appendTurn, lang, player],
+    [appendTurn, sessionLang, player],
   );
 
   const sendText = useCallback(
-    async (text, language = lang) => {
+    async (text, language = sessionLang) => {
       const trimmed = (text || '').trim();
       if (!trimmed) return;
       const currentSession = sessionRef.current;
@@ -353,7 +363,7 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
         setTyping(false);
       }
     },
-    [appendTurn, lang],
+    [appendTurn, sessionLang],
   );
 
   const handleMicPress = useCallback(async () => {
@@ -416,6 +426,7 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
     micHeldRef.current = false;
     startingRef.current = false;
     sessionRef.current = createSessionId();
+    setSessionLang(null);
     setTurns([]);
     setStatus('idle');
     setMicErrorKey(null);
@@ -439,19 +450,21 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
 
   const flowErrorMessage = useMemo(() => {
     if (!flowError) return null;
-    if (flowError.kind === 'network') return getLocaleString(lang, 'voiceErrorNetwork');
-    if (flowError.kind === 'playback') return getLocaleString(lang, 'voicePlayBackFailed');
-    if (flowError.kind === 'empty') return getLocaleString(lang, 'voiceErrorEmptyRecording');
-    return flowError.message || getLocaleString(lang, 'voiceErrorGeneric');
-  }, [flowError, lang]);
+    if (flowError.kind === 'network') return getLocaleString(effectiveLang, 'voiceErrorNetwork');
+    if (flowError.kind === 'playback') return getLocaleString(effectiveLang, 'voicePlayBackFailed');
+    if (flowError.kind === 'empty') return getLocaleString(effectiveLang, 'voiceErrorEmptyRecording');
+    return flowError.message || getLocaleString(effectiveLang, 'voiceErrorGeneric');
+  }, [flowError, effectiveLang]);
 
   return (
     <div className={`voice-launcher${focusMode ? ' voice-focus-mode' : ''}`}>
       <VoicePanel
         open={panelOpen}
         focusMode={focusMode}
-        lang={lang}
+        lang={effectiveLang}
+        sessionActive={sessionLang !== null}
         onLanguageChange={onLanguageChange}
+        onSelectLanguage={handleSelectLanguage}
         status={status}
         playerIsSpeaking={player.isSpeaking}
         recorder={recorder}

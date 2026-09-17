@@ -35,6 +35,9 @@ export function GatewayHero({ onOpenVoice, onSelectCategory, lang }) {
     )
     : (
       <div className="gateway-phone-actions">
+        <span className="gateway-phone-status">
+          {getLocaleString(lang, 'gatewayPhoneNote')}
+        </span>
         <button
           type="button"
           className="gateway-cta gateway-cta-disabled"
@@ -43,8 +46,8 @@ export function GatewayHero({ onOpenVoice, onSelectCategory, lang }) {
         >
           {getLocaleString(lang, 'gatewayPhoneCta')}
         </button>
-        <p className="gateway-note">
-          {getLocaleString(lang, 'gatewayPhoneNote')}
+        <p className="gateway-phone-judge-note">
+          {getLocaleString(lang, 'gatewayPhoneJudgeNote')}
         </p>
       </div>
     );
