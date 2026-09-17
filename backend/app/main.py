@@ -1,6 +1,7 @@
 import base64
 import json
 import logging
+import os
 from pathlib import Path
 from typing import List, Optional
 from uuid import uuid4
@@ -42,14 +43,22 @@ app = FastAPI(
     version="0.4.0",
 )
 
-# Enable CORS for frontend development. Vite runs with host: true, so the SPA
-# is reachable on loopback AND on the machine's private LAN address; accept
-# those origins (any dev port) instead of hardcoding only :5173. No "*" wildcard
-# is used so allow_credentials stays safe.
+# Enable CORS for frontend development and production. Vite runs with host: true,
+# so the SPA is reachable on loopback AND on the machine's private LAN address;
+# accept those origins (any dev port) instead of hardcoding only :5173.
+# Production origins (such as Render frontend URL) can be specified via ALLOWED_ORIGINS.
+# No "*" wildcard is used so allow_credentials stays safe.
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
+
+env_allowed_origins = os.getenv("ALLOWED_ORIGINS", "")
+if env_allowed_origins:
+    for origin in env_allowed_origins.split(","):
+        cleaned = origin.strip()
+        if cleaned and cleaned not in origins:
+            origins.append(cleaned)
 DEV_ORIGIN_REGEX = (
     r"^https?://("
     r"localhost|127\.0\.0\.1|\[::1\]|"
