@@ -191,12 +191,15 @@ def get_scheme_by_id(
     for s in schemes:
         if s.id.lower() == target_id:
             if state:
-                locs = find_locations(
+                from app.location_search import find_application_options
+                options = find_application_options(
                     scheme_id=s.id,
                     state=state,
                     district=district,
                     taluka=taluka,
+                    scheme=s,
                 )
+                locs = options.physical_locations or []
                 if locs:
                     guidance = s.application_guidance.model_copy(deep=True)
                     guidance.offline_application.locations = locs
@@ -255,8 +258,11 @@ def get_locations_endpoint(
     district: Optional[str] = Query(None, description="District (e.g., nashik)"),
     taluka: Optional[str] = Query(None, description="Taluka (e.g., dindori)"),
 ):
-    """Retrieve verified physical application centers/offices for a jurisdiction."""
     if scheme_id:
+        from app.location_search import find_application_options
+        options = find_application_options(scheme_id=scheme_id, state=state, district=district, taluka=taluka)
+        if options.physical_locations:
+            return options.physical_locations
         return find_locations(scheme_id=scheme_id, state=state, district=district, taluka=taluka)
     from app.locations import load_locations_data
     pool = load_locations_data()
@@ -361,13 +367,16 @@ def recommend_schemes(request: RecommendationRequest):
 
     # Attach location-aware physical application centers if citizen state is provided
     if request.profile.state:
+        from app.location_search import find_application_options
         for result in results:
-            locs = find_locations(
+            options = find_application_options(
                 scheme_id=result.scheme.id,
                 state=request.profile.state,
                 district=request.profile.district,
                 taluka=request.profile.taluka,
+                scheme=result.scheme,
             )
+            locs = options.physical_locations or []
             result.locations = locs
             if locs:
                 guidance = result.scheme.application_guidance.model_copy(deep=True)

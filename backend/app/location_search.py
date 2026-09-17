@@ -1357,41 +1357,92 @@ class GovernmentWebSearchProvider(LocationSearchProvider):
         state: str,
         district: Optional[str] = None,
         taluka: Optional[str] = None,
+        scheme: Optional[Scheme] = None,
     ) -> Optional[List[ApplicationLocation]]:
         s_id = scheme_id.strip().lower()
         s_state = state.strip().lower()
         s_dist = district.strip().lower() if district and district.strip() else None
         s_tal = taluka.strip().lower() if taluka and taluka.strip() else None
 
-        scheme = _load_scheme_by_id(s_id)
+        scheme_obj = scheme or _load_scheme_by_id(s_id)
+        if not scheme_obj and s_id.startswith("web-"):
+            scheme_obj = _load_scheme_by_id(s_id[4:])
+
         scheme_title = s_id
-        if scheme:
-            if isinstance(scheme.name, dict):
-                scheme_title = scheme.name.get("en") or s_id
+        if scheme_obj:
+            if isinstance(scheme_obj.name, dict):
+                scheme_title = scheme_obj.name.get("en") or scheme_obj.name.get("hi") or s_id
             else:
-                scheme_title = str(scheme.name)
+                scheme_title = str(scheme_obj.name)
+        elif s_id.startswith("web-"):
+            scheme_title = s_id[4:].replace("-", " ")
+
+        scheme_authorities: Dict[str, str] = {}
+        scheme_auth_url: Optional[str] = None
+        discovered_offices: List[ApplicationLocation] = []
+
+        # 1. Check if the scheme's verified guidance or description directly authorizes channels
+        scheme_text_chunks: List[str] = []
+        if scheme_obj:
+            if scheme_obj.custom_application_guidance and scheme_obj.custom_application_guidance.offline_application:
+                off = scheme_obj.custom_application_guidance.offline_application
+                if off.instructions:
+                    scheme_text_chunks.append(str(off.instructions))
+                if off.authorized_channel:
+                    scheme_text_chunks.append(str(off.authorized_channel))
+            if scheme_obj.description:
+                if isinstance(scheme_obj.description, dict):
+                    scheme_text_chunks.extend([str(v) for v in scheme_obj.description.values()])
+                else:
+                    scheme_text_chunks.append(str(scheme_obj.description))
+            if scheme_obj.required_information:
+                if isinstance(scheme_obj.required_information, dict):
+                    for v in scheme_obj.required_information.values():
+                        if isinstance(v, list):
+                            scheme_text_chunks.extend([str(x) for x in v])
+                elif isinstance(scheme_obj.required_information, list):
+                    scheme_text_chunks.extend([str(x) for x in scheme_obj.required_information])
+
+        if scheme_text_chunks:
+            direct_auth = AuthorityExtractionParser.parse_text(" ".join(scheme_text_chunks))
+            if direct_auth.is_online_only:
+                logger.info("Scheme %s is online-only; suppressing physical locations.", s_id)
+                return None
+            if direct_auth.designated_authorities:
+                scheme_authorities.update(direct_auth.designated_authorities)
+                scheme_auth_url = (scheme_obj.application_url or scheme_obj.source_url) if scheme_obj else None
+
+        # 2. Build official candidate URLs to inspect for Source A
+        official_candidates: List[Dict[str, str]] = []
+        if scheme_obj and s_id.startswith("web-"):
+            if scheme_obj.application_url and is_official_gov_domain(scheme_obj.application_url):
+                official_candidates.append({"url": scheme_obj.application_url, "title": scheme_title})
+            if scheme_obj.source_url and is_official_gov_domain(scheme_obj.source_url) and scheme_obj.source_url != scheme_obj.application_url:
+                official_candidates.append({"url": scheme_obj.source_url, "title": scheme_title})
 
         query = build_official_search_query(scheme_title, s_state, s_dist, s_tal)
-
         candidates = self.backend.search_candidates(query, max_results=5)
-        if not candidates:
+        if candidates is not None and len(candidates) > 0:
+            gov_candidates = [
+                item for item in candidates
+                if is_official_gov_domain(item.get("url", ""))
+            ]
+            if not gov_candidates and not scheme_authorities:
+                logger.info("Search returned candidates but none from official government domains for query: %s", query)
+                return None
+            for item in gov_candidates:
+                if not any(c["url"] == item.get("url") for c in official_candidates):
+                    official_candidates.append(item)
+        elif not scheme_authorities:
+            logger.info("No candidates returned from search and no direct authorities for query: %s", query)
             return None
 
-        # Filter strictly to official government domains (*.gov.in, *.nic.in)
-        official_candidates = [
-            item for item in candidates
-            if is_official_gov_domain(item.get("url", ""))
-        ]
-        if not official_candidates:
+        if not official_candidates and not scheme_authorities:
             logger.info("No candidates from official government domains found for query: %s", query)
             return None
 
         client = self._get_http_client()
         portal_parser = OfficialPortalLocationProvider(client=client)
-
-        scheme_authorities: Dict[str, str] = {}
-        scheme_auth_url: Optional[str] = None
-        discovered_offices: List[ApplicationLocation] = []
 
         # -------------------------------------------------------------
         # Stage 1: Inspect official scheme pages (Source A)
@@ -1664,6 +1715,11 @@ def _load_scheme_by_id(scheme_id: str) -> Optional[Scheme]:
     for s in schemes:
         if s.id.strip().lower() == target:
             return s
+    if target.startswith("web-"):
+        stripped = target[4:]
+        for s in schemes:
+            if s.id.strip().lower() == stripped:
+                return s
     return None
 
 
@@ -1679,6 +1735,7 @@ def find_application_options(
     live_provider: Optional[LocationSearchProvider] = None,
     fallback_pool: Optional[List[ApplicationLocation]] = None,
     use_cache: bool = True,
+    scheme: Optional[Scheme] = None,
 ) -> ApplicationOptionsResult:
     """
     Unified entrypoint for finding both online and physical application options.
@@ -1702,14 +1759,14 @@ def find_application_options(
             return cached
 
     # Retrieve scheme metadata
-    scheme = _load_scheme_by_id(s_id) if s_id else None
+    scheme_obj = scheme or (_load_scheme_by_id(s_id) if s_id else None)
 
     online_app = OnlineApplication(available=False)
     official_source_url = None
 
-    if scheme:
-        online_app = scheme.application_guidance.online_application
-        official_source_url = scheme.application_url or scheme.source_url
+    if scheme_obj:
+        online_app = scheme_obj.application_guidance.online_application
+        official_source_url = scheme_obj.application_url or scheme_obj.source_url
 
     if not s_id or not s_state:
         result = ApplicationOptionsResult(
@@ -1744,12 +1801,21 @@ def find_application_options(
 
     for provider in live_providers:
         try:
-            live_locations = provider.search(
-                scheme_id=s_id,
-                state=s_state,
-                district=s_dist,
-                taluka=s_tal,
-            )
+            try:
+                live_locations = provider.search(
+                    scheme_id=s_id,
+                    state=s_state,
+                    district=s_dist,
+                    taluka=s_tal,
+                    scheme=scheme_obj,
+                )
+            except TypeError:
+                live_locations = provider.search(
+                    scheme_id=s_id,
+                    state=s_state,
+                    district=s_dist,
+                    taluka=s_tal,
+                )
             if live_locations and len(live_locations) > 0:
                 result = ApplicationOptionsResult(
                     scheme_id=s_id,
@@ -1778,6 +1844,14 @@ def find_application_options(
         taluka=s_tal,
         locations_pool=fallback_pool,
     )
+    if (not fallback_locations) and s_id.startswith("web-"):
+        fallback_locations = find_locations(
+            scheme_id=s_id[4:],
+            state=s_state,
+            district=s_dist,
+            taluka=s_tal,
+            locations_pool=fallback_pool,
+        )
 
     if fallback_locations and len(fallback_locations) > 0:
         result = ApplicationOptionsResult(

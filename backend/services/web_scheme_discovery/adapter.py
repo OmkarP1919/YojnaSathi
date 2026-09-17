@@ -7,8 +7,11 @@ import re
 from typing import List, Optional, Set
 
 from app.schemas import (
+    ApplicationGuidance,
     LocalizedList,
     LocalizedString,
+    OfflineApplication,
+    OnlineApplication,
     Scheme,
 )
 from services.web_scheme_discovery.deduplicator import normalize_name
@@ -181,6 +184,42 @@ def discovered_to_canonical_scheme(
     src_url = (candidate.source_url or candidate.application_url or "").strip()
     last_verified = candidate.last_verified or datetime.now(timezone.utc).isoformat()
 
+    portal_name = None
+    if app_url:
+        host = app_url.split("//")[-1].split("/")[0].lower()
+        if host.startswith("www."):
+            host = host[4:]
+        portal_name = host or None
+
+    custom_guidance = None
+    app_proc_text = " ".join(candidate.application_process or []).strip()
+    if app_proc_text:
+        from app.location_search import AuthorityExtractionParser
+        auth_res = AuthorityExtractionParser.parse_text(app_proc_text)
+        channel = None
+        if "citizen_service_center" in auth_res.designated_authorities:
+            channel = "CSC / Maha e-Seva / Setu Kendra"
+        elif "tahsil_office" in auth_res.designated_authorities:
+            channel = "Tahsil Office"
+        elif "district_agriculture_office" in auth_res.designated_authorities:
+            channel = "District Agriculture Office"
+        elif "civil_hospital" in auth_res.designated_authorities:
+            channel = "Civil Hospital"
+
+        custom_guidance = ApplicationGuidance(
+            documents_required=required_information,
+            online_application=OnlineApplication(
+                available=bool(app_url),
+                portal_name=portal_name,
+                portal_url=app_url or None,
+            ),
+            offline_application=OfflineApplication(
+                available=bool(channel or app_proc_text),
+                authorized_channel=channel,
+                instructions=app_proc_text,
+            ),
+        )
+
     return Scheme(
         id=scheme_id,
         name=name,
@@ -196,4 +235,5 @@ def discovered_to_canonical_scheme(
         source_url=src_url,
         last_verified=last_verified,
         eligibility_criteria=None,  # Intentionally None: never fabricate criteria
+        custom_application_guidance=custom_guidance,
     )
