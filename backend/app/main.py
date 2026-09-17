@@ -15,6 +15,7 @@ from app.matching import match_schemes
 from app.schemas import (
     DISCLAIMER_MAP,
     ApplicationLocation,
+    ApplicationOptionsResult,
     ChatRequest,
     ChatResponse,
     RecommendationRequest,
@@ -223,6 +224,26 @@ def get_locations_endpoint(
     return matches
 
 
+@app.get("/api/application-options", response_model=ApplicationOptionsResult)
+def get_application_options_endpoint(
+    scheme_id: str = Query(..., description="Target scheme ID"),
+    state: str = Query(..., description="State (e.g. maharashtra)"),
+    district: Optional[str] = Query(None, description="District (e.g. nashik)"),
+    taluka: Optional[str] = Query(None, description="Taluka (e.g. dindori)"),
+):
+    """
+    Retrieve structured application options (both online and physical application centers)
+    for a given scheme and location, searching official sources with verified catalog fallback.
+    """
+    from app.location_search import find_application_options
+    return find_application_options(
+        scheme_id=scheme_id,
+        state=state,
+        district=district,
+        taluka=taluka,
+    )
+
+
 @app.post("/api/recommend", response_model=RecommendationResponse)
 def recommend_schemes(request: RecommendationRequest):
     """
@@ -248,11 +269,15 @@ def recommend_schemes(request: RecommendationRequest):
                 guidance.offline_application.available = True
                 result.scheme.custom_application_guidance = guidance
 
+    from app.location_requirements import evaluate_location_requirement
+    loc_requirement = evaluate_location_requirement(request.profile, results)
+
     return RecommendationResponse(
         success=True,
         count=len(results),
         disclaimer=dict(DISCLAIMER_MAP),
         results=results,
+        location_requirement=loc_requirement,
     )
 
 
