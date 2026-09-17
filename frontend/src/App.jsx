@@ -57,17 +57,33 @@ function App() {
 
   // Record user answer and update CitizenProfile patch
   const handleAnswerChange = (stepId, value, profilePatch) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [stepId]: value,
-    }));
-
-    if (profilePatch) {
-      setProfile((prev) => ({
+    setAnswers((prev) => {
+      const updated = {
         ...prev,
-        ...profilePatch,
-      }));
-    }
+        [stepId]: value,
+      };
+      if (stepId === 'state') {
+        delete updated.district;
+        delete updated.taluka;
+      } else if (stepId === 'district') {
+        delete updated.taluka;
+      }
+      return updated;
+    });
+
+    setProfile((prev) => {
+      const updated = {
+        ...prev,
+        ...(profilePatch || {}),
+      };
+      if (stepId === 'state') {
+        delete updated.district;
+        delete updated.taluka;
+      } else if (stepId === 'district') {
+        delete updated.taluka;
+      }
+      return updated;
+    });
   };
 
   // Next step in questionnaire
@@ -107,7 +123,15 @@ function App() {
     setErrorCustomMessage(null);
 
     try {
-      const response = await getRecommendations(profile, selectedCategory?.id);
+      const submitProfile = { ...profile };
+      // Clean up sentinel values so backend receives clean optional fields
+      if (submitProfile.district === 'other' || !submitProfile.district) {
+        delete submitProfile.district;
+        delete submitProfile.taluka;
+      } else if (submitProfile.taluka === 'other' || !submitProfile.taluka) {
+        delete submitProfile.taluka;
+      }
+      const response = await getRecommendations(submitProfile, selectedCategory?.id);
       setResults(response.results || []);
       setDisclaimer(response.disclaimer || '');
       setCurrentView('results');
@@ -219,6 +243,7 @@ function App() {
               <ResultsView
                 results={results}
                 disclaimer={disclaimer}
+                profile={profile}
                 onChangeAnswers={handleChangeAnswers}
                 onReset={handleReset}
                 onViewDetails={handleViewDetails}
@@ -242,6 +267,7 @@ function App() {
         <SchemeDetailModal
           schemeId={detailModal.schemeId}
           schemeName={detailModal.schemeName}
+          profile={profile}
           onClose={handleCloseDetails}
           lang={lang}
         />

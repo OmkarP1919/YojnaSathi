@@ -117,13 +117,33 @@ export async function processVoiceAudio({ sessionId, audioBlob, language = null 
 }
 
 /**
- * Fetch full scheme details by ID from /api/schemes/{scheme_id}.
+ * Fetch full scheme details by ID from /api/schemes/{scheme_id}, with optional location-filtering.
  * @param {string} schemeId - Scheme unique identifier
+ * @param {object} [locationParams] - Optional { state, district, taluka }
  * @returns {Promise<object>} - Scheme object
  */
-export async function fetchSchemeDetails(schemeId) {
-  const response = await apiClient.get(`/api/schemes/${encodeURIComponent(schemeId)}`);
+export async function fetchSchemeDetails(schemeId, { state, district, taluka } = {}) {
+  const params = {};
+  if (state) params.state = state;
+  if (district) params.district = district;
+  if (taluka) params.taluka = taluka;
+  const response = await apiClient.get(`/api/schemes/${encodeURIComponent(schemeId)}`, { params });
   return response.data.scheme;
+}
+
+/**
+ * Fetch application locations from GET /api/locations.
+ * @param {object} [filters] - Optional { schemeId, state, district, taluka }
+ * @returns {Promise<object>} - { success, count, locations }
+ */
+export async function fetchLocations({ schemeId, state, district, taluka } = {}) {
+  const params = {};
+  if (schemeId) params.scheme_id = schemeId;
+  if (state) params.state = state;
+  if (district) params.district = district;
+  if (taluka) params.taluka = taluka;
+  const response = await apiClient.get('/api/locations', { params });
+  return response.data;
 }
 
 /**

@@ -3,7 +3,7 @@ import { fetchSchemeDetails } from '../api';
 import { getLocaleString } from '../constants/strings';
 import { getLocalizedField, getLocalizedList } from '../utils/localization';
 
-export function SchemeDetailModal({ schemeId, schemeName, onClose, lang }) {
+export function SchemeDetailModal({ schemeId, schemeName, profile = {}, onClose, lang }) {
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,7 +16,12 @@ export function SchemeDetailModal({ schemeId, schemeName, onClose, lang }) {
       setLoading(true);
       setError(null);
       try {
-        const data = await fetchSchemeDetails(schemeId);
+        const locationParams = {
+          state: profile.state,
+          district: (profile.district && profile.district !== 'other') ? profile.district : undefined,
+          taluka: (profile.taluka && profile.taluka !== 'other') ? profile.taluka : undefined,
+        };
+        const data = await fetchSchemeDetails(schemeId, locationParams);
         if (isMounted) {
           setDetails(data);
         }
@@ -35,7 +40,7 @@ export function SchemeDetailModal({ schemeId, schemeName, onClose, lang }) {
     return () => {
       isMounted = false;
     };
-  }, [schemeId, lang]);
+  }, [schemeId, lang, profile.state, profile.district, profile.taluka]);
 
   // Handle ESC key press
   useEffect(() => {
@@ -59,7 +64,9 @@ export function SchemeDetailModal({ schemeId, schemeName, onClose, lang }) {
   const benefits = details ? getLocalizedList(details.benefits, lang) : [];
   const requiredInfo = details ? getLocalizedList(details.required_information, lang) : [];
 
-  const guidance = details && details.application_guidance ? details.application_guidance : null;
+  const guidance = details
+    ? (details.custom_application_guidance || details.application_guidance)
+    : null;
   const detailOnline = guidance && guidance.online_application ? guidance.online_application : null;
   const detailOffline = guidance && guidance.offline_application ? guidance.offline_application : null;
   const detailOnlineUrl = detailOnline && detailOnline.available && detailOnline.portal_url
@@ -72,6 +79,10 @@ export function SchemeDetailModal({ schemeId, schemeName, onClose, lang }) {
   const detailOfflineInstructions = detailOffline && detailOffline.available && detailOffline.instructions
     ? detailOffline.instructions
     : null;
+  const detailLocations = (detailOffline && detailOffline.locations && detailOffline.locations.length > 0)
+    ? detailOffline.locations
+    : [];
+  const isLocationSearch = profile?.state === 'maharashtra' && profile?.district && profile?.district !== 'other';
 
   return (
     <div
@@ -228,6 +239,79 @@ export function SchemeDetailModal({ schemeId, schemeName, onClose, lang }) {
                       <p className="guidance-offline-note">{getLocaleString(lang, 'schemeDataInfoMissing')}</p>
                     )}
                   </div>
+
+                  {/* Physical Application Locations */}
+                  {detailLocations.length > 0 && (
+                    <div className="location-guidance-container modal-locations">
+                      <h5 className="location-guidance-title">
+                        🏛️ {getLocaleString(lang, 'whereToApplyTitle')}
+                      </h5>
+                      <div className="location-cards-list">
+                        {detailLocations.map((loc) => {
+                          const officeName = getLocalizedField(loc.office_name, lang);
+                          const address = getLocalizedField(loc.address, lang);
+                          const hours = loc.working_hours ? getLocalizedField(loc.working_hours, lang) : null;
+                          return (
+                            <div key={loc.id} className="location-card-item">
+                              <div className="location-card-header">
+                                <strong className="location-office-name">{officeName}</strong>
+                                <div className="location-badge-group">
+                                  {loc.district && (
+                                    <span className="location-jurisdiction-badge">
+                                      {loc.district.charAt(0).toUpperCase() + loc.district.slice(1)}
+                                    </span>
+                                  )}
+                                  {loc.taluka && (
+                                    <span className="location-jurisdiction-badge">
+                                      {loc.taluka.charAt(0).toUpperCase() + loc.taluka.slice(1)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              {address && (
+                                <p className="location-address-text">
+                                  📍 {address}
+                                </p>
+                              )}
+                              <div className="location-meta-row">
+                                {loc.contact_phone && (
+                                  <a href={`tel:${loc.contact_phone}`} className="location-phone-link">
+                                    📞 {loc.contact_phone}
+                                  </a>
+                                )}
+                                {hours && (
+                                  <span className="location-hours-text">
+                                    🕒 {hours}
+                                  </span>
+                                )}
+                                {loc.source_url && (
+                                  <a
+                                    href={loc.source_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="location-source-link"
+                                  >
+                                    {getLocaleString(lang, 'officeOfficialSource')} ↗
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {detailLocations.length === 0 && isLocationSearch && (
+                    <div className="location-guidance-container modal-locations">
+                      <h5 className="location-guidance-title">
+                        🏛️ {getLocaleString(lang, 'whereToApplyTitle')}
+                      </h5>
+                      <p className="location-empty-note">
+                        ℹ️ {getLocaleString(lang, 'noLocationsFound')}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 

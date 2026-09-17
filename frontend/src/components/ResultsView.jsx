@@ -6,6 +6,7 @@ import { getLocalizedField } from '../utils/localization';
 export function ResultsView({
   results,
   disclaimer,
+  profile,
   onChangeAnswers,
   onReset,
   onViewDetails,
@@ -63,6 +64,7 @@ export function ResultsView({
             <SchemeCard
               key={matchResult.scheme.id}
               matchResult={matchResult}
+              profile={profile}
               onViewDetails={onViewDetails}
               lang={lang}
             />

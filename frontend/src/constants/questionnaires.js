@@ -49,6 +49,71 @@ const stateStepOptions = INDIAN_STATES.map((s) => ({
   labels: s.labels,
 }));
 
+export const DISTRICT_OPTIONS_MAHARASHTRA = [
+  {
+    value: "nashik",
+    labels: { en: "Nashik", hi: "नासिक", mr: "नाशिक" },
+  },
+  {
+    value: "pune",
+    labels: { en: "Pune", hi: "पुणे", mr: "पुणे" },
+  },
+  {
+    value: "other",
+    labelKey: "otherDistrictOption",
+  },
+];
+
+export const TALUKA_OPTIONS_MAHARASHTRA = {
+  nashik: [
+    {
+      value: "dindori",
+      labels: { en: "Dindori", hi: "दिंडोरी", mr: "दिंडोरी" },
+    },
+    {
+      value: "other",
+      labelKey: "otherTalukaOption",
+    },
+  ],
+  pune: [
+    {
+      value: "haveli",
+      labels: { en: "Haveli", hi: "हवेली", mr: "हवेली" },
+    },
+    {
+      value: "other",
+      labelKey: "otherTalukaOption",
+    },
+  ],
+};
+
+export const DISTRICT_STEP = {
+  id: "district",
+  type: "select",
+  questionKey: "districtQuestion",
+  placeholderKey: "districtPlaceholder",
+  helperNoteKey: "districtPilotNote",
+  field: "district",
+  optional: true,
+  options: DISTRICT_OPTIONS_MAHARASHTRA,
+  showWhen: (profile) => profile?.state === "maharashtra",
+};
+
+export const TALUKA_STEP = {
+  id: "taluka",
+  type: "select",
+  questionKey: "talukaQuestion",
+  placeholderKey: "talukaPlaceholder",
+  field: "taluka",
+  optional: true,
+  optionsByDistrict: TALUKA_OPTIONS_MAHARASHTRA,
+  options: [],
+  showWhen: (profile) =>
+    profile?.state === "maharashtra" &&
+    Boolean(profile?.district) &&
+    profile?.district !== "other",
+};
+
 export const CATEGORIES = [
   {
     id: "farmers",
@@ -79,6 +144,8 @@ export const CATEGORIES = [
         field: "state",
         options: stateStepOptions,
       },
+      DISTRICT_STEP,
+      TALUKA_STEP,
       {
         id: "farmer_land",
         type: "single_choice",
@@ -161,6 +228,8 @@ export const CATEGORIES = [
         field: "state",
         options: stateStepOptions,
       },
+      DISTRICT_STEP,
+      TALUKA_STEP,
       {
         id: "income",
         type: "single_choice",
@@ -282,6 +351,8 @@ export const CATEGORIES = [
         field: "state",
         options: stateStepOptions,
       },
+      DISTRICT_STEP,
+      TALUKA_STEP,
       {
         id: "edu_need",
         type: "single_choice",
@@ -406,6 +477,8 @@ export const CATEGORIES = [
         field: "state",
         options: stateStepOptions,
       },
+      DISTRICT_STEP,
+      TALUKA_STEP,
       {
         id: "income",
         type: "single_choice",
@@ -491,6 +564,8 @@ export const CATEGORIES = [
         field: "state",
         options: stateStepOptions,
       },
+      DISTRICT_STEP,
+      TALUKA_STEP,
       {
         id: "income",
         type: "single_choice",
@@ -594,6 +669,8 @@ export const CATEGORIES = [
         field: "state",
         options: stateStepOptions,
       },
+      DISTRICT_STEP,
+      TALUKA_STEP,
       {
         id: "emp_status",
         type: "single_choice",
@@ -679,6 +756,8 @@ export const CATEGORIES = [
         field: "state",
         options: stateStepOptions,
       },
+      DISTRICT_STEP,
+      TALUKA_STEP,
       {
         id: "biz_status",
         type: "single_choice",

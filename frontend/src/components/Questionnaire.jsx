@@ -43,12 +43,12 @@ export function Questionnaire({
         return;
       }
     } else if (currentStep.type === 'select') {
-      if (!currentValue) {
+      if (!currentValue && !currentStep.optional) {
         setErrorMessage(getLocaleString(lang, currentStep.errorKey || 'stateError'));
         return;
       }
     } else if (currentStep.type === 'single_choice') {
-      if (currentValue === undefined) {
+      if (currentValue === undefined && !currentStep.optional) {
         setErrorMessage(getLocaleString(lang, 'selectOptionPrompt'));
         return;
       }
@@ -62,6 +62,10 @@ export function Questionnaire({
       onNext();
     }
   };
+
+  const selectOptions = currentStep.optionsByDistrict
+    ? (currentStep.optionsByDistrict[profile?.district] || [])
+    : (currentStep.options || []);
 
   const progressPercent = Math.round(((currentStepIndex + 1) / totalSteps) * 100);
 
@@ -120,6 +124,16 @@ export function Questionnaire({
             {getLocaleString(lang, currentStep.questionKey)}
           </legend>
 
+          {/* Helper / Pilot transparency notice if present */}
+          {currentStep.helperNoteKey && (
+            <div className="step-pilot-note" role="note">
+              <span className="pilot-note-icon" aria-hidden="true">ℹ️</span>
+              <span className="pilot-note-text">
+                {getLocaleString(lang, currentStep.helperNoteKey)}
+              </span>
+            </div>
+          )}
+
           {/* Type: Number Input (Age) */}
           {currentStep.type === 'number' && (
             <div className="input-group">
@@ -143,7 +157,7 @@ export function Questionnaire({
             </div>
           )}
 
-          {/* Type: Select Input (State) */}
+          {/* Type: Select Input (State, District, Taluka) */}
           {currentStep.type === 'select' && (
             <div className="input-group">
               <select
@@ -156,14 +170,14 @@ export function Questionnaire({
                   if (errorMessage) setErrorMessage(null);
                 }}
                 autoFocus
-                aria-required="true"
+                aria-required={!currentStep.optional}
                 aria-describedby={errorMessage ? `err-${currentStep.id}` : undefined}
               >
                 <option value="">{getLocaleString(lang, currentStep.placeholderKey)}</option>
-                {currentStep.options.map((opt) => {
+                {selectOptions.map((opt) => {
                   const displayLabel = opt.labels
                     ? (opt.labels[lang] || opt.labels.en)
-                    : (opt.labelKey ? getLocaleString(lang, opt.labelKey) : opt.label);
+                    : (opt.labelKey ? getLocaleString(lang, opt.labelKey) : (opt.label || opt.value));
                   return (
                     <option key={opt.value} value={opt.value}>
                       {displayLabel}
