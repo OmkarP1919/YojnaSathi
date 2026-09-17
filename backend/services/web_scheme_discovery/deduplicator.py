@@ -36,14 +36,21 @@ def normalize_name(name: str) -> str:
         text = text.replace(full, short)
     text = re.sub(r"[^a-z0-9\s]", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
-    # Map known alias groups to a canonical key.
+    if not text or len(text) < 3:
+        return text
+
+    # 1. Exact match in group
     for group in _ALIAS_GROUPS:
         if text in group:
             return sorted(group, key=len)[0]
+
+    # 2. Token-boundary match: check if a legitimate full alias (length >= 4) is present as words in text
     for group in _ALIAS_GROUPS:
         for alias in group:
-            if alias in text or text in alias:
-                return sorted(group, key=len)[0]
+            if len(alias) >= 4:
+                pattern = r"(?:^|\s)" + re.escape(alias) + r"(?:$|\s)"
+                if re.search(pattern, text):
+                    return sorted(group, key=len)[0]
     return text
 
 
@@ -142,7 +149,7 @@ def find_duplicate_curated_scheme(
     cand_norm_name = normalize_name(cand_raw_name)
     cand_explicit_norm = normalize_name(candidate.normalized_name) if candidate.normalized_name else cand_norm_name
     cand_aliases_norm = {normalize_name(a) for a in candidate.aliases if a}
-    all_cand_names = {cand_norm_name, cand_explicit_norm, *cand_aliases_norm} - {""}
+    all_cand_names = {n for n in {cand_norm_name, cand_explicit_norm, *cand_aliases_norm} if n and len(n) >= 3}
 
     cand_app_key = _official_key(candidate.application_url)
     cand_src_key = _official_key(candidate.source_url)

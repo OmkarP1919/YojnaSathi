@@ -1,6 +1,7 @@
 import React from 'react';
 import { getLocaleString } from '../constants/strings';
 import { getLocalizedField, getLocalizedList, getLocalizedReason } from '../utils/localization';
+import ApplicationLocationsList from './ApplicationLocationsList';
 
 const CATEGORY_LABELS = {
   agriculture: { en: "Agriculture", hi: "कृषि", mr: "शेती" },
@@ -163,78 +164,12 @@ export function SchemeCard({ matchResult, profile = {}, onViewDetails, lang }) {
           </div>
 
           {/* Location-Aware Physical Application Guidance */}
-          {locations.length > 0 && (
-            <div className="location-guidance-container">
-              <h6 className="location-guidance-title">
-                🏛️ {getLocaleString(lang, 'whereToApplyTitle')}
-              </h6>
-              <div className="location-cards-list">
-                {locations.map((loc) => {
-                  const officeName = getLocalizedField(loc.office_name, lang);
-                  const address = getLocalizedField(loc.address, lang);
-                  const hours = loc.working_hours ? getLocalizedField(loc.working_hours, lang) : null;
-                  return (
-                    <div key={loc.id} className="location-card-item">
-                      <div className="location-card-header">
-                        <strong className="location-office-name">{officeName}</strong>
-                        <div className="location-badge-group">
-                          {loc.district && (
-                            <span className="location-jurisdiction-badge">
-                              {loc.district.charAt(0).toUpperCase() + loc.district.slice(1)}
-                            </span>
-                          )}
-                          {loc.taluka && (
-                            <span className="location-jurisdiction-badge">
-                              {loc.taluka.charAt(0).toUpperCase() + loc.taluka.slice(1)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {address && (
-                        <p className="location-address-text">
-                          📍 {address}
-                        </p>
-                      )}
-                      <div className="location-meta-row">
-                        {loc.contact_phone && (
-                          <a href={`tel:${loc.contact_phone}`} className="location-phone-link">
-                            📞 {loc.contact_phone}
-                          </a>
-                        )}
-                        {hours && (
-                          <span className="location-hours-text">
-                            🕒 {hours}
-                          </span>
-                        )}
-                        {loc.source_url && (
-                          <a
-                            href={loc.source_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="location-source-link"
-                          >
-                            {getLocaleString(lang, 'officeOfficialSource')} ↗
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* If citizen selected a jurisdiction but no physical centers match */}
-          {locations.length === 0 && isLocationSearch && (
-            <div className="location-guidance-container">
-              <h6 className="location-guidance-title">
-                🏛️ {getLocaleString(lang, 'whereToApplyTitle')}
-              </h6>
-              <p className="location-empty-note">
-                ℹ️ {getLocaleString(lang, 'noLocationsFound')}
-              </p>
-            </div>
-          )}
+          <ApplicationLocationsList
+            locations={locations}
+            isLocationSearch={isLocationSearch}
+            lang={lang}
+            maxInitial={5}
+          />
         </div>
       )}
     </article>

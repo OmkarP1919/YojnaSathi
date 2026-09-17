@@ -85,6 +85,52 @@ def _guess_levels(item: TavilyResultItem) -> tuple[str | None, str | None, str |
     return scheme_type, scheme_type, state
 
 
+_GENERIC_TITLES = {
+    "schemes", "scheme", "government schemes", "govt schemes", "various govt schemes",
+    "various government schemes", "all schemes", "state schemes", "welfare schemes",
+    "central schemes", "home", "welcome", "dashboard", "services", "citizen services",
+    "schemes and programmes", "schemes programmes", "public services", "welfare",
+    "schemes directory", "government portal", "official portal",
+}
+
+
+def _is_generic_title(title: str) -> bool:
+    clean = re.sub(r"[^a-z0-9\s]", " ", (title or "").lower())
+    clean = " ".join(clean.split()).strip()
+    if clean in _GENERIC_TITLES:
+        return True
+    if clean.startswith(("list of schemes", "all government schemes", "websites of various", "websites of", "directory of")):
+        return True
+    return False
+
+
+def _extract_heading_scheme_name(content: str) -> str | None:
+    """Attempt to extract a prominent scheme name from markdown headings or content."""
+    if not content:
+        return None
+
+    # 1. Markdown headings: #, ##, ###
+    for m in re.finditer(r"^#{1,3}\s+([^\n\r]+)", content, re.MULTILINE):
+        heading = m.group(1).strip()
+        heading_clean = re.sub(r"[\*\_#]", "", heading).strip()
+        heading_clean = re.split(r"\s+[|\-–]\s+", heading_clean)[0].strip()
+        if len(heading_clean) >= 4 and not _is_generic_title(heading_clean):
+            return heading_clean[:200]
+
+    # 2. Scheme name patterns: Mukhyamantri/CM/PM ... Yojana/Scheme/Abhiyan
+    scheme_pat = re.search(
+        r"\b((?:mukhyamantri|mukhya mantri|cm|pradhan mantri|pm)\s+[a-zA-Z\s\-–]{3,60}(?:yojana|scheme|abhiyan|mission|kendra))\b",
+        content,
+        re.IGNORECASE,
+    )
+    if scheme_pat:
+        matched = " ".join(scheme_pat.group(1).split())
+        if len(matched) >= 4 and not _is_generic_title(matched):
+            return matched[:200]
+
+    return None
+
+
 def extract_candidates(results: List[TavilyResultItem]) -> List[DiscoveredScheme]:
     """Convert raw Tavily results into structured (unvalidated) candidates."""
     candidates: List[DiscoveredScheme] = []
@@ -99,6 +145,10 @@ def extract_candidates(results: List[TavilyResultItem]) -> List[DiscoveredScheme
         name = title or url or "Unknown scheme"
         # Trim obvious suffixes ("... | MyScheme", "- Apply Online").
         name = re.split(r"\s+[|\-–]\s+", name)[0].strip()[:200] or "Unknown scheme"
+        if _is_generic_title(name):
+            extracted_heading = _extract_heading_scheme_name(content)
+            if extracted_heading:
+                name = extracted_heading
         scheme_type, gov_level, state = _guess_levels(item)
         _tier, source_type, _best = best_source_type([url] if url else [])
         candidates.append(

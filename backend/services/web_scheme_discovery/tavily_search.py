@@ -80,8 +80,8 @@ def _profile_terms(profile: WebDiscoveryProfile) -> Dict[str, str]:
     """Extract only query-safe terms (no exact age/income/disability)."""
     state = (profile.state or "").strip()
     occupation = (profile.occupation or "").strip().lower()
-    need = (profile.need or "").strip().lower()
-    specific = (profile.specific_need or "").strip().lower()
+    need = (profile.need or "").replace("_", " ").strip().lower()
+    specific = (profile.specific_need or "").replace("_", " ").strip().lower()
     social = (profile.social_category or "").strip()
     role_words: List[str] = []
     if profile.farmer or occupation in {"farmer", "agriculture", "kisan"}:

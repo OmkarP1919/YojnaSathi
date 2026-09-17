@@ -108,10 +108,11 @@ def test_live_discovery_succeeds_primary_pool_not_blindly_appended(monkeypatch):
 
     result_ids = [r["scheme"]["id"] for r in data["results"]]
     assert "web-maharashtra-krishi-urja-abhiyan" in result_ids
-    # The curated catalog (e.g. pm-kisan, pm-svanidhi, apy) was NOT blindly appended
+    # Irrelevant schemes are not matched
     assert "pm-svanidhi" not in result_ids
     assert "pmay-u" not in result_ids
-    assert "pm-kisan" not in result_ids
+    # Curated schemes matching profile remain available as baseline
+    assert "pmfby" in result_ids
 
 
 # 2. Live discovered duplicate of PM-KISAN: curated PM-KISAN canonical version is used
@@ -308,15 +309,16 @@ def test_web_result_passes_through_match_schemes():
         eligibility="Cotton farmers in Maharashtra.",
     )
     pool, meta = build_live_scheme_pool(curated, [cand])
-    assert len(pool) == 1
+    assert len(pool) == len(curated) + 1
     assert "web-vidarbha-cotton-subsidy" in meta
 
     mh_farmer = CitizenProfile(state="maharashtra", is_farmer=True, occupation="farmer")
     results = match_schemes(mh_farmer, pool)
-    assert len(results) == 1
-    assert results[0].scheme.id == "web-vidarbha-cotton-subsidy"
-    assert results[0].relevance_score >= 3
-    assert len(results[0].matched_reasons) > 0
+    res_ids = [r.scheme.id for r in results]
+    assert "web-vidarbha-cotton-subsidy" in res_ids
+    cand_res = next(r for r in results if r.scheme.id == "web-vidarbha-cotton-subsidy")
+    assert cand_res.relevance_score >= 3
+    assert len(cand_res.matched_reasons) > 0
 
 
 # 8. Wrong-state web scheme is rejected by match_schemes()
@@ -482,3 +484,182 @@ def test_tavily_timeout_falls_back_safely(monkeypatch):
     assert data["count"] > 0
     # Curated fallback executed
     assert all(r["is_web_discovered"] is False for r in data["results"])
+
+
+# ---------------------------------------------------------------------------
+# Focused Regression Tests: A through F
+# ---------------------------------------------------------------------------
+
+def test_regression_a_generic_schemes_title_not_false_pm_kisan_duplicate():
+    """
+    Test A:
+    Generic 'Schemes' title does NOT match 'pm-kisan' and does NOT match any unrelated curated scheme.
+    """
+    from services.web_scheme_discovery.deduplicator import normalize_name, find_duplicate_curated_scheme
+    curated = load_schemes_data()
+    assert normalize_name("Schemes") != "pmkisan"
+    assert normalize_name("Schemes") != "pm-kisan"
+
+    generic_cand = DiscoveredScheme(
+        scheme_name="Schemes",
+        normalized_name=normalize_name("Schemes"),
+        source_url="https://pune.gov.in/en/schemes",
+    )
+    dup = find_duplicate_curated_scheme(generic_cand, curated)
+    assert dup is None
+
+
+def test_regression_b_financial_support_un_snaked_in_search_queries():
+    """
+    Test B:
+    'financial_support' becomes 'financial support' without underscores in search queries.
+    """
+    from services.web_scheme_discovery.tavily_search import build_search_queries
+    from services.web_scheme_discovery.merger import citizen_to_web_profile
+
+    profile = CitizenProfile(
+        gender="female",
+        age=31,
+        state="maharashtra",
+        annual_income=200000,
+        needs=["financial_support"],
+    )
+    wp = citizen_to_web_profile(profile)
+    assert "_" not in (wp.need or "")
+    assert wp.need == "financial support"
+
+    queries = build_search_queries(wp)
+    assert len(queries) >= 3
+    assert all("financial_support" not in q for q in queries)
+    assert any("financial support" in q for q in queries)
+
+
+def test_regression_c_curated_maharashtra_schemes_remain_when_live_discovery_succeeds(monkeypatch):
+    """
+    Test C:
+    Curated Maharashtra schemes remain in the recommendation pool when live discovery succeeds.
+    """
+    cand = _valid_active_candidate(
+        name="Maharashtra New Startup Support Scheme",
+        state="maharashtra",
+        benefits="Seed funding for startups.",
+        eligibility="Entrepreneurs in Maharashtra.",
+    )
+    fake_resp = WebSchemeSearchResponse(
+        status="success",
+        validated_schemes=[cand],
+        rejected_candidates=[],
+    )
+    service = get_discovery_service()
+    monkeypatch.setattr(service, "discover", lambda *args, **kwargs: fake_resp)
+
+    curated = load_schemes_data()
+    pool, _ = build_live_scheme_pool(curated, [cand])
+    pool_ids = {s.id for s in pool}
+    assert "majhi-ladki-bahin" in pool_ids
+    assert "pm-kisan" in pool_ids
+    assert "mjpjay" in pool_ids
+    assert "web-maharashtra-new-startup-support-scheme" in pool_ids
+
+
+def test_regression_d_exact_female_profile_returns_majhi_ladki_bahin(monkeypatch):
+    """
+    Test D:
+    The exact female/Maharashtra/31/2 lakh/financial_support profile returns Majhi Ladki Bahin
+    as top recommendation, and PM-KISAN does NOT appear.
+    """
+    client = TestClient(app)
+    payload = {
+        "profile": {
+            "gender": "female",
+            "age": 31,
+            "state": "maharashtra",
+            "annual_income": 200000,
+            "needs": ["financial_support"],
+        }
+    }
+    resp = client.post("/api/recommend", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["success"] is True
+
+    result_ids = [r["scheme"]["id"] for r in data["results"]]
+    assert "majhi-ladki-bahin" in result_ids
+    assert "pm-kisan" not in result_ids
+
+    ladki_res = next(r for r in data["results"] if r["scheme"]["id"] == "majhi-ladki-bahin")
+    assert ladki_res["relevance_score"] >= 7
+    assert ladki_res["is_web_discovered"] is False
+
+
+def test_regression_e_genuinely_new_live_scheme_supplements_curated(monkeypatch):
+    """
+    Test E:
+    A genuinely new validated live scheme supplements the curated schemes.
+    """
+    cand = _valid_active_candidate(
+        name="Maharashtra Mahila Solar Chulha Yojana",
+        state="maharashtra",
+        benefits="Free solar chulha for rural women.",
+        eligibility="Women residing in Maharashtra.",
+    )
+    fake_resp = WebSchemeSearchResponse(
+        status="success",
+        validated_schemes=[cand],
+        rejected_candidates=[],
+    )
+    service = get_discovery_service()
+    monkeypatch.setattr(service, "discover", lambda *args, **kwargs: fake_resp)
+
+    client = TestClient(app)
+    profile = {
+        "gender": "female",
+        "state": "maharashtra",
+        "annual_income": 100000,
+    }
+    resp = client.post("/api/recommend", json={"profile": profile})
+    assert resp.status_code == 200
+    data = resp.json()
+    result_ids = [r["scheme"]["id"] for r in data["results"]]
+
+    # Both new live scheme and curated women schemes are present
+    assert "web-maharashtra-mahila-solar-chulha-yojana" in result_ids
+    assert "majhi-ladki-bahin" in result_ids
+
+
+def test_regression_f_duplicate_live_and_curated_produces_only_one_canonical_result(monkeypatch):
+    """
+    Test F:
+    Duplicate live + curated scheme produces only one canonical result (no double counting).
+    """
+    cand = _valid_active_candidate(
+        name="Mukhyamantri Majhi Ladki Bahin Yojana",
+        state="maharashtra",
+        benefits="Rs 1500 per month financial assistance for women.",
+        eligibility="Women in Maharashtra aged 21-65 years.",
+        app_url="https://ladakibahin.maharashtra.gov.in/",
+        source_url="https://ladakibahin.maharashtra.gov.in/",
+    )
+    fake_resp = WebSchemeSearchResponse(
+        status="success",
+        validated_schemes=[cand],
+        rejected_candidates=[],
+    )
+    service = get_discovery_service()
+    monkeypatch.setattr(service, "discover", lambda *args, **kwargs: fake_resp)
+
+    client = TestClient(app)
+    profile = {
+        "gender": "female",
+        "age": 31,
+        "state": "maharashtra",
+        "annual_income": 200000,
+    }
+    resp = client.post("/api/recommend", json={"profile": profile})
+    assert resp.status_code == 200
+    data = resp.json()
+    result_ids = [r["scheme"]["id"] for r in data["results"]]
+
+    # Exactly 1 occurrence of majhi-ladki-bahin
+    assert result_ids.count("majhi-ladki-bahin") == 1
+    assert not any("web-majhi-ladki-bahin" in rid for rid in result_ids)

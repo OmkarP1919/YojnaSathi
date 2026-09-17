@@ -62,7 +62,10 @@ def citizen_to_web_profile(
 
     needs = p_dict.get("needs") or []
     explicit_need = p_dict.get("need")
-    need = explicit_need or (needs[0] if needs and isinstance(needs, list) else None) or category
+    raw_need = explicit_need or (needs[0] if needs and isinstance(needs, list) else None) or category
+    need = raw_need.replace("_", " ").strip() if raw_need else None
+    if specific_need:
+        specific_need = specific_need.replace("_", " ").strip()
 
     return WebDiscoveryProfile(
         state=state,
@@ -221,22 +224,24 @@ def build_live_scheme_pool(
     discovered_schemes: List[DiscoveredScheme],
     fallback_category: Optional[str] = None,
 ) -> Tuple[List[Scheme], Dict[str, DiscoveryMetadata]]:
-    """Build the live-first primary candidate pool for match_schemes().
+    """Build candidate pool for match_schemes().
 
     Product Rule:
-    - Successful live search uses validated live schemes as the PRIMARY pool.
-    - Curated catalog is NOT blindly appended.
-    - If a candidate is a duplicate of a curated scheme, the curated canonical version
-      is used in the pool (with is_web_discovered=False).
-    - Truly new schemes are converted to canonical Scheme and given discovery metadata.
-    - Returns (primary_pool, discovery_meta).
+    - Curated schemes.json catalogue remains the baseline recommendation pool.
+    - Live validated schemes SUPPLEMENT the curated catalogue, not replace it.
+    - For a duplicate live scheme, prefer the curated canonical version (already in baseline).
+    - For a genuinely new validated live scheme, include it with discovery metadata.
+    - For live discovery failure, timeout, zero validated schemes, or junk results,
+      curated schemes must still be available.
+    - Never duplicate curated schemes.
+    - Returns (pool, discovery_meta).
     """
-    if not discovered_schemes:
-        return [], {}
-
-    primary_pool: List[Scheme] = []
+    pool: List[Scheme] = list(curated_schemes)
     discovery_meta: Dict[str, DiscoveryMetadata] = {}
-    seen_ids: Set[str] = set()
+    seen_ids: Set[str] = {s.id.lower() for s in curated_schemes}
+
+    if not discovered_schemes:
+        return pool, {}
 
     for cand in discovered_schemes:
         # 1. Accept ONLY candidates that are validated and active
@@ -252,21 +257,17 @@ def build_live_scheme_pool(
             )
             continue
 
-        # 2. Curated-first deduplication: prefer curated canonical version
+        # 2. Curated-first deduplication: prefer curated canonical version (already in pool)
         curated_duplicate = find_duplicate_curated_scheme(cand, curated_schemes)
         if curated_duplicate is not None:
-            curated_id = curated_duplicate.id.lower()
-            if curated_id not in seen_ids:
-                seen_ids.add(curated_id)
-                primary_pool.append(curated_duplicate)
-                logger.info(
-                    "Discovered scheme '%s' matched curated '%s'; curated canonical version used",
-                    getattr(cand, "scheme_name", ""),
-                    curated_duplicate.id,
-                )
+            logger.info(
+                "Discovered scheme '%s' matched curated '%s'; curated canonical version preserved",
+                getattr(cand, "scheme_name", ""),
+                curated_duplicate.id,
+            )
             continue
 
-        # 3. Adapt truly new candidate to canonical Scheme
+        # 3. Adapt genuinely new candidate to canonical Scheme
         try:
             canonical_scheme = discovered_to_canonical_scheme(
                 cand, fallback_category=fallback_category
@@ -285,7 +286,7 @@ def build_live_scheme_pool(
             continue
 
         seen_ids.add(sid)
-        primary_pool.append(canonical_scheme)
+        pool.append(canonical_scheme)
         discovery_meta[canonical_scheme.id] = DiscoveryMetadata(
             is_web_discovered=True,
             confidence=cand.confidence,
@@ -294,7 +295,7 @@ def build_live_scheme_pool(
             source_url=cand.source_url or (cand.source_urls[0] if cand.source_urls else None),
         )
 
-    return primary_pool, discovery_meta
+    return pool, discovery_meta
 
 
 def merge_validated_web_schemes(
