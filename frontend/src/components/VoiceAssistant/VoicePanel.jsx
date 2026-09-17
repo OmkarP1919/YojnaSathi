@@ -103,7 +103,11 @@ export function VoicePanel({
           <RobotAvatar size={34} state={status} className="voice-panel-avatar" />
           <div className="voice-panel-titles">
             <h2 className="voice-panel-title">{getLocaleString(lang, 'voicePanelTitle')}</h2>
-            <p className="voice-panel-status-text" role="status" aria-live="polite">
+            <p
+              className={`voice-panel-status-text voice-panel-status-${status}`}
+              role="status"
+              aria-live="polite"
+            >
               {getLocaleString(lang, statusTextKey)}
             </p>
           </div>
@@ -244,9 +248,14 @@ export function VoicePanel({
             <span className="voice-mic-icon" aria-hidden="true">🎙️</span>
           </button>
           <p className="voice-mic-hint" role="status" aria-live="polite">
+            <span className={`voice-live-dot voice-live-dot-${status}`} aria-hidden="true" />
             {status === 'listening'
-              ? getLocaleString(lang, 'voiceMicHoldHint')
-              : getLocaleString(lang, 'voiceTapToSpeak')}
+              ? getLocaleString(lang, 'voiceMicListening')
+              : status === 'processing'
+                ? getLocaleString(lang, 'voiceMicProcessing')
+                : status === 'speaking'
+                  ? getLocaleString(lang, 'voiceMicSpeaking')
+                  : getLocaleString(lang, 'voiceTapToSpeak')}
           </p>
         </div>
 

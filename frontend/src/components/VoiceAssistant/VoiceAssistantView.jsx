@@ -365,8 +365,17 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
     recordingStartRef.current = Date.now();
     micHeldRef.current = true;
     player.ensureUnlocked();
-    await recorder.startRecording();
+    // Enter "listening" immediately so the press gives instant feedback even
+    // while getUserMedia/AudioContext are still settling.
     setStatus('listening');
+    await recorder.startRecording();
+    // The user released before the stream was ready, or the mic failed to
+    // start: discard the latched capture and settle back to idle instead of
+    // leaving the panel stuck in "listening".
+    if (recorder.error || !micHeldRef.current) {
+      await recorder.stopRecording();
+      setStatus('idle');
+    }
   }, [player, recorder]);
 
   const handleMicRelease = useCallback(async () => {
