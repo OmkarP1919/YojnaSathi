@@ -136,6 +136,18 @@ def load_schemes_data() -> List[Scheme]:
     return [Scheme(**item) for item in raw_schemes]
 
 
+def _merge_scheme_pools(primary: List[Scheme], secondary: List[Scheme]) -> List[Scheme]:
+    """Union two candidate pools by scheme id, preserving primary order first."""
+    merged = list(primary)
+    seen_ids = {s.id.lower() for s in merged}
+    for scheme in secondary:
+        if scheme.id.lower() in seen_ids:
+            continue
+        seen_ids.add(scheme.id.lower())
+        merged.append(scheme)
+    return merged
+
+
 @app.get("/api/health")
 def health_check():
     """Service health check endpoint."""
@@ -352,6 +364,30 @@ def recommend_schemes(request: RecommendationRequest):
             logger.warning("Web scheme discovery/merger failed, falling back to curated: %s", exc)
             candidate_schemes = curated_schemes
             discovery_meta = {}
+
+    # Real-time Maharashtra government scheme discovery from the official MahaDBT
+    # portal. Supplements the curated baseline for Maharashtra citizens only and
+    # flows through the same validation / deduplication / match_schemes pipeline.
+    # Guarded so any failure keeps the curated schemes.json catalogue intact.
+    if request.profile.state and str(request.profile.state).strip().lower() == "maharashtra":
+        try:
+            from services.maharashtra_schemes.service import get_maharashtra_schemes
+            from services.web_scheme_discovery.merger import build_live_scheme_pool
+
+            maharashtra_discovered = get_maharashtra_schemes()
+            if maharashtra_discovered:
+                maharashtra_pool, maharashtra_meta = build_live_scheme_pool(
+                    curated_schemes=curated_schemes,
+                    discovered_schemes=maharashtra_discovered,
+                    fallback_category=request.category,
+                )
+                if maharashtra_pool:
+                    candidate_schemes = _merge_scheme_pools(candidate_schemes, maharashtra_pool)
+                    discovery_meta.update(maharashtra_meta)
+        except Exception as exc:
+            logger.warning(
+                "Maharashtra scheme discovery failed, using curated baseline: %s", exc
+            )
 
     results = match_schemes(request.profile, candidate_schemes, category=request.category)
 
