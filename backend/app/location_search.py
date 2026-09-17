@@ -19,7 +19,8 @@ import json
 import logging
 import os
 import re
-from typing import Any, Dict, List, Optional
+import time
+from typing import Any, Dict, List, Optional, Tuple
 import urllib.parse
 import httpx
 
@@ -155,6 +156,9 @@ def get_standard_district_directory_urls(district: str, state: str = "maharashtr
         f"{base}/en/about-district/administrative-setup/tehsil/",
         f"{base}/about-district/administrative-setup/tehsil/",
         f"{base}/directory/",
+        f"{base}/citizen-services/",
+        f"{base}/en/service/",
+        f"{base}/service/",
     ]
 
 
@@ -194,7 +198,10 @@ class AuthorityExtractionParser:
 
     AUTHORITY_KEYWORDS = {
         "tahsil_office": ["tahsil", "tehsil", "tahsildar", "taluka office", "talathi"],
-        "citizen_service_center": ["setu kendra", "setu", "csc", "common service centre", "common service center", "maha e-seva", "maha eseva", "citizen facilitation"],
+        "citizen_service_center": [
+            "setu kendra", "setu", "csc", "common service centre", "common service center",
+            "maha e-seva", "maha eseva", "citizen facilitation", "citizen service centre", "citizen service center"
+        ],
         "district_agriculture_office": ["agriculture office", "krishi bhavan", "krishi adhikar", "dsao", "district superintending agriculture"],
         "anganwadi_center": ["anganwadi", "cdpo", "child development project", "icds"],
         "civil_hospital": ["civil hospital", "district hospital", "sub-district hospital", "phc", "primary health centre", "primary health center"],
@@ -759,7 +766,7 @@ class OfficialPortalLocationProvider(LocationSearchProvider):
             return "district_agriculture_office"
         elif "hospital" in t:
             return "civil_hospital"
-        elif "setu" in t or "csc" in t or "seva" in t or "citizen center" in t:
+        elif any(w in t for w in ("setu", "csc", "seva", "citizen center", "citizen service", "common service")):
             return "citizen_service_center"
         elif "anganwadi" in t or "cdpo" in t or "icds" in t:
             return "anganwadi_center"
@@ -794,13 +801,38 @@ class OfficialPortalLocationProvider(LocationSearchProvider):
             phone = phone_match.group(0).strip() if phone_match else None
 
             office_name = row[0] if len(row[0]) > 3 else (row[1] if len(row) > 1 else "")
-            raw_address = row[1] if len(row) > 2 else (row[1] if len(row) == 2 and row[1] != office_name else "")
+
+            # Multi-column address extraction (Center Name | VLE Name | Address/Village/Taluka | Mobile)
+            address_parts = [
+                col.strip() for col in row[1:]
+                if col.strip() and col.strip() != office_name and (not phone or phone not in col)
+            ]
+            raw_address = ", ".join(address_parts) if address_parts else (
+                row[1] if len(row) > 1 and row[1] != office_name else ""
+            )
 
             if len(office_name.strip()) < 4 or (not raw_address.strip() and not phone):
                 continue
 
             address = raw_address.strip() or f"{office_name}, {district or state}"
-            loc_taluka = taluka if (taluka and taluka.lower() in row_text.lower()) else None
+
+            # Taluka association: associate if requested taluka appears in the row.
+            loc_taluka = None
+            if taluka and taluka.lower() in row_text.lower():
+                loc_taluka = taluka
+            elif office_type == "citizen_service_center":
+                # For localized citizen service centers, extract the other taluka if present
+                other_tal_match = re.search(r"\b(?:taluka|tehsil|taluk)\s*[:\-–]?\s*([a-zA-Z]+)\b", row_text, re.IGNORECASE)
+                if not other_tal_match:
+                    other_tal_match = re.search(r"\b([a-zA-Z]+)\s+(?:taluka|tehsil|taluk)\b", row_text, re.IGNORECASE)
+                if other_tal_match:
+                    cand_tal = other_tal_match.group(1).strip().lower()
+                    if cand_tal not in ("name", "of", "the", "district", "center"):
+                        loc_taluka = cand_tal
+                elif taluka:
+                    # If a specific taluka was requested, and this local CSC row does not mention it,
+                    # mark as other so hierarchy filtering strictly excludes it
+                    loc_taluka = "other"
 
             loc_id = f"live-{state[:3]}-{district or 'st'}-{len(locations)+1}"
             locations.append(
@@ -863,7 +895,22 @@ class OfficialPortalLocationProvider(LocationSearchProvider):
                 )
             )
 
-        return locations if locations else None
+        if not locations:
+            return None
+
+        # Deduplicate locations with identical name and address
+        seen_keys = set()
+        deduped: List[ApplicationLocation] = []
+        for loc in locations:
+            name_str = loc.office_name.get("en", "") if isinstance(loc.office_name, dict) else str(loc.office_name)
+            addr_str = loc.address.get("en", "") if isinstance(loc.address, dict) else str(loc.address)
+            k = (name_str.strip().lower(), addr_str.strip().lower())
+            if k in seen_keys:
+                continue
+            seen_keys.add(k)
+            deduped.append(loc)
+
+        return deduped if deduped else None
 
     def _parse_json_directory(
         self,
@@ -915,6 +962,360 @@ class OfficialPortalLocationProvider(LocationSearchProvider):
             )
 
         return locations if locations else None
+
+
+# ---------------------------------------------------------------------------
+# 6b. Maharashtra Aaple Sarkar Sewa Kendra Directory Provider
+# ---------------------------------------------------------------------------
+
+class MaharashtraSewaKendraProvider(LocationSearchProvider):
+    """
+    Discovers citizen-facing Aaple Sarkar Seva Kendra / Maha e-Seva / Setu Kendra /
+    CSC centers from the official Maharashtra Aaple Sarkar Sewa Kendra directory.
+
+    Official source mechanism (aaplesarkar.mahaonline.gov.in):
+      1. GET  /en/CommonForm/SewaKendraDetails            -> HTML district dropdown (codes)
+      2. GET  /en/CommonForm/GetTalukaDetails?DistrictID= -> JSON taluka list (codes)
+      3. POST /en/CommonForm/SewaKendraDetails            -> table of
+         VLE Name | Address | Pincode | Mobile | EmailID
+         rows already filtered server-side by the selected taluka.
+
+    The provider is exercised only for Maharashtra when the scheme authorizes the
+    citizen_service_center channel. It never fabricates centers and never relies on
+    search-engine snippets or private/commercial listings.
+    """
+
+    BASE_URL = "https://aaplesarkar.mahaonline.gov.in"
+    DETAILS_URL = BASE_URL + "/en/CommonForm/SewaKendraDetails"
+    TALUKA_API_PATH = "/en/CommonForm/GetTalukaDetails"
+    APPROVED_HOST = "aaplesarkar.mahaonline.gov.in"
+
+    PLACE_SUFFIXES = (" taluka", " tehsil", " tahsil", " taluk", " sub-district", " district")
+    DISTRICT_ALIASES = {"nasik": "nashik"}
+
+    CACHE_TTL_SECONDS = 6 * 3600.0
+    _lookup_cache: Dict[Tuple[str, Any], Tuple[float, Any]] = {}
+
+    def __init__(
+        self,
+        client: Optional[httpx.Client] = None,
+        timeout: float = 12.0,
+    ):
+        self._client = client
+        self._timeout = timeout
+
+    # -- public interface ---------------------------------------------------
+
+    def search(
+        self,
+        scheme_id: str,
+        state: str,
+        district: Optional[str] = None,
+        taluka: Optional[str] = None,
+    ) -> Optional[List[ApplicationLocation]]:
+        s_state = self.normalize_place_name(state)
+        if s_state != "maharashtra":
+            return None
+        s_dist = self.normalize_district_name(district) if district and district.strip() else None
+        s_tal = self.normalize_place_name(taluka) if taluka and taluka.strip() else None
+        if not s_dist or not s_tal or s_tal in ("other", "all"):
+            return None
+
+        client = self._get_client()
+        try:
+            district_id = self._fetch_district_id(client, s_dist)
+            if district_id is None:
+                logger.info("Maharashtra Sewa Kendra district not found in directory: %s", s_dist)
+                return None
+            taluka_code = self._fetch_taluka_code(client, district_id, s_tal)
+            if taluka_code is None:
+                logger.info("Maharashtra Sewa Kendra taluka not found in directory: %s / %s", s_dist, s_tal)
+                return None
+            centers = self._fetch_centers(client, s_state, s_dist, s_tal, district_id, taluka_code)
+            if not centers:
+                logger.info("No Maharashtra Sewa Kendra centers returned for %s / %s", s_dist, s_tal)
+                return None
+
+            deduped = self._deduplicate(centers)
+            filtered = filter_locations_hierarchy(
+                deduped,
+                state=s_state,
+                district=s_dist,
+                taluka=s_tal,
+            )
+            return filtered or None
+        except Exception as exc:
+            logger.warning(
+                "Maharashtra Sewa Kendra directory error (%s/%s): %s",
+                s_dist, s_tal, exc,
+            )
+            return None
+
+    # -- HTTP ---------------------------------------------------------------
+
+    def _get_client(self) -> httpx.Client:
+        if self._client is not None:
+            return self._client
+        return httpx.Client(
+            timeout=self._timeout,
+            headers={"User-Agent": DEFAULT_USER_AGENT},
+            follow_redirects=True,
+            verify=True,
+        )
+
+    def _is_approved_response_url(self, response: httpx.Response) -> bool:
+        """Only accept results still served from the approved government directory domain."""
+        try:
+            target = response.url
+            host = target.host.lower() if isinstance(target, httpx.URL) else ""
+        except Exception:
+            return False
+        return host == self.APPROVED_HOST or host.endswith(".mahaonline.gov.in")
+
+    def _fetch_district_id(self, client: httpx.Client, district: str) -> Optional[str]:
+        cache_key: Tuple[str, Any] = ("districts", "")
+        options = self._cache_get(cache_key)
+        if options is None:
+            resp = client.get(self.DETAILS_URL)
+            if resp.status_code != 200:
+                return None
+            if not self._is_approved_response_url(resp):
+                logger.warning("Sewa Kendra directory page redirected off the approved domain; rejecting.")
+                return None
+            options = self._parse_district_options(resp.text)
+            self._cache_set(cache_key, options)
+            logger.debug("Maharashtra Sewa Kendra district options parsed: %s", len(options))
+        for value, label in options:
+            if self.normalize_district_name(label) == district:
+                return value
+        return None
+
+    def _fetch_taluka_code(self, client: httpx.Client, district_id, taluka: str) -> Optional[str]:
+        cache_key = ("talukas", district_id)
+        talukas = self._cache_get(cache_key)
+        if talukas is None:
+            resp = client.get(
+                self.BASE_URL + self.TALUKA_API_PATH,
+                params={"DistrictID": str(district_id)},
+                headers={"X-Requested-With": "XMLHttpRequest"},
+            )
+            if resp.status_code != 200:
+                return None
+            if not self._is_approved_response_url(resp):
+                return None
+            talukas = self._parse_taluka_json(resp.text)
+            self._cache_set(cache_key, talukas)
+            logger.debug("Maharashtra Sewa Kendra talukas parsed for district %s: %s", district_id, len(talukas))
+        for code, name in talukas:
+            if self.normalize_place_name(name) == taluka:
+                return code
+        # Token fallback: e.g. directory "Dindori Taluka" data vs "Dindori" request
+        for code, name in talukas:
+            if taluka in re.split(r"[\s\-]+", self.normalize_place_name(name)):
+                return code
+        return None
+
+    def _fetch_centers(
+        self,
+        client: httpx.Client,
+        state: str,
+        district: str,
+        taluka: str,
+        district_id,
+        taluka_code,
+    ) -> Optional[List[ApplicationLocation]]:
+        resp = client.post(
+            self.DETAILS_URL,
+            data={
+                "Districtcode": str(district_id),
+                "SubDistrictcode": str(taluka_code),
+                "Command": "Proceed",
+            },
+        )
+        if resp.status_code != 200:
+            logger.info("Sewa Kendra directory returned status %s for %s/%s", resp.status_code, district, taluka)
+            return None
+        if not self._is_approved_response_url(resp):
+            logger.warning("Sewa Kendra directory POST redirected off the approved domain; rejecting.")
+            return None
+
+        cells_rows = self._parse_center_rows(resp.text)
+        if not cells_rows:
+            logger.info("No Sewa Kendra rows returned for %s/%s", district, taluka)
+            return None
+
+        centers: List[ApplicationLocation] = []
+        for idx, cells in enumerate(cells_rows):
+            center = self._build_location(cells, idx, scheme_id=None, state=state, district=district, taluka=taluka)
+            if center is not None:
+                centers.append(center)
+        return centers or None
+
+    def _build_location(
+        self,
+        cells: List[str],
+        idx: int,
+        state: str,
+        district: str,
+        taluka: str,
+        scheme_id: Optional[str] = None,
+    ) -> Optional[ApplicationLocation]:
+        if len(cells) < 4:
+            return None
+        vle_name = re.sub(r"\s+", " ", cells[0]).strip()
+        if len(vle_name) < 3:
+            return None
+        raw_address = re.sub(r"\s+", " ", cells[1]).strip(" ,;:-")
+        raw_pincode = cells[2].strip()
+        raw_mobile = cells[3].strip()
+
+        pincode_match = re.search(r"\b\d{6}\b", raw_pincode) or re.search(r"\b\d{6}\b", raw_address)
+        pincode = pincode_match.group(0) if pincode_match else None
+
+        address_parts = [p for p in (raw_address, f"{taluka} Taluka", f"{district} District") if p]
+        address_en = ", ".join(address_parts)
+        if pincode and pincode not in address_en:
+            address_en = f"{address_en} - {pincode}"
+
+        phone = None
+        mobile_match = re.search(r"(?:\+?91[\s-]?)?([6-9]\d{9})", raw_mobile)
+        if mobile_match:
+            phone = raw_mobile.strip()
+
+        return ApplicationLocation(
+            id=f"msk-{district}-{taluka}-{idx + 1}",
+            scheme_ids=[scheme_id] if scheme_id else [],
+            categories=[],
+            state=state,
+            district=district,
+            taluka=taluka,
+            office_name={"en": vle_name},
+            office_type="citizen_service_center",
+            address={"en": address_en},
+            contact_phone=phone,
+            working_hours={"en": "Mon-Sat: 10:00 AM - 6:00 PM"},
+            source_url=self.DETAILS_URL,
+            application_method="scheme_designated_application_center",
+        )
+
+    # -- parsing helpers ----------------------------------------------------
+
+    @staticmethod
+    def _parse_district_options(html: str) -> List[Tuple[str, str]]:
+        select = re.search(
+            r'<select[^>]*id=["\']ddlDistrict["\'][^>]*>(.*?)</select>',
+            html,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if not select:
+            return []
+        return [
+            (
+                value.strip(),
+                re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", label)).strip(),
+            )
+            for value, label in re.findall(
+                r'<option[^>]*value=["\']([^"\']*)["\'][^>]*>(.*?)</option>',
+                select.group(1),
+                re.IGNORECASE | re.DOTALL,
+            )
+        ]
+
+    @staticmethod
+    def _parse_taluka_json(body: str) -> List[Tuple[str, str]]:
+        try:
+            data = json.loads(body)
+        except (ValueError, TypeError):
+            return []
+        if not isinstance(data, list):
+            return []
+        results: List[Tuple[str, str]] = []
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            code = str(item.get("SubDistrictcode") or "").strip()
+            name = (item.get("SubDistrictname") or "").strip()
+            if code in ("", "0") or name.lower() in ("--select--", "--Select--"):
+                continue
+            results.append((code, name))
+        return results
+
+    @staticmethod
+    def _parse_center_rows(html: str) -> List[List[str]]:
+        anchor = re.search(
+            r"<tr[^>]*>\s*<t[dh][^>]*>\s*VLE\s+Name\s*</t[dh]>",
+            html,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if not anchor:
+            return []  # No results table found (e.g. "no records" page)
+        head_start = anchor.start()
+        after_head = html[head_start:].find("</tr>")
+        tail = html[head_start + after_head + len("</tr>"):] if after_head != -1 else ""
+        table_end = tail.find("</table>")
+        if table_end != -1:
+            tail = tail[:table_end]
+
+        rows: List[List[str]] = []
+        for tr_match in re.finditer(r"<tr[^>]*>(.*?)</tr>", tail, re.IGNORECASE | re.DOTALL):
+            cells = [
+                re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", cell)).strip()
+                for cell in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr_match.group(1), re.IGNORECASE | re.DOTALL)
+            ]
+            cells = [c for c in cells if c]
+            joined = " ".join(cells).lower()
+            if not cells or len(cells) < 4 or "vle name" in joined:
+                continue
+            rows.append(cells)
+            if len(rows) >= 2000:
+                break
+        return rows
+
+    @staticmethod
+    def _deduplicate(locations: List[ApplicationLocation]) -> List[ApplicationLocation]:
+        seen = set()
+        deduped: List[ApplicationLocation] = []
+        for loc in locations:
+            name = str(loc.office_name.get("en") or "" if isinstance(loc.office_name, dict) else loc.office_name).strip().lower()
+            addr = str(loc.address.get("en") or "" if isinstance(loc.address, dict) else loc.address).strip().lower()
+            key = (name, addr)
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(loc)
+        return deduped
+
+    # -- name normalization -------------------------------------------------
+
+    @classmethod
+    def normalize_place_name(cls, name: str) -> str:
+        s = re.sub(r"\s+", " ", str(name or "").strip()).lower()
+        for suffix in cls.PLACE_SUFFIXES:
+            if s.endswith(suffix):
+                s = s[: -len(suffix)].strip()
+        return s.strip(" .,-")
+
+    @classmethod
+    def normalize_district_name(cls, name: str) -> str:
+        norm = cls.normalize_place_name(name)
+        return cls.DISTRICT_ALIASES.get(norm, norm)
+
+    # -- small lookup cache (district -> options, district -> talukas) -------
+
+    @classmethod
+    def _cache_get(cls, key: Tuple[str, Any]) -> Optional[Any]:
+        item = cls._lookup_cache.get(key)
+        if item is None:
+            return None
+        ts, value = item
+        if time.time() - ts > cls.CACHE_TTL_SECONDS:
+            cls._lookup_cache.pop(key, None)
+            return None
+        return value
+
+    @classmethod
+    def _cache_set(cls, key: Tuple[str, Any], value: Any) -> None:
+        cls._lookup_cache[key] = (time.time(), value)
 
 
 # ---------------------------------------------------------------------------
@@ -1042,6 +1443,10 @@ class GovernmentWebSearchProvider(LocationSearchProvider):
                         continue
                     if not is_safe_pdf_response(resp):
                         continue
+                    resp_url = getattr(resp, "url", None)
+                    final_url = str(resp_url) if isinstance(resp_url, (str, httpx.URL)) else d_url
+                    if not is_official_gov_domain(final_url):
+                        continue
                     content_type = resp.headers.get("content-type", "").lower()
                     if "json" in content_type:
                         d_locs = portal_parser._parse_json_directory(
@@ -1050,7 +1455,7 @@ class GovernmentWebSearchProvider(LocationSearchProvider):
                             state=s_state,
                             district=s_dist,
                             taluka=s_tal,
-                            source_url=d_url,
+                            source_url=final_url,
                         )
                     else:
                         d_locs = portal_parser._parse_html_directory(
@@ -1059,14 +1464,89 @@ class GovernmentWebSearchProvider(LocationSearchProvider):
                             state=s_state,
                             district=s_dist,
                             taluka=s_tal,
-                            source_url=d_url,
+                            source_url=final_url,
                         )
                     if d_locs:
                         discovered_offices.extend(d_locs)
-                        break
+                        if any(loc.office_type in scheme_authorities for loc in d_locs):
+                            break
                 except Exception as exc:
                     logger.debug("Error checking district directory %s: %s", d_url, exc)
                     continue
+
+        # Targeted service-center search if Source A explicitly authorizes citizen_service_center
+        has_csc = any(loc.office_type == "citizen_service_center" for loc in discovered_offices)
+        if s_dist and scheme_authorities.get("citizen_service_center"):
+            if s_state == "maharashtra" and s_tal:
+                # Authoritative Maharashtra Aaple Sarkar Sewa Kendra directory (Step 3C).
+                # Server-side district + taluka filtering; never search-engine snippets.
+                try:
+                    sewa_centers = MaharashtraSewaKendraProvider(client=self._client).search(
+                        scheme_id=s_id,
+                        state=s_state,
+                        district=s_dist,
+                        taluka=s_tal,
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "Maharashtra Sewa Kendra directory search failed (%s/%s): %s",
+                        s_dist, s_tal, exc,
+                    )
+                    sewa_centers = None
+                if sewa_centers:
+                    # Authoritative directory replaces any earlier generic CSC/Setu entries.
+                    discovered_offices = [
+                        loc for loc in discovered_offices
+                        if loc.office_type != "citizen_service_center"
+                    ]
+                    discovered_offices.extend(sewa_centers)
+            elif not has_csc:
+                service_query_parts = [f"site:{s_dist}.gov.in"]
+                service_query_parts.append('("setu kendra" OR "maha e-seva" OR "common service centre")')
+                if s_tal:
+                    service_query_parts.append(s_tal)
+                service_query = " ".join(service_query_parts)
+                try:
+                    service_candidates = self.backend.search_candidates(service_query, max_results=3)
+                    for cand in service_candidates:
+                        cand_url = cand.get("url", "")
+                        if not is_official_gov_domain(cand_url):
+                            continue
+                        try:
+                            resp = client.get(cand_url)
+                            if resp.status_code != 200 or not is_safe_pdf_response(resp):
+                                continue
+                            resp_url = getattr(resp, "url", None)
+                            final_url = str(resp_url) if isinstance(resp_url, (str, httpx.URL)) else cand_url
+                            if not is_official_gov_domain(final_url):
+                                continue
+                            content_type = resp.headers.get("content-type", "").lower()
+                            if "json" in content_type:
+                                s_locs = portal_parser._parse_json_directory(
+                                    resp.json(),
+                                    scheme_id=s_id,
+                                    state=s_state,
+                                    district=s_dist,
+                                    taluka=s_tal,
+                                    source_url=final_url,
+                                )
+                            else:
+                                s_locs = portal_parser._parse_html_directory(
+                                    resp.text,
+                                    scheme_id=s_id,
+                                    state=s_state,
+                                    district=s_dist,
+                                    taluka=s_tal,
+                                    source_url=final_url,
+                                )
+                            if s_locs:
+                                discovered_offices.extend(s_locs)
+                                break
+                        except Exception as exc:
+                            logger.debug("Error checking service-center candidate %s: %s", cand_url, exc)
+                            continue
+                except Exception as exc:
+                    logger.warning("Error during service-center search for %s: %s", s_dist, exc)
 
         if not discovered_offices:
             return None
@@ -1255,8 +1735,11 @@ def find_application_options(
         live_providers = [live_provider]
     else:
         live_providers = [
-            OfficialPortalLocationProvider(),
+            # GovernmentWebSearchProvider runs first: it corroborates physical offices against
+            # scheme-authorization (Source A) and, for Maharashtra CSC-authorized schemes, uses
+            # the authoritative Aaple Sarkar Sewa Kendra directory before generic portal offices.
             GovernmentWebSearchProvider(),
+            OfficialPortalLocationProvider(),
         ]
 
     for provider in live_providers:

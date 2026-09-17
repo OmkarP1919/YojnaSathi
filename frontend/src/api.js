@@ -155,4 +155,38 @@ export async function checkBackendHealth() {
   return response.data;
 }
 
+/**
+ * Fetch authoritative list of Indian States/UTs via GET /api/locations/states.
+ * @returns {Promise<object>} - StateDirectoryResponse { states, source_type, available }
+ */
+export async function fetchLocationStates() {
+  const response = await apiClient.get('/api/locations/states');
+  return response.data;
+}
+
+/**
+ * Dynamically fetch official districts for a state via GET /api/locations/districts.
+ * @param {string} state - State name (e.g., 'maharashtra')
+ * @returns {Promise<object>} - DistrictDirectoryResponse { state, districts, available, message }
+ */
+export async function fetchLocationDistricts(state) {
+  const response = await apiClient.get('/api/locations/districts', {
+    params: { state },
+  });
+  return response.data;
+}
+
+/**
+ * Dynamically fetch official talukas for a district via GET /api/locations/talukas.
+ * @param {string} state - State name
+ * @param {string} district - District name (e.g., 'nashik')
+ * @returns {Promise<object>} - TalukaDirectoryResponse { state, district, talukas, available, message }
+ */
+export async function fetchLocationTalukas(state, district) {
+  const response = await apiClient.get('/api/locations/talukas', {
+    params: { state, district },
+  });
+  return response.data;
+}
+
 export default apiClient;

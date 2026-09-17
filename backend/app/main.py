@@ -18,11 +18,14 @@ from app.schemas import (
     ApplicationOptionsResult,
     ChatRequest,
     ChatResponse,
+    DistrictDirectoryResponse,
     RecommendationRequest,
     RecommendationResponse,
     Scheme,
     SchemeListResponse,
     SingleSchemeResponse,
+    StateDirectoryResponse,
+    TalukaDirectoryResponse,
     VoiceProcessRequest,
     VoiceResetRequest,
     VoiceStartRequest,
@@ -194,6 +197,41 @@ def get_scheme_by_id(
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"Scheme with id '{scheme_id}' not found",
     )
+
+
+@app.get("/api/locations/states", response_model=StateDirectoryResponse)
+def get_location_states_endpoint():
+    """
+    Retrieve the authoritative list of Indian States and Union Territories.
+    """
+    from app.government_locations import get_location_directory
+    directory = get_location_directory()
+    return directory.get_states()
+
+
+@app.get("/api/locations/districts", response_model=DistrictDirectoryResponse)
+def get_location_districts_endpoint(
+    state: str = Query(..., description="State name (e.g. maharashtra)"),
+):
+    """
+    Dynamically discover and verify official districts for a state from official government sources.
+    """
+    from app.government_locations import get_location_directory
+    directory = get_location_directory()
+    return directory.get_districts(state=state)
+
+
+@app.get("/api/locations/talukas", response_model=TalukaDirectoryResponse)
+def get_location_talukas_endpoint(
+    state: Optional[str] = Query(None, description="State name (e.g. maharashtra)"),
+    district: str = Query(..., description="District name (e.g. nashik)"),
+):
+    """
+    Dynamically discover and verify official talukas/tehsils for a district from official district portals.
+    """
+    from app.government_locations import get_location_directory
+    directory = get_location_directory()
+    return directory.get_talukas(state=state or "", district=district)
 
 
 @app.get("/api/locations", response_model=List[ApplicationLocation])

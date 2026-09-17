@@ -189,6 +189,38 @@ class ApplicationOptionsResult(BaseModel):
     verification_status: str = "none"  # "live_verified" | "catalog_fallback" | "none"
 
 
+class LocationDirectoryItem(BaseModel):
+    name: str
+    source_url: Optional[str] = None
+    verified: bool = True
+
+
+class StateDirectoryResponse(BaseModel):
+    states: List[LocationDirectoryItem] = Field(default_factory=list)
+    source_type: str = "authoritative_reference"
+    available: bool = True
+    message: Optional[str] = None
+
+
+class DistrictDirectoryResponse(BaseModel):
+    state: str
+    districts: List[LocationDirectoryItem] = Field(default_factory=list)
+    source_type: str = "official_government_portal"
+    source_url: Optional[str] = None
+    available: bool = True
+    message: Optional[str] = None
+
+
+class TalukaDirectoryResponse(BaseModel):
+    state: str
+    district: str
+    talukas: List[LocationDirectoryItem] = Field(default_factory=list)
+    source_type: str = "official_district_portal"
+    source_url: Optional[str] = None
+    available: bool = True
+    message: Optional[str] = None
+
+
 class ChatSchemeItem(BaseModel):
     id: str
     name: str

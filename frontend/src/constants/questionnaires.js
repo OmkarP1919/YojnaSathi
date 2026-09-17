@@ -90,26 +90,28 @@ export const TALUKA_OPTIONS_MAHARASHTRA = {
 export const DISTRICT_STEP = {
   id: "district",
   type: "select",
+  isDynamic: true,
+  dynamicType: "district",
   questionKey: "districtQuestion",
   placeholderKey: "districtPlaceholder",
-  helperNoteKey: "districtPilotNote",
   field: "district",
   optional: true,
-  options: DISTRICT_OPTIONS_MAHARASHTRA,
-  showWhen: (profile) => profile?.state === "maharashtra",
+  options: [],
+  showWhen: (profile) => Boolean(profile?.state),
 };
 
 export const TALUKA_STEP = {
   id: "taluka",
   type: "select",
+  isDynamic: true,
+  dynamicType: "taluka",
   questionKey: "talukaQuestion",
   placeholderKey: "talukaPlaceholder",
   field: "taluka",
   optional: true,
-  optionsByDistrict: TALUKA_OPTIONS_MAHARASHTRA,
   options: [],
   showWhen: (profile) =>
-    profile?.state === "maharashtra" &&
+    Boolean(profile?.state) &&
     Boolean(profile?.district) &&
     profile?.district !== "other",
 };

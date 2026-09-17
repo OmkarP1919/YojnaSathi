@@ -17,10 +17,12 @@ Covers all 16 required test scenarios:
 14. Deterministic in-memory cache behavior.
 15. Existing locations.py behavior unaffected.
 16. API endpoint GET /api/application-options works as expected.
+
+Plus Maharashtra Aaple Sarkar Sewa Kendra directory provider tests.
 """
 import pytest
 from typing import List, Optional
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import httpx
 from fastapi.testclient import TestClient
 
@@ -35,6 +37,7 @@ from app.location_search import (
     GovernmentWebSearchProvider,
     AuthorityExtractionParser,
     AuthorityExtractionResult,
+    MaharashtraSewaKendraProvider,
     get_standard_district_directory_urls,
     is_safe_pdf_response,
     build_official_search_query,
@@ -1111,3 +1114,679 @@ def test_large_pdf_safely_skipped():
     # Small PDF is allowed
     mock_resp.headers["content-length"] = "500000"  # 500 KB
     assert is_safe_pdf_response(mock_resp, max_bytes=2_000_000) is True
+
+
+# ---------------------------------------------------------------------------
+# CSC / Setu / Maha e-Seva Service Center Discovery Tests
+# ---------------------------------------------------------------------------
+
+def test_csc_authorization_detection():
+    """Verify AuthorityExtractionParser identifies Setu Kendra, Maha e-Seva, and CSC as designated application centers."""
+    text = (
+        "Eligible women may submit their application form at the nearest "
+        "Setu Kendra, Maha e-Seva Kendra, or Common Service Centre (CSC). "
+        "Biometric verification will be carried out at the center."
+    )
+    result = AuthorityExtractionParser.parse_text(text)
+    assert not result.is_online_only
+    assert "citizen_service_center" in result.designated_authorities
+    assert result.designated_authorities["citizen_service_center"] == "scheme_designated_application_center"
+
+
+def test_official_district_service_directory_parsing():
+    """Verify OfficialPortalLocationProvider extracts service centers from official district service tables."""
+    service_html = """
+    <html>
+      <body>
+        <h1>Citizen Services - Authorized Centers</h1>
+        <table>
+          <thead>
+            <tr>
+              <th>Center Name</th>
+              <th>VLE Name</th>
+              <th>Address / Location</th>
+              <th>Mobile</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Maha e-Seva Kendra Dindori</td>
+              <td>Ramesh Patil</td>
+              <td>Near Panchayat Samiti, Dindori, Nashik</td>
+              <td>02557-221500</td>
+            </tr>
+            <tr>
+              <td>Setu Kendra Nashik HQ</td>
+              <td>Sunil Deshmukh</td>
+              <td>Collector Office Campus, Old Agra Road, Nashik</td>
+              <td>0253-2578900</td>
+            </tr>
+          </tbody>
+        </table>
+      </body>
+    </html>
+    """
+    provider = OfficialPortalLocationProvider()
+    locations = provider._parse_html_directory(
+        html_content=service_html,
+        scheme_id="majhi-ladki-bahin",
+        state="maharashtra",
+        district="nashik",
+        taluka="dindori",
+        source_url="https://nashik.gov.in/citizen-services/",
+    )
+    assert locations is not None
+    assert len(locations) == 2
+
+    dindori_loc = next(loc for loc in locations if "Dindori" in loc.office_name.get("en", ""))
+    assert dindori_loc.office_type == "citizen_service_center"
+    assert dindori_loc.taluka == "dindori"
+    assert "Panchayat Samiti" in dindori_loc.address.get("en", "")
+    assert dindori_loc.contact_phone == "02557-221500"
+
+
+def test_service_center_taluka_scoping():
+    """Verify that when taluka is specified, centers from other talukas are strictly excluded."""
+    service_html = """
+    <html>
+      <body>
+        <h1>District Common Service Centres</h1>
+        <table>
+          <thead>
+            <tr>
+              <th>Center Name</th>
+              <th>VLE Name</th>
+              <th>Address</th>
+              <th>Phone</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Setu Kendra Dindori</td>
+              <td>Ramesh Patil</td>
+              <td>Gram Panchayat Road, Dindori</td>
+              <td>9822111111</td>
+            </tr>
+            <tr>
+              <td>Setu Kendra Niphad</td>
+              <td>Suresh Joshi</td>
+              <td>Station Road, Niphad</td>
+              <td>9822222222</td>
+            </tr>
+          </tbody>
+        </table>
+      </body>
+    </html>
+    """
+    provider = OfficialPortalLocationProvider()
+    raw_locations = provider._parse_html_directory(
+        html_content=service_html,
+        scheme_id="majhi-ladki-bahin",
+        state="maharashtra",
+        district="nashik",
+        taluka="dindori",
+        source_url="https://nashik.gov.in/service/",
+    )
+    assert raw_locations is not None
+
+    filtered = filter_locations_hierarchy(
+        raw_locations,
+        state="maharashtra",
+        district="nashik",
+        taluka="dindori",
+    )
+    # Only Dindori center must be retained; Niphad center must be excluded
+    assert len(filtered) == 1
+    assert "Dindori" in filtered[0].office_name.get("en", "")
+    assert filtered[0].taluka == "dindori"
+
+
+def test_private_listing_rejection_for_csc():
+    """Verify non-governmental/commercial domains are rejected and never queried or returned."""
+    mock_http_client = MagicMock(spec=httpx.Client)
+
+    # Search returns commercial directory / private cyber cafe
+    mock_search_resp = MagicMock(spec=httpx.Response)
+    mock_search_resp.status_code = 200
+    mock_search_resp.json.return_value = {
+        "organic": [
+            {
+                "title": "CSC Centers in Nashik - Justdial",
+                "link": "https://www.justdial.com/Nashik/CSC-Centers",
+                "snippet": "Find 50 CSC centers near you in Nashik.",
+            },
+            {
+                "title": "Private Cyber Cafe & Online Services",
+                "link": "https://privatecybercafe.com/services",
+                "snippet": "Apply for government schemes here.",
+            },
+        ]
+    }
+    mock_http_client.post.return_value = mock_search_resp
+
+    backend = SerperSearchBackend(api_key="test_key", client=mock_http_client)
+    gov_provider = GovernmentWebSearchProvider(backend=backend, http_client=mock_http_client)
+
+    results = gov_provider.search(
+        scheme_id="majhi-ladki-bahin",
+        state="maharashtra",
+        district="nashik",
+        taluka="dindori",
+    )
+    # Unofficial domains must be rejected; no physical locations created
+    assert results is None
+    # Verify no HTTP GET was issued to unofficial sites
+    for call in mock_http_client.get.call_args_list:
+        called_url = call[0][0] if call[0] else ""
+        assert is_official_gov_domain(called_url), f"Unofficial domain was called: {called_url}"
+
+
+def test_online_only_suppression_of_service_centers():
+    """Verify that if official scheme notice mandates online-only submission, physical CSCs are suppressed."""
+    mock_http_client = MagicMock(spec=httpx.Client)
+
+    mock_search_resp = MagicMock(spec=httpx.Response)
+    mock_search_resp.status_code = 200
+    mock_search_resp.json.return_value = {
+        "organic": [
+            {
+                "title": "Official Portal Notice",
+                "link": "https://ladkibahin.maharashtra.gov.in/guidelines",
+                "snippet": "Apply online only at portal. No physical applications.",
+            }
+        ]
+    }
+    mock_http_client.post.return_value = mock_search_resp
+
+    def mock_get(url, *args, **kwargs):
+        resp = MagicMock(spec=httpx.Response)
+        resp.headers = {"content-type": "text/html"}
+        resp.status_code = 200
+        resp.url = url
+        if "ladkibahin.maharashtra.gov.in" in url:
+            resp.text = (
+                "<h1>Guidelines</h1>"
+                "<p>Applications must be submitted online only. No physical application will be accepted at any office.</p>"
+            )
+        else:
+            resp.text = "<table><tr><td>Setu Kendra Dindori</td><td>Dindori</td><td>9822123456</td></tr></table>"
+        return resp
+
+    mock_http_client.get.side_effect = mock_get
+
+    backend = SerperSearchBackend(api_key="test_key", client=mock_http_client)
+    gov_provider = GovernmentWebSearchProvider(backend=backend, http_client=mock_http_client)
+
+    results = gov_provider.search(
+        scheme_id="majhi-ladki-bahin",
+        state="maharashtra",
+        district="nashik",
+        taluka="dindori",
+    )
+    # Mandatory online-only must suppress physical locations completely
+    assert results is None
+# ---------------------------------------------------------------------------
+# 25. Maharashtra Aaple Sarkar Sewa Kendra Directory Provider Tests
+# ---------------------------------------------------------------------------
+
+SEWA_PAGE_HTML = '''<!DOCTYPE html>
+<html>
+<body>
+<p>State Portal - Sewa Kendra / Setu Kendra / Maha e-Seva</p>
+<select class=\"form-control\" id=\"ddlDistrict\" name=\"Districtcode\">
+    <option value=\"0\">---Select---</option>
+    <option value=\"522\">Ahilyanagar</option>
+    <option value=\"501\">Akola</option>
+    <option value=\"516\">Nashik</option>
+    <option value=\"515\">Pune</option>
+</select>
+<select class=\"form-control\" id=\"ddlTaluka\" name=\"SubDistrictcode\">
+    <option value=\"0\">--Select--</option>
+</select>
+</body>
+</html>
+'''
+
+SEWA_TALUKA_JSON = [
+    {"SubDistrictname": "--Select--", "SubDistrictcode": "0", "DistrictCode": None, "Langid": None},
+    {"SubDistrictname": "Dindori", "SubDistrictcode": "4149", "DistrictCode": None, "Langid": None},
+    {"SubDistrictname": "Niphad", "SubDistrictcode": "4155", "DistrictCode": None, "Langid": None},
+    {"SubDistrictname": "Upper Tahsil Office Nashik", "SubDistrictcode": "9192", "DistrictCode": None, "Langid": None},
+]
+
+SEWA_CENTERS_HTML = '''<!DOCTYPE html>
+<html><body>
+<table class=\"table table-bordered table-striped\">
+    <thead>
+        <tr><th scope=\"col\"> VLE Name </th><th scope=\"col\"> Address </th>
+            <th scope=\"col\"> Pincode </th><th scope=\"col\"> Mobile </th><th scope=\"col\"> EmailID </th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>GRAMPANCHAYAT Korhate</td>
+            <td>KORHATE KORHATE</td>
+            <td>422207</td>
+            <td>8669254871</td>
+            <td>grampanchayatkorhate[at]gmail[dot]com</td>
+        </tr>
+        <tr>
+            <td>RAVINDRA HIRAMAN GANGURDE</td>
+            <td>Aarvi Digital Maha E Seva Kendra Kasbe Vani, Shop No.12 Kanda Market Complex First Floor, Near Dhanwantari Hospital, Kasbe Vani</td>
+            <td>422215</td>
+            <td>9403517590</td>
+            <td>aarvivani[at]gmail[dot]com</td>
+        </tr>
+        <tr>
+            <td>SANJAY BALIRAM MAHALE</td>
+            <td>At Post Tarangphan, Tal Dindori, Dist Nashik</td>
+            <td>422207</td>
+            <td>9372684510</td>
+            <td>sbmahale[at]gmail[dot]com</td>
+        </tr>
+    </tbody>
+</table>
+</body></html>
+'''
+
+SEWA_CENTERS_EMPTY_HTML = '''<html><body>
+<table class=\"table table-bordered table-striped\">
+    <thead><tr><th> VLE Name </th><th> Address </th><th> Pincode </th><th> Mobile </th><th> EmailID </th></tr></thead>
+    <tbody><tr><td colspan=\"5\">No records found</td></tr></tbody>
+</table>
+</body></html>
+'''
+
+
+def _sewa_mock_transport(centers_html=SEWA_CENTERS_HTML, taluka_json=None, post_status=200, post_url=None, error=False):
+    taluka_json = SEWA_TALUKA_JSON if taluka_json is None else taluka_json
+    requested = {"subdistrict_code": None, "n_requests": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requested["n_requests"] += 1
+        if error:
+            raise httpx.TimeoutException("directory timeout", request=request)
+        url = str(request.url)
+        if request.method == "POST" and "SewaKendraDetails" in url:
+            requested["subdistrict_code"] = request.content.decode("utf-8", "replace") if request.content else ""
+            if post_url is not None:
+                return httpx.Response(307, headers={"location": post_url})
+            return httpx.Response(post_status, text=centers_html, headers={"content-type": "text/html"})
+        if "GetTalukaDetails" in url:
+            import json
+            return httpx.Response(
+                200,
+                text=json.dumps(taluka_json),
+                headers={"content-type": "application/json; charset=utf-8"},
+            )
+        if request.method == "GET" and "SewaKendraDetails" in url:
+            return httpx.Response(200, text=SEWA_PAGE_HTML, headers={"content-type": "text/html"})
+        if post_url is not None and url.startswith(post_url):
+            return httpx.Response(200, text=centers_html, headers={"content-type": "text/html"})
+        return httpx.Response(404, text="Not Found")
+
+    return handler, requested
+
+
+def _sewa_client(handler):
+    return httpx.Client(transport=httpx.MockTransport(handler), follow_redirects=True, timeout=10)
+
+
+def test_sewa_kendra_name_normalization():
+    provider = MaharashtraSewaKendraProvider
+    assert provider.normalize_district_name("Nasik") == "nashik"
+    assert provider.normalize_district_name("Nashik") == "nashik"
+    assert provider.normalize_place_name("Dindori") == "dindori"
+    assert provider.normalize_place_name("Dindori Taluka") == "dindori"
+    assert provider.normalize_place_name("Dindori Tehsil") == "dindori"
+    assert provider.normalize_place_name("Dindori Tahsil") == "dindori"
+    assert provider.normalize_place_name("Upper Tahsil Office Nashik") == "upper tahsil office nashik"
+
+
+def test_sewa_kendra_district_options_parsing():
+    provider = MaharashtraSewaKendraProvider
+    options = provider._parse_district_options(SEWA_PAGE_HTML)
+    assert ("516", "Nashik") in options
+    assert ("522", "Ahilyanagar") in options
+
+
+def test_sewa_kendra_taluka_json_parsing_skips_placeholder():
+    provider = MaharashtraSewaKendraProvider
+    talukas = provider._parse_taluka_json(__import__("json").dumps(SEWA_TALUKA_JSON))
+    assert ("4149", "Dindori") in talukas
+    assert ("4155", "Niphad") in talukas
+    assert all(code != "0" for code, _ in talukas)
+
+
+def test_sewa_kendra_center_table_parsing_extracts_fields():
+    rows = MaharashtraSewaKendraProvider._parse_center_rows(SEWA_CENTERS_HTML)
+    assert len(rows) == 3
+    assert rows[0][0] == "GRAMPANCHAYAT Korhate"
+    assert rows[1][1].startswith("Aarvi Digital Maha E Seva Kendra")
+    assert rows[1][2] == "422215"
+    assert rows[2][3] == "9372684510"
+
+
+def test_sewa_kendra_center_table_parsing_ignores_empty():
+    rows = MaharashtraSewaKendraProvider._parse_center_rows(SEWA_CENTERS_EMPTY_HTML)
+    assert rows == []
+
+
+def test_maharashtra_sewa_kendra_provider_end_to_end_dindori():
+    handler, requested = _sewa_mock_transport()
+    provider = MaharashtraSewaKendraProvider(client=_sewa_client(handler))
+    results = provider.search(
+        scheme_id="majhi-ladki-bahin",
+        state="maharashtra",
+        district="nashik",
+        taluka="dindori",
+    )
+    assert results is not None
+    assert len(results) == 3
+    assert all(loc.state == "maharashtra" for loc in results)
+    assert all(loc.district == "nashik" for loc in results)
+    assert all(loc.taluka == "dindori" for loc in results)
+    assert all(loc.office_type == "citizen_service_center" for loc in results)
+    assert "mahaonline.gov.in" in (results[0].source_url or "")
+    assert "422207" in results[0].address["en"]
+    assert results[0].contact_phone == "8669254871"
+    assert results[1].contact_phone == "9403517590"
+    assert requested["subdistrict_code"] is not None
+    assert "SubDistrictcode=4149" in requested["subdistrict_code"]
+
+
+def test_maharashtra_sewa_kendra_provider_dedup():
+    duplicated = SEWA_CENTERS_HTML.replace(
+        "</tbody>",
+        "<tr><td>GRAMPANCHAYAT Korhate</td><td>KORHATE KORHATE</td><td>422207</td><td>8669254871</td>"
+        "<td>gram[at]gmail[dot]com</td></tr></tbody>",
+        1,
+    )
+    handler, _ = _sewa_mock_transport(centers_html=duplicated)
+    provider = MaharashtraSewaKendraProvider(client=_sewa_client(handler))
+    results = provider.search("scheme-x", "maharashtra", "nashik", "dindori")
+    assert results is not None
+    assert len(results) == 3
+
+
+def test_sewa_kendra_provider_skips_non_maharashtra_state():
+    handler, requested = _sewa_mock_transport()
+    provider = MaharashtraSewaKendraProvider(client=_sewa_client(handler))
+    results = provider.search("scheme-x", "karnataka", "dindori", "tirthahalli")
+    assert results is None
+    assert requested["n_requests"] == 0
+
+
+def test_sewa_kendra_provider_requires_taluka():
+    handler, requested = _sewa_mock_transport()
+    provider = MaharashtraSewaKendraProvider(client=_sewa_client(handler))
+    assert provider.search("scheme-x", "maharashtra", "nashik", None) is None
+    assert provider.search("scheme-x", "maharashtra", "nashik", "other") is None
+    assert requested["n_requests"] == 0
+
+
+def test_sewa_kendra_provider_no_results_returns_none():
+    handler, _ = _sewa_mock_transport(centers_html=SEWA_CENTERS_EMPTY_HTML)
+    provider = MaharashtraSewaKendraProvider(client=_sewa_client(handler))
+    assert provider.search("scheme-x", "maharashtra", "nashik", "dindori") is None
+
+
+def test_sewa_kendra_provider_http_error_returns_none():
+    handler, _ = _sewa_mock_transport(post_status=500)
+    provider = MaharashtraSewaKendraProvider(client=_sewa_client(handler))
+    assert provider.search("scheme-x", "maharashtra", "nashik", "dindori") is None
+
+
+def test_sewa_kendra_provider_timeout_returns_none():
+    handler, _ = _sewa_mock_transport(error=True)
+    provider = MaharashtraSewaKendraProvider(client=_sewa_client(handler))
+    assert provider.search("scheme-x", "maharashtra", "nashik", "dindori") is None
+
+
+def test_sewa_kendra_provider_rejects_redirect_off_approved_domain():
+    handler, requested = _sewa_mock_transport(
+        post_url="https://evil.example.com/CaptchaRedirect"
+    )
+    provider = MaharashtraSewaKendraProvider(client=_sewa_client(handler))
+    results = provider.search("scheme-x", "maharashtra", "nashik", "dindori")
+    assert results is None
+
+
+def test_sewa_kendra_provider_unknown_district_returns_none():
+    handler, _ = _sewa_mock_transport()
+    provider = MaharashtraSewaKendraProvider(client=_sewa_client(handler))
+    assert provider.search("scheme-x", "maharashtra", "mumbai", "dindori") is None
+
+
+@patch("app.location_search.MaharashtraSewaKendraProvider")
+def test_scheme_authorization_controls_provider_invocation(fake_cls):
+    invocations = []
+
+    def fake_search(scheme_id=None, state=None, district=None, taluka=None):
+        invocations.append((scheme_id, state, district, taluka))
+        return [
+            ApplicationLocation(
+                id="msk-fake-1",
+                scheme_ids=[scheme_id or ""],
+                categories=[],
+                state=state or "",
+                district=district,
+                taluka=taluka,
+                office_name={"en": "Fake Maha e-Seva Kendra"},
+                office_type="citizen_service_center",
+                address={"en": "Fake Address, Dindori"},
+                contact_phone="9876500000",
+                source_url="https://aaplesarkar.mahaonline.gov.in/en/CommonForm/SewaKendraDetails",
+                application_method="scheme_designated_application_center",
+            )
+        ]
+
+    fake_cls.return_value.search.side_effect = fake_search
+
+    # --- Scheme A: page explicitly authorizes Setu Kendra / CSC -----------------
+    mock_http_client = MagicMock(spec=httpx.Client)
+
+    mock_search_resp = MagicMock(spec=httpx.Response)
+    mock_search_resp.status_code = 200
+    mock_search_resp.json.return_value = {
+        "organic": [
+            {
+                "title": "Scheme Notice - Majhi Ladki Bahin",
+                "link": "https://nashik.gov.in/en/notice/ladki-bahin-form/",
+                "snippet": "Submit at Setu Kendra / CSC.",
+            }
+        ]
+    }
+    mock_http_client.post.return_value = mock_search_resp
+
+    def mock_get(url, *args, **kwargs):
+        resp = MagicMock(spec=httpx.Response)
+        resp.headers = {"content-type": "text/html; charset=utf-8"}
+        if "notice/ladki-bahin-form" in str(url):
+            resp.status_code = 200
+            resp.text = (
+                "<html><body><p>Eligible women may submit their application form at the nearest "
+                "Setu Kendra, Maha e-Seva Kendra, or Common Service Centre (CSC).</p></body></html>"
+            )
+        elif "whos-who" in str(url) or "tehsil" in str(url):
+            resp.status_code = 200
+            resp.text = "<table><tr><td>Tahsil Office Dindori</td><td>Dindori</td><td>02557-221234</td></tr></table>"
+        else:
+            resp.status_code = 404
+        return resp
+
+    mock_http_client.get.side_effect = mock_get
+
+    backend = SerperSearchBackend(api_key="test_key", client=mock_http_client)
+    gov_provider = GovernmentWebSearchProvider(backend=backend, http_client=mock_http_client)
+
+    results = gov_provider.search(
+        scheme_id="majhi-ladki-bahin",
+        state="maharashtra",
+        district="nashik",
+        taluka="dindori",
+    )
+    assert results is not None
+    assert len(invocations) == 1
+    assert invocations[0][1] == "maharashtra"
+    assert invocations[0][2] == "nashik"
+    assert invocations[0][3] == "dindori"
+    assert all(loc.office_type == "citizen_service_center" for loc in results)
+
+    # --- Scheme B: page only authorizes Tahsil Office -> provider must NOT run ----
+    invocations.clear()
+
+    mock_http_client.post.reset_mock()
+    mock_search_resp.json.return_value = {
+        "organic": [
+            {
+                "title": "Scheme Notice - Another Scheme",
+                "link": "https://nashik.gov.in/en/notice/tahsil-notice/",
+                "snippet": "Submit at Tahsil Office.",
+            }
+        ]
+    }
+
+    def mock_get_b(url, *args, **kwargs):
+        resp = MagicMock(spec=httpx.Response)
+        resp.headers = {"content-type": "text/html; charset=utf-8"}
+        if "notice/tahsil-notice" in str(url):
+            resp.status_code = 200
+            resp.text = "<html><body><p>Beneficiaries may submit offline applications at the nearest Tahsil Office.</p></body></html>"
+        elif "whos-who" in str(url) or "tehsil" in str(url):
+            resp.status_code = 200
+            resp.text = "<table><tr><td>Tahsil Office Dindori</td><td>Dindori</td><td>02557-221234</td></tr></table>"
+        else:
+            resp.status_code = 404
+        return resp
+
+    mock_http_client.get.side_effect = mock_get_b
+
+    results_b = gov_provider.search(
+        scheme_id="another-scheme",
+        state="maharashtra",
+        district="nashik",
+        taluka="dindori",
+    )
+    assert invocations == []  # provider must NOT run without citizen_service_center authorization
+    assert results_b is not None
+    assert all(loc.office_type == "tahsil_office" for loc in results_b)
+
+
+def test_maharashtra_sewa_kendra_wired_into_gov_provider_end_to_end():
+    import json
+
+    post_calls = {
+        "subdistrict_codes": [],
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if request.method == "POST" and "SewaKendraDetails" in url:
+            body = request.content.decode("utf-8", "replace")
+            post_calls["subdistrict_codes"].append(
+                body.split("SubDistrictcode=")[1].split("&")[0]
+            )
+            return httpx.Response(
+                200,
+                text=SEWA_CENTERS_HTML,
+                headers={"content-type": "text/html"},
+            )
+        if "GetTalukaDetails" in url:
+            return httpx.Response(
+                200,
+                text=json.dumps(SEWA_TALUKA_JSON),
+                headers={"content-type": "application/json"},
+            )
+        if request.method == "GET" and "SewaKendraDetails" in url:
+            return httpx.Response(200, text=SEWA_PAGE_HTML, headers={"content-type": "text/html"})
+        if "nashik.gov.in" in url:
+            return httpx.Response(
+                200,
+                text=(
+                    "<html><body><p>Eligible beneficiaries may submit at any authorised Setu Kendra, "
+                    "Maha e-Seva Kendra or Common Service Centre (CSC).</p></body></html>"
+                ),
+                headers={"content-type": "text/html"},
+            )
+        return httpx.Response(404, text="Not Found")
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler), follow_redirects=True, timeout=10)
+
+    mock_search_resp = MagicMock(spec=httpx.Response)
+    mock_search_resp.status_code = 200
+    mock_search_resp.json.return_value = {
+        "organic": [
+            {
+                "title": "Scheme Notice",
+                "link": "https://nashik.gov.in/en/notice/csc-notice/",
+                "snippet": "Submit at Setu Kendra.",
+            }
+        ]
+    }
+    mock_search_client = MagicMock(spec=httpx.Client)
+    mock_search_client.post.return_value = mock_search_resp
+
+    backend = SerperSearchBackend(api_key="test_key", client=mock_search_client)
+    gov_provider = GovernmentWebSearchProvider(backend=backend, http_client=http_client)
+
+    results = gov_provider.search(
+        scheme_id="majhi-ladki-bahin",
+        state="maharashtra",
+        district="nashik",
+        taluka="dindori",
+    )
+    assert results is not None
+    assert len(results) == 3
+    assert all(loc.office_type == "citizen_service_center" for loc in results)
+    assert all(loc.taluka == "dindori" for loc in results)
+    assert post_calls["subdistrict_codes"] == ["4149"]
+    first = results[0]
+    assert first.application_method == "scheme_designated_application_center"
+    assert first.scheme_authorization_url == "https://nashik.gov.in/en/notice/csc-notice/"
+    assert "mahaonline.gov.in" in (first.source_url or "")
+
+
+def test_maharashtra_sewa_kendra_does_not_run_when_directory_fails():
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if "GetTalukaDetails" in url:
+            raise httpx.TimeoutException("directory timeout", request=request)
+        if request.method == "GET" and "SewaKendraDetails" in url:
+            return httpx.Response(200, text=SEWA_PAGE_HTML, headers={"content-type": "text/html"})
+        if "nashik.gov.in" in url:
+            return httpx.Response(
+                200,
+                text=(
+                    "<html><body><p>Beneficiaries may submit at any authorised Setu Kendra or "
+                    "Common Service Centre (CSC).</p></body></html>"
+                ),
+                headers={"content-type": "text/html"},
+            )
+        return httpx.Response(404, text="Not Found")
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler), follow_redirects=True, timeout=10)
+
+    mock_search_resp = MagicMock(spec=httpx.Response)
+    mock_search_resp.status_code = 200
+    mock_search_resp.json.return_value = {
+        "organic": [
+            {
+                "title": "Scheme Notice",
+                "link": "https://nashik.gov.in/en/notice/csc-notice/",
+                "snippet": "Submit at Setu Kendra.",
+            }
+        ]
+    }
+    mock_search_client = MagicMock(spec=httpx.Client)
+    mock_search_client.post.return_value = mock_search_resp
+
+    backend = SerperSearchBackend(api_key="test_key", client=mock_search_client)
+    gov_provider = GovernmentWebSearchProvider(backend=backend, http_client=http_client)
+
+    results = gov_provider.search(
+        scheme_id="majhi-ladki-bahin",
+        state="maharashtra",
+        district="nashik",
+        taluka="dindori",
+    )
+    assert results is None
