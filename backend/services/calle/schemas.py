@@ -1,6 +1,8 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas import SchemeMatchResult
 
 
 class CitizenCallProfile(BaseModel):
@@ -44,6 +46,7 @@ class CalleCallStatus(BaseModel):
     completion_confidence: Optional[Dict[str, Any]] = None
     structured_result: Optional[Dict[str, Any]] = None
     raw_response: Optional[Dict[str, Any]] = None
+    matched_schemes: List[SchemeMatchResult] = Field(default_factory=list)
 
 
 class CalleWebhookEvent(BaseModel):

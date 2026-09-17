@@ -9,7 +9,8 @@ from typing import Any, Dict, List, Optional
 import httpx
 from dotenv import load_dotenv
 
-from app.schemas import CitizenProfile
+from app.matching import CATEGORY_FILTER_MAP, match_schemes
+from app.schemas import CitizenProfile, Scheme, SchemeMatchResult
 from services.calle.exceptions import CalleAPIError, CalleAuthenticationError, CalleValidationError
 from services.calle.prompts import CALLE_SYSTEM_PROMPT
 from services.calle.schemas import CalleCallRequest, CalleCallResponse, CalleCallStatus, CalleWebhookEvent, CitizenCallProfile
@@ -242,6 +243,60 @@ class CalleService:
         cls._scheme_catalog_cache = catalog
         return catalog
 
+    _schemes_cache: Optional[List[Scheme]] = None
+
+    @classmethod
+    def _load_schemes(cls) -> List[Scheme]:
+        """Load the shared scheme catalog as Scheme models (same data as website/voice)."""
+        if cls._schemes_cache is not None:
+            return cls._schemes_cache
+        schemes: List[Scheme] = []
+        data_path = Path(__file__).resolve().parent.parent.parent / "data" / "schemes.json"
+        try:
+            with open(data_path, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            schemes = [Scheme(**item) for item in raw if isinstance(item, dict)]
+        except (OSError, ValueError) as exc:
+            logger.warning("CALL-E scheme load failed: %s", exc)
+        cls._schemes_cache = schemes
+        return schemes
+
+    @staticmethod
+    def _category_for_need(need: Optional[str]) -> Optional[str]:
+        """Map CALL-E's free-text need to a match_schemes() category when possible."""
+        normalized = (need or "").strip().lower()
+        if normalized in CATEGORY_FILTER_MAP:
+            return normalized
+        return None
+
+    def _match_structured_result(self, structured_result: Optional[Dict[str, Any]]):
+        """Convert a CALL-E structured result into the shared CitizenProfile and run
+        the canonical match_schemes() engine (identical logic to website & voice).
+
+        Returns (matching_profile, category, matched_results)."""
+        if not isinstance(structured_result, dict) or not structured_result:
+            return None, None, []
+        call_profile = self._structured_result_to_profile(structured_result)
+        matching_profile = self.profile_to_matching_profile(structured_result)
+        need = (call_profile.need if call_profile else None) or structured_result.get("need")
+        category = self._category_for_need(need)
+        matched_results = match_schemes(matching_profile, self._load_schemes(), category=category)
+        return matching_profile, category, matched_results
+
+    @staticmethod
+    def _preferred_candidate_ids(initial_context: Optional[Dict[str, Any]]) -> List[str]:
+        """Top 1-3 matcher-preferred scheme ids from an initial profile, if any."""
+        if not isinstance(initial_context, dict) or not initial_context:
+            return []
+        raw_profile = initial_context.get("profile")
+        if not isinstance(raw_profile, dict) or not raw_profile:
+            return []
+        matching_profile = CalleService.profile_to_matching_profile(raw_profile)
+        need = raw_profile.get("need")
+        category = CalleService._category_for_need(need)
+        matched = match_schemes(matching_profile, CalleService._load_schemes(), category=category)
+        return [result.scheme.id for result in matched[:3]]
+
     @staticmethod
     def _build_scheme_call_task(phone_number: str, language: Optional[str] = None, initial_context: Optional[Dict[str, Any]] = None) -> str:
         normalized_lang = (language or (initial_context or {}).get("language") or "en").strip().lower()
@@ -263,6 +318,18 @@ class CalleService:
         catalog = CalleService._load_scheme_catalog()
         if catalog:
             task += "\n\n" + catalog
+
+        preferred_ids = CalleService._preferred_candidate_ids(initial_context)
+        if preferred_ids:
+            task += (
+                "\n\nYojnaSathi preferred candidates (computed by YojnaSathi's scheme matcher "
+                "from the currently known profile):\n"
+                + "\n".join(f"- {sid}" for sid in preferred_ids)
+                + "\n"
+                "When discussing results, present these preferred candidates first. "
+                "Do not invent schemes not in the catalog. Do not claim definitive eligibility. "
+                "The final authoritative matching is computed by YojnaSathi after the call."
+            )
 
         if initial_context:
             task += f" Additional context: {json.dumps(initial_context, ensure_ascii=False)}"
@@ -403,6 +470,7 @@ class CalleService:
             payload = payload.json() if hasattr(payload, "json") else {}
         status = payload.get("status")
         structured_result = payload.get("structured_result")
+        matching_profile, category, matched_results = self._match_structured_result(structured_result)
         return CalleCallStatus(
             call_id=payload.get("id") or call_id,
             status=status,
@@ -412,6 +480,7 @@ class CalleService:
             completion_confidence=payload.get("completion_confidence"),
             structured_result=structured_result if isinstance(structured_result, dict) else None,
             raw_response=payload,
+            matched_schemes=matched_results,
         )
 
     async def cancel_call(self, call_id: str) -> Dict[str, Any]:
@@ -441,6 +510,8 @@ class CalleService:
                 structured_result = recipients[0].get("structured_result") or {}
 
         profile = self._structured_result_to_profile(structured_result)
+        matching_profile, category, matched_results = self._match_structured_result(structured_result)
+        matched_schemes = [result.model_dump() for result in matched_results]
 
         # Idempotent handling: ignore duplicate deliveries of the same event.
         event_key = str(payload.get("id") or event_id)
@@ -456,6 +527,10 @@ class CalleService:
                 "profile": profile.model_dump(exclude_none=True) if profile else {},
                 "structured_result": structured_result,
                 "summary": event_data.get("summary"),
+                "matching_profile": matching_profile.model_dump(exclude_none=True) if matching_profile else {},
+                "matched_category": category,
+                "matched_scheme_count": len(matched_schemes),
+                "matched_schemes": matched_schemes,
             }
         self._seen_webhook_events.add(event_key)
 
@@ -470,6 +545,10 @@ class CalleService:
             "profile": profile.model_dump(exclude_none=True) if profile else {},
             "structured_result": structured_result,
             "summary": event_data.get("summary"),
+            "matching_profile": matching_profile.model_dump(exclude_none=True) if matching_profile else {},
+            "matched_category": category,
+            "matched_scheme_count": len(matched_schemes),
+            "matched_schemes": matched_schemes,
         }
 
     @staticmethod

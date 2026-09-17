@@ -38,7 +38,14 @@ async def create_call_endpoint(request: Dict[str, Any]):
 async def get_call_status_endpoint(call_id: str):
     try:
         result = await calle_service.get_call(call_id)
-        return {"call_id": result.call_id, "status": result.status, "task_completed": result.task_completed}
+        return {
+            "call_id": result.call_id,
+            "status": result.status,
+            "task_completed": result.task_completed,
+            "structured_result": result.structured_result,
+            "matched_scheme_count": len(result.matched_schemes),
+            "matched_schemes": [match.model_dump() for match in result.matched_schemes],
+        }
     except CalleAuthenticationError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
     except CalleValidationError as exc:
@@ -54,7 +61,20 @@ async def webhook_endpoint(request: Request):
         payload = await request.json()
         event_id = request.headers.get("CALL-E-Event-Id")
         result = calle_service.handle_webhook(payload, {"CALL-E-Event-Id": event_id})
-        return {"success": True, "received": True, "duplicate": result.get("duplicate", False), "call_id": result.get("call_id"), "status": result.get("status")}
+        return {
+            "success": True,
+            "received": True,
+            "duplicate": result.get("duplicate", False),
+            "call_id": result.get("call_id"),
+            "status": result.get("status"),
+            "profile": result.get("profile"),
+            "structured_result": result.get("structured_result"),
+            "summary": result.get("summary"),
+            "matching_profile": result.get("matching_profile"),
+            "matched_category": result.get("matched_category"),
+            "matched_scheme_count": result.get("matched_scheme_count", 0),
+            "matched_schemes": result.get("matched_schemes", []),
+        }
     except CalleValidationError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except Exception as exc:  # pragma: no cover - unexpected runtime guard
