@@ -1,8 +1,10 @@
+import base64
 import json
+import logging
 from pathlib import Path
 from typing import List, Optional
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query, status
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.ai import process_chat_message
@@ -19,10 +21,18 @@ from app.schemas import (
     VoiceProcessRequest,
     VoiceResetRequest,
 )
+from services.calle.routes import router as calle_router
+from services.stt.service import STTService, create_stt_service
+from services.tts.service import TTSService, create_tts_service
 from services.voice_agent.agent import VoiceAgent
 
-# Load environment variables
+# Load environment variables. backend/.env takes precedence; the repo-root .env
+# is loaded as a non-overriding fallback so existing root-level secrets (such as
+# GEMINI_API_KEY) keep working when backend/.env only overrides voice settings.
 load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+
+logger = logging.getLogger("yojnasathi.api")
 
 app = FastAPI(
     title="YojnaSathi API",
@@ -44,7 +54,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Phone channel (CALL-E) - outbound scheme-discovery calls. Routed under /api/calle.
+app.include_router(calle_router)
+
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "schemes.json"
+
+# Maximum accepted audio upload size (5MB). 16-bit mono 16kHz WAV is ~32KB/s,
+# so this comfortably covers a ~2.5 minute utterance and guards against abuse.
+MAX_AUDIO_BYTES = 5 * 1024 * 1024
+
+# Audio content types handled by the STT layer. Gemini supports a subset of
+# common audio containers; we reject anything we will hand straight through.
+SUPPORTED_AUDIO_CONTENT_TYPES = {
+    "audio/wav",
+    "audio/x-wav",
+    "audio/wave",
+    "audio/mp3",
+    "audio/mpeg",
+    "audio/aac",
+    "audio/aiff",
+    "audio/x-aiff",
+    "audio/ogg",
+    "audio/flac",
+}
+
+
+def _normalize_audio_content_type(raw: Optional[str]) -> Optional[str]:
+    """Map a client-provided audio content-type to a normalized MIME value."""
+    return (raw or "").strip().lower().split(";")[0].strip() or None
 
 
 def load_schemes_data() -> List[Scheme]:
@@ -148,6 +185,8 @@ def chat_endpoint(request: ChatRequest):
 
 
 _voice_agent: Optional[VoiceAgent] = None
+_stt_service: Optional[STTService] = None
+_tts_service: Optional[TTSService] = None
 
 
 def get_voice_agent() -> VoiceAgent:
@@ -157,6 +196,22 @@ def get_voice_agent() -> VoiceAgent:
         schemes = load_schemes_data()
         _voice_agent = VoiceAgent(schemes=schemes)
     return _voice_agent
+
+
+def get_stt_service() -> STTService:
+    """Return the shared STT service used by the voice pipeline."""
+    global _stt_service
+    if _stt_service is None:
+        _stt_service = create_stt_service()
+    return _stt_service
+
+
+def get_tts_service() -> TTSService:
+    """Return the shared TTS service used by the voice pipeline."""
+    global _tts_service
+    if _tts_service is None:
+        _tts_service = create_tts_service()
+    return _tts_service
 
 
 @app.post("/api/voice/process")
@@ -171,6 +226,118 @@ async def voice_process_endpoint(request: VoiceProcessRequest):
         user_text=request.message,
         language_hint=request.language,
     )
+
+
+@app.post("/api/voice/process/audio")
+async def voice_process_audio_endpoint(
+    audio: UploadFile = File(...),
+    session_id: str = Form(...),
+    language: str = Form(""),
+):
+    """
+    Full voice round-trip for a single (push-to-talk) utterance.
+
+    Flow: uploaded WAV bytes -> STT transcription -> shared VoiceAgent ->
+    TTS synthesis -> base64 audio returned alongside the structured response.
+
+    Returns the same VoiceAgent payload as the text endpoint plus `transcript`
+    and `audio_b64` (WAV) so the browser can render and speak the reply.
+    """
+    audio_bytes = await audio.read()
+    if not audio_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Empty audio upload.",
+        )
+    if len(audio_bytes) > MAX_AUDIO_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail="Audio upload exceeds the 5MB limit.",
+        )
+
+    content_type = _normalize_audio_content_type(audio.content_type) or "audio/wav"
+    if content_type not in SUPPORTED_AUDIO_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"Unsupported audio content type '{content_type}'. "
+            "Provide WAV, MP3, AAC, AIFF, OGG, or FLAC audio.",
+        )
+
+    language_hint = (language or "").strip() or None
+
+    try:
+        stt = get_stt_service()
+    except Exception as exc:
+        logger.warning("STT provider configuration error: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Speech-to-text is not configured. Check STT environment variables.",
+        ) from exc
+
+    try:
+        tts = get_tts_service()
+    except Exception as exc:
+        logger.warning("TTS provider configuration error: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Text-to-speech is not configured. Check TTS environment variables.",
+        ) from exc
+
+    agent = get_voice_agent()
+
+    try:
+        transcript = await stt.transcribe(
+            audio_bytes=audio_bytes,
+            language=language_hint,
+            content_type=content_type,
+        )
+    except Exception as exc:
+        logger.warning("STT failed for session %s: %s", session_id, exc)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Could not transcribe the audio. Please speak clearly and try again.",
+        ) from exc
+
+    if not (transcript or "").strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="No speech was detected in the audio.",
+        )
+
+    result = await agent.process(
+        session_id=session_id,
+        user_text=transcript,
+        language_hint=language_hint,
+    )
+
+    response_text = result.get("response_text", "")
+    audio_b64 = ""
+    audio_content_type = "text/plain; charset=utf-8"
+    tts_error = None
+    if response_text.strip():
+        try:
+            wav_bytes = await tts.synthesize(response_text, result.get("language", "en"))
+            audio_b64 = base64.b64encode(wav_bytes).decode("ascii")
+            audio_content_type = getattr(tts, "content_type", "audio/wav")
+        except Exception as exc:
+            # TTS is optional for the conversation: preserve the text and
+            # scheme results so the user can continue without voice playback.
+            logger.warning("TTS failed for session %s: %s", session_id, exc)
+            tts_error = str(exc)
+
+    return {
+        "session_id": result.get("session_id", session_id),
+        "transcript": transcript,
+        "response_text": result.get("response_text", ""),
+        "language": result.get("language", "en"),
+        "next_action": result.get("next_action", "ask_question"),
+        "should_send_sms": result.get("should_send_sms", False),
+        "profile": result.get("profile", {}),
+        "schemes": result.get("schemes", []),
+        "audio_b64": audio_b64,
+        "audio_content_type": audio_content_type,
+        "tts_error": tts_error,
+    }
 
 
 @app.post("/api/voice/reset")

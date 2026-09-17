@@ -8,20 +8,18 @@ export function Header({ currentView, onReset, lang, onLanguageChange }) {
   return (
     <header className="app-header" role="banner">
       <div className="header-container">
-        <div className="brand-section">
-          <button
-            type="button"
-            className="brand-link"
-            onClick={onReset}
-            aria-label={`${getLocaleString(lang, 'appTitle')} - ${getLocaleString(lang, 'homeNav')}`}
-          >
-            <span className="brand-emblem" aria-hidden="true">🏛️</span>
-            <div className="brand-text">
-              <h1 className="brand-title">{getLocaleString(lang, 'appTitle')}</h1>
-              <p className="brand-tagline">{getLocaleString(lang, 'appTagline')}</p>
-            </div>
-          </button>
-        </div>
+        <button
+          type="button"
+          className="brand-link"
+          onClick={onReset}
+          aria-label={`${getLocaleString(lang, 'appTitle')} - ${getLocaleString(lang, 'homeNav')}`}
+        >
+          <span className="brand-emblem" aria-hidden="true">🏛️</span>
+          <div className="brand-text">
+            <h1 className="brand-title">{getLocaleString(lang, 'appTitle')}</h1>
+            <p className="brand-tagline">{getLocaleString(lang, 'appTagline')}</p>
+          </div>
+        </button>
 
         <div className="header-actions">
           {/* Language Switcher */}

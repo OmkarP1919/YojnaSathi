@@ -83,6 +83,19 @@ html, body {
   outline-offset: 2px;
 }
 
+/* Visually hidden but accessible (for labels) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Layout Container */
 .app-layout {
   min-height: 100vh;
@@ -137,6 +150,41 @@ html, body {
 
 .brand-link:hover {
   background-color: var(--color-surface-hover);
+}
+
+/* Main Navigation (Scheme Finder / Voice Assistant) */
+.main-nav {
+  display: flex;
+  align-items: stretch;
+  gap: 0.375rem;
+  margin-left: 1.25rem;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--color-border-light);
+}
+
+.main-nav-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  min-height: var(--touch-target-min);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.main-nav-btn:hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-main);
+}
+
+.main-nav-btn.active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
 }
 
 .brand-emblem {
@@ -361,6 +409,305 @@ html, body {
 
 .category-card:hover .category-card-arrow {
   transform: translateX(4px);
+}
+
+/* ==========================================================================
+   Homepage: Voice-first Gateways
+   ========================================================================== */
+.gateway-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.home-hero {
+  text-align: center;
+  padding: 1.25rem 0.5rem 0.5rem;
+}
+
+.home-hero-title {
+  font-size: clamp(1.875rem, 4.5vw, 2.5rem);
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  line-height: 1.2;
+  margin-bottom: 0.625rem;
+}
+
+.home-hero-subtitle {
+  font-size: clamp(1rem, 2vw, 1.1875rem);
+  color: var(--color-text-muted);
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+/* PRIMARY gateway: the talking robot. The whole card is one big touch
+   target; iconography (robot + microphone + rings) carries the meaning
+   even for users who cannot read the label text. */
+.gateway-voice-primary-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.gateway-voice-primary {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: min(100%, 460px);
+  padding: 2.25rem 1.25rem 1.75rem;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(165deg, var(--color-primary-light) 0%, var(--color-surface) 55%, #ffffff 100%);
+  box-shadow: 0 14px 40px rgba(30, 58, 138, 0.18);
+  cursor: pointer;
+  font-family: inherit;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  touch-action: manipulation;
+}
+
+.gateway-voice-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 48px rgba(30, 58, 138, 0.26);
+}
+
+.gateway-voice-primary:active {
+  transform: scale(0.98);
+}
+
+.gateway-voice-primary:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 4px;
+}
+
+/* Idle float on the homepage robot (disabled under reduced-motion). */
+.gateway-voice-primary .gateway-avatar-face {
+  animation: robotFloat 3.4s ease-in-out infinite alternate;
+}
+
+.gateway-voice-avatar {
+  display: grid;
+  place-items: center;
+  color: var(--color-primary);
+}
+
+/* Pulsing rings around the mic = "speak now" affordance without words. */
+.gateway-voice-mic {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  font-size: 2.75rem;
+  line-height: 1;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  border-radius: var(--radius-full);
+  box-shadow: 0 10px 26px rgba(30, 58, 138, 0.34);
+}
+
+.gateway-voice-rings {
+  position: absolute;
+  inset: -16px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-secondary);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gateway-voice-primary .gateway-voice-rings {
+  animation: ringPulse 2.4s ease-out infinite;
+}
+
+.gateway-voice-primary .gateway-voice-ring-second {
+  animation-delay: 1.2s;
+}
+
+.gateway-voice-label {
+  margin-top: 0.375rem;
+  font-size: clamp(1.375rem, 4.5vw, 1.75rem);
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  line-height: 1.25;
+}
+
+.gateway-voice-hint {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  overflow-wrap: break-word;
+}
+
+/* Secondary gateways: Website + Phone, visually subordinate. */
+.gateway-secondary-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.gateway-secondary-heading span {
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border);
+}
+
+.gateway-secondary-heading h3 {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-subtle);
+  white-space: nowrap;
+}
+
+.gateway-secondary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.gateway-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  background-color: var(--color-surface);
+  border: 2px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.125rem;
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.gateway-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.gateway-card-secondary {
+  padding: 1rem 0.9375rem;
+  gap: 0.5rem;
+  min-height: 220px;
+}
+
+.gateway-card-secondary .gateway-icon {
+  font-size: 1.75rem;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  margin-bottom: 0;
+  background-color: var(--color-primary-light);
+}
+
+.gateway-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gateway-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  line-height: 1.3;
+  margin: 0;
+}
+
+.gateway-desc {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+  flex-grow: 1;
+}
+
+.gateway-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: 48px;
+  padding: 0.625rem 0.875rem;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.2s ease;
+}
+
+.gateway-cta:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.gateway-cta:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.gateway-cta-disabled {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-subtle);
+  border: 1.5px solid var(--color-border);
+  cursor: not-allowed;
+}
+
+.gateway-cta-disabled:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.gateway-phone-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gateway-note {
+  font-size: 0.8125rem;
+  color: var(--color-text-subtle);
+  text-align: center;
+}
+
+/* Quick-topic shortcuts below the gateways */
+.quick-topics {
+  scroll-margin-top: 96px;
+}
+
+.category-section-compact .section-prompt-box {
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0 0.25rem 0.5rem;
+  text-align: left;
+}
+
+.category-section-compact .section-heading {
+  font-size: 1.0625rem;
+}
+
+/* Small phones: stack the two secondary cards; keep the primary whole. */
+@media (max-width: 380px) {
+  .gateway-secondary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gateway-voice-primary {
+    padding: 1.75rem 1rem 1.5rem;
+  }
+
+  .gateway-voice-mic {
+    width: 80px;
+    height: 80px;
+    font-size: 2.4rem;
+  }
 }
 
 /* ==========================================================================
@@ -983,6 +1330,817 @@ html, body {
 }
 
 /* ==========================================================================
+   Voice Agent - Floating Robot + Panel
+   ========================================================================== */
+
+/* Site-wide fixed stack: robot button + expanded panel, bottom-right. */
+.voice-launcher {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+  pointer-events: none;
+}
+
+.voice-launcher > * {
+  pointer-events: auto;
+}
+
+/* --------------------------------------------------------------------------
+   Floating robot button
+   -------------------------------------------------------------------------- */
+.voice-robot-wrap {
+  position: relative;
+}
+
+.voice-robot-button {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(30, 58, 138, 0.32);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  touch-action: manipulation;
+}
+
+.voice-robot-button:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 10px 28px rgba(30, 58, 138, 0.4);
+}
+
+.voice-robot-button:active {
+  transform: scale(0.97);
+}
+
+.voice-robot-button:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+/* Idle floating/breathing only while closed; reduced motion disables it. */
+.voice-robot-wrap:not(.is-open) .voice-robot-face {
+  animation: robotFloat 3.4s ease-in-out infinite alternate;
+}
+
+.voice-robot-face {
+  display: block;
+}
+
+/* Rings used during active voice states. */
+.voice-robot-rings {
+  position: absolute;
+  inset: -8px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-secondary);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.voice-robot-listening .voice-robot-rings,
+.voice-robot-processing .voice-robot-rings,
+.voice-robot-speaking .voice-robot-rings {
+  animation: ringPulse 1.6s ease-out infinite;
+}
+
+.voice-robot-wrap .voice-robot-ring-second {
+  animation-delay: 0.8s;
+}
+
+/* Speech bubble shown while idle and closed. */
+.voice-robot-bubble {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  max-width: 220px;
+  background-color: var(--color-surface);
+  color: var(--color-text-main);
+  border: 2px solid var(--color-card-border);
+  border-radius: 14px 14px 4px 14px;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  box-shadow: var(--shadow-md);
+  animation: bubbleIn 0.28s ease;
+  white-space: normal;
+}
+
+.voice-robot-bubble::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  right: 14px;
+  border: 7px solid transparent;
+  border-top-color: var(--color-surface);
+}
+
+/* Open/closed badge on the robot. */
+.voice-robot-open-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-secondary);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Expanded voice panel
+   -------------------------------------------------------------------------- */
+.voice-panel {
+  width: min(400px, calc(100vw - 2rem));
+  height: min(620px, calc(100dvh - 130px));
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-surface);
+  border: 2px solid var(--color-card-border);
+  border-radius: 20px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
+  overflow: hidden;
+  transform-origin: bottom right;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(16px) scale(0.97);
+  transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s;
+}
+
+.voice-panel-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+/* Panel header */
+.voice-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border-bottom: 2px solid var(--color-border-light);
+  background-color: var(--color-surface);
+  flex-wrap: wrap;
+}
+
+.voice-panel-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+.voice-panel-avatar {
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+.voice-panel-titles {
+  min-width: 0;
+}
+
+.voice-panel-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--color-text-main);
+  line-height: 1.25;
+}
+
+.voice-panel-status-text {
+  margin: 0.125rem 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voice-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.voice-panel-lang {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-full);
+  padding: 0.1875rem;
+}
+
+.voice-panel-lang-btn {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.voice-panel-lang-btn.active {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.voice-panel-icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-card-border);
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.voice-panel-icon-btn:hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-main);
+}
+
+.voice-panel-icon-btn:focus-visible,
+.voice-panel-lang-btn:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Conversation scroll area */
+.voice-conversation {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem 0.875rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.voice-conversation::-webkit-scrollbar {
+  width: 8px;
+}
+
+.voice-conversation::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 4px;
+}
+
+.voice-scroll-sentinel {
+  height: 1px;
+}
+
+/* Welcome / starter state (empty conversation) */
+.voice-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.625rem;
+  text-align: center;
+  padding: 1.5rem 0.5rem 0.75rem;
+  animation: messageIn 0.28s ease;
+}
+
+.voice-welcome-avatar {
+  color: var(--color-primary);
+  opacity: 0.92;
+}
+
+.voice-welcome-intro {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.voice-welcome-greeting {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  line-height: 1.55;
+  overflow-wrap: break-word;
+  max-width: 26em;
+}
+
+.voice-starters {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.voice-starters-heading {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-subtle);
+}
+
+.voice-starter-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.voice-starter-chip {
+  width: 100%;
+  text-align: left;
+  border: 2px solid var(--color-card-border);
+  background-color: var(--color-surface);
+  color: var(--color-text-main);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.voice-starter-chip:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+/* --------------------------------------------------------------------------
+   Conversation bubbles
+   -------------------------------------------------------------------------- */
+.voice-message-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  max-width: 100%;
+  animation: messageIn 0.22s ease;
+}
+
+.voice-message-user {
+  justify-content: flex-end;
+}
+
+.voice-message-assistant {
+  justify-content: flex-start;
+}
+
+.voice-avatar-assistant {
+  flex-shrink: 0;
+  align-self: flex-start;
+  color: var(--color-primary);
+  margin-top: 0.125rem;
+}
+
+.voice-bubble {
+  max-width: 84%;
+  min-width: 0;
+  padding: 0.625rem 0.875rem;
+  border-radius: 14px;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-align: left;
+}
+
+.voice-bubble-assistant {
+  background-color: var(--color-surface-hover);
+  border: 1.5px solid var(--color-card-border);
+  border-radius: 14px 14px 14px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.voice-bubble-user {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-radius: 14px 14px 4px 14px;
+}
+
+.voice-bubble-label {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-subtle);
+}
+
+.voice-bubble-user .voice-bubble-label {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.voice-bubble-text {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Scheme results inside the assistant bubble */
+.voice-scheme-block {
+  margin-top: 0.375rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.voice-schemes-intro {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.voice-schemes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.voice-schemes-note {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+}
+
+/* Compact scheme cards inside the narrow panel (existing SchemeCard reused). */
+.voice-panel .scheme-result-card {
+  padding: 0.875rem;
+  gap: 0.625rem;
+  border-width: 1px;
+  box-shadow: none;
+}
+
+.voice-panel .scheme-title {
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.voice-panel .scheme-category-badge {
+  font-size: 0.6875rem;
+}
+
+.voice-panel .scheme-result-card .btn-view-scheme {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.voice-panel .info-block-title {
+  font-size: 0.8rem;
+}
+
+.voice-panel .reasons-list,
+.voice-panel .missing-list {
+  font-size: 0.8125rem;
+}
+
+.btn-play-response {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+  background-color: var(--color-secondary-light);
+  border: 2px solid var(--color-secondary);
+  color: #065f46;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  padding: 0.4rem 0.875rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  min-height: 36px;
+  transition: all 0.15s ease;
+}
+
+.btn-play-response:hover {
+  background-color: var(--color-secondary);
+  color: #ffffff;
+}
+
+.btn-play-response:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.voice-tts-note {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* Thinking indicator (processing while typing) */
+.voice-bubble-thinking {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.thinking-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.thinking-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--color-text-subtle);
+  animation: thinkingPulse 1.2s ease-in-out infinite;
+}
+
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.thinking-label {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Voice-first input area
+   -------------------------------------------------------------------------- */
+.voice-input-area {
+  border-top: 2px solid var(--color-border-light);
+  background-color: var(--color-surface);
+  padding: 0.625rem 0.875rem 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.voice-errors {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.voice-error {
+  background-color: var(--color-error-bg);
+  border: 1.5px solid var(--color-error-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+}
+
+.voice-error-text {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-error-text);
+}
+
+/* Recording / playback waveform */
+.voice-waveform {
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.2s ease, visibility 0.2s;
+}
+
+.voice-waveform.is-visible {
+  visibility: visible;
+  opacity: 1;
+}
+
+.voice-wave-bar {
+  display: block;
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background-color: var(--color-secondary);
+  transform: scaleY(0.25);
+  transform-origin: center;
+}
+
+/* Speaking: gentle passive bars (no fabricated mic signal). */
+.voice-mic-speaking .voice-wave-bar {
+  animation: wavePassive 0.9s ease-in-out infinite;
+}
+
+.voice-wave-bar:nth-child(1) { animation-delay: 0s; }
+.voice-wave-bar:nth-child(2) { animation-delay: 0.12s; }
+.voice-wave-bar:nth-child(3) { animation-delay: 0.24s; }
+.voice-wave-bar:nth-child(4) { animation-delay: 0.36s; }
+.voice-wave-bar:nth-child(5) { animation-delay: 0.48s; }
+
+/* Central microphone control */
+.voice-mic-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  padding-top: 0.125rem;
+}
+
+.voice-mic-button {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  color: #ffffff;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 8px 22px rgba(30, 58, 138, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  touch-action: manipulation;
+}
+
+.voice-mic-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(30, 58, 138, 0.34);
+}
+
+.voice-mic-button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.voice-mic-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.voice-mic-button:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.voice-mic-rings {
+  position: absolute;
+  inset: -12px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-secondary);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.voice-mic-listening .voice-mic-button {
+  background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-secondary-hover) 100%);
+}
+
+.voice-mic-listening .voice-mic-rings {
+  animation: ringPulse 1.5s ease-out infinite;
+}
+
+.voice-mic-listening .voice-mic-rings:nth-child(2) {
+  animation-delay: 0.75s;
+}
+
+.voice-mic-processing .voice-mic-rings {
+  animation: ringPulse 1.3s ease-out infinite;
+}
+
+.voice-mic-processing .voice-mic-button {
+  background: linear-gradient(135deg, var(--color-primary-hover) 0%, #3b5bdb 100%);
+}
+
+.voice-mic-speaking .voice-mic-button {
+  background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-secondary-hover) 100%);
+}
+
+.voice-mic-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.voice-mic-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/* Text-fallback input (accessibility; voice remains primary) */
+.voice-input-dock {
+  margin-top: 0.125rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.voice-input-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.voice-input {
+  flex: 1;
+  min-height: 42px;
+}
+
+.btn-send-voice {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary);
+  color: #ffffff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btn-send-voice:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.btn-send-voice:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------------
+   Robot / voice animations
+   -------------------------------------------------------------------------- */
+@keyframes robotFloat {
+  from { transform: translateY(0); }
+  to { transform: translateY(-5px); }
+}
+
+@keyframes ringPulse {
+  0% { transform: scale(0.85); opacity: 0.55; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes wavePassive {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(0.95); }
+}
+
+@keyframes messageIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes thinkingPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.robot-avatar {
+  display: block;
+}
+
+.robot-mouth-speaking {
+  transform-origin: center;
+  animation: mouthTalk 0.55s ease-in-out infinite alternate;
+}
+
+@keyframes mouthTalk {
+  from { transform: scaleY(0.3); }
+  to { transform: scaleY(1); }
+}
+
+/* ==========================================================================
    Scheme Detail Modal
    ========================================================================== */
 .modal-backdrop {
@@ -1211,6 +2369,25 @@ html, body {
     align-items: stretch;
   }
 
+  .brand-section {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .main-nav {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .main-nav-btn {
+    flex: 1;
+    text-align: center;
+    min-width: 120px;
+  }
+
   .header-actions {
     justify-content: space-between;
   }
@@ -1251,6 +2428,86 @@ html, body {
     justify-content: center;
   }
 
+  /* Floating voice assistant - mobile layout */
+  .voice-launcher {
+    right: 0.75rem;
+    left: 0.75rem;
+    bottom: 0.75rem;
+    align-items: stretch;
+  }
+
+  .voice-robot-wrap {
+    align-self: flex-end;
+  }
+
+  .voice-panel {
+    width: 100%;
+    height: min(600px, calc(100dvh - 108px));
+  }
+
+  /* Mobile: dedicated full-screen voice mode (opaque, homepage hidden). */
+  .voice-launcher.voice-focus-mode {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100dvh;
+  }
+
+  .voice-launcher.voice-focus-mode .voice-robot-wrap {
+    display: none;
+  }
+
+  .voice-panel.voice-panel-fullscreen.voice-panel-open {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    min-width: 100%;
+    min-height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    transform: none;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .voice-panel-fullscreen .voice-mic-button {
+    width: 96px;
+    height: 96px;
+  }
+
+  .voice-panel-fullscreen .voice-mic-icon {
+    font-size: 2.6rem;
+  }
+
+  .voice-panel-fullscreen .voice-welcome {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .voice-panel-fullscreen .voice-welcome-greeting {
+    font-size: 1.125rem;
+  }
+
+  .voice-bubble {
+    max-width: 88%;
+  }
+
+  .voice-panel-header {
+    flex-wrap: nowrap;
+  }
+
+  .voice-panel-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .modal-links-row {
     flex-direction: column;
   }
@@ -1280,6 +2537,35 @@ html, body {
     width: 44px;
     height: 44px;
   }
+
+  .voice-title-group {
+    align-items: flex-start;
+  }
+
+  .voice-input-row {
+    flex-direction: row;
+  }
+
+  .voice-panel {
+    border-radius: 18px;
+  }
+
+  .voice-mic-button {
+    width: 74px;
+    height: 74px;
+  }
+
+  .voice-mic-icon {
+    font-size: 1.9rem;
+  }
+
+  .voice-panel-actions {
+    gap: 0.25rem;
+  }
+
+  .voice-panel-lang-btn {
+    padding: 0.2rem 0.375rem;
+  }
 }
 
 @media (max-width: 320px) {
@@ -1289,5 +2575,61 @@ html, body {
 
   .lang-buttons {
     flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gateway-card {
+    transition: none;
+  }
+
+  .gateway-card:hover {
+    transform: none;
+  }
+
+  .voice-robot-wrap:not(.is-open) .voice-robot-face {
+    animation: none;
+  }
+
+  .gateway-voice-primary .gateway-avatar-face,
+  .gateway-voice-primary .gateway-voice-rings {
+    animation: none;
+  }
+
+  .gateway-voice-primary .gateway-voice-rings {
+    opacity: 0.25;
+  }
+
+  .voice-robot-listening .voice-robot-rings,
+  .voice-robot-processing .voice-robot-rings,
+  .voice-robot-speaking .voice-robot-rings,
+  .voice-mic-listening .voice-mic-rings,
+  .voice-mic-processing .voice-mic-rings,
+  .voice-mic-speaking .voice-mic-rings {
+    animation: none;
+    opacity: 0.25;
+  }
+
+  .voice-robot-bubble {
+    animation: none;
+  }
+
+  .voice-mic-speaking .voice-wave-bar {
+    animation: none;
+  }
+
+  .robot-mouth-speaking {
+    animation: none;
+  }
+
+  .thinking-dot {
+    animation: none;
+    opacity: 0.6;
+  }
+
+  .voice-panel,
+  .voice-message-row,
+  .voice-welcome {
+    transition: opacity 0.1s ease;
   }
 }

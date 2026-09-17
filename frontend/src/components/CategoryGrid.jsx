@@ -2,23 +2,28 @@ import React from 'react';
 import { CATEGORIES } from '../constants/questionnaires';
 import { getLocaleString } from '../constants/strings';
 
-export function CategoryGrid({ onSelectCategory, lang }) {
+export function CategoryGrid({ onSelectCategory, lang, compact = false }) {
   return (
-    <section className="category-section" aria-labelledby="category-heading">
-      <div className="hero-banner">
-        <span className="hero-badge" aria-hidden="true">
-          🇮🇳 {getLocaleString(lang, 'heroBadge')}
-        </span>
-        <h2 className="hero-title">{getLocaleString(lang, 'heroTitle')}</h2>
-        <p className="hero-subtitle">{getLocaleString(lang, 'heroSubtitle')}</p>
-      </div>
+    <section
+      className={`category-section${compact ? ' category-section-compact' : ''}`}
+      aria-labelledby="category-heading"
+    >
+      {!compact && (
+        <div className="hero-banner">
+          <span className="hero-badge" aria-hidden="true">
+            🇮🇳 {getLocaleString(lang, 'heroBadge')}
+          </span>
+          <h2 className="hero-title">{getLocaleString(lang, 'heroTitle')}</h2>
+          <p className="hero-subtitle">{getLocaleString(lang, 'heroSubtitle')}</p>
+        </div>
+      )}
 
       <div className="section-prompt-box">
         <h3 id="category-heading" className="section-heading">
-          {getLocaleString(lang, 'categoryHeading')}
+          {getLocaleString(lang, compact ? 'quickTopicsHeading' : 'categoryHeading')}
         </h3>
         <p className="section-subheading">
-          {getLocaleString(lang, 'categorySubtitle')}
+          {getLocaleString(lang, compact ? 'quickTopicsSubtitle' : 'categorySubtitle')}
         </p>
       </div>
 
