@@ -10,6 +10,24 @@ const apiClient = axios.create({
   timeout: 30000,
 });
 
+const RECOMMEND_TIMEOUT_MS = 90000;
+const RECOMMEND_RETRY_BACKOFF_MS = 1500;
+
+function isRetryableNetworkError(error) {
+  if (!error || error.response) {
+    return false;
+  }
+  const code = error.code;
+  const message = typeof error.message === 'string' ? error.message.toLowerCase() : '';
+  return (
+    code === 'ECONNABORTED'
+    || code === 'ERR_NETWORK'
+    || code === 'ETIMEDOUT'
+    || message.includes('timeout')
+    || message.includes('network')
+  );
+}
+
 /**
  * Fetch scheme recommendations for a structured citizen profile via POST /api/recommend.
  * @param {object} profile - CitizenProfile object
@@ -23,8 +41,18 @@ export async function getRecommendations(profile, category = null) {
   if (category) {
     payload.category = category;
   }
-  const response = await apiClient.post('/api/recommend', payload);
-  return response.data;
+  const requestConfig = { timeout: RECOMMEND_TIMEOUT_MS };
+  try {
+    const response = await apiClient.post('/api/recommend', payload, requestConfig);
+    return response.data;
+  } catch (error) {
+    if (!isRetryableNetworkError(error)) {
+      throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, RECOMMEND_RETRY_BACKOFF_MS));
+    const response = await apiClient.post('/api/recommend', payload, requestConfig);
+    return response.data;
+  }
 }
 
 /**

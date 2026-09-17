@@ -94,6 +94,8 @@ NEED_KEYWORD_MAP = {
     "woman": ["women"],
     "financial assistance for women": ["women"],
     "financial assistance": ["women", "financial inclusion"],
+    "financial support": ["women", "financial inclusion"],
+    "financial aid": ["women", "financial inclusion"],
     "pregnancy": ["women"],
     "maternity": ["women"],
     "cooking gas": ["women"],
@@ -111,7 +113,7 @@ def _resolve_categories_from_needs(needs: Optional[List[str]]) -> Set[str]:
     for need_str in needs:
         if not need_str:
             continue
-        normalized_need = need_str.strip().lower()
+        normalized_need = need_str.strip().lower().replace("_", " ")
         for key, categories in NEED_KEYWORD_MAP.items():
             if key in normalized_need or normalized_need in key:
                 matched_categories.update(categories)
@@ -354,6 +356,19 @@ def match_schemes(
                     relevance_score += 3
                 elif "working capital" in n_lower and scheme_id == "pm-svanidhi":
                     relevance_score += 2
+
+        # Live-discovered schemes rely on heuristically derived categories and
+        # target groups (no structured eligibility criteria). When the citizen
+        # has expressed concrete needs, a name-derived target-group match alone
+        # must not surface a scheme from an unrelated domain.
+        is_live_discovered = scheme_id.startswith("web-")
+        if (
+            allowed_categories is None
+            and relevant_categories
+            and is_live_discovered
+            and not need_matched
+        ):
+            continue
 
         # -------------------------------------------------------------
         # 4. Age Criteria (+1 or Exclusion)

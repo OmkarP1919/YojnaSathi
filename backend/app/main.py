@@ -401,25 +401,6 @@ def recommend_schemes(request: RecommendationRequest):
                 result.discovery_source_type = meta.source_type
                 result.validation_reasons = meta.validation_reasons
 
-    # Attach location-aware physical application centers if citizen state is provided
-    if request.profile.state:
-        from app.location_search import find_application_options
-        for result in results:
-            options = find_application_options(
-                scheme_id=result.scheme.id,
-                state=request.profile.state,
-                district=request.profile.district,
-                taluka=request.profile.taluka,
-                scheme=result.scheme,
-            )
-            locs = options.physical_locations or []
-            result.locations = locs
-            if locs:
-                guidance = result.scheme.application_guidance.model_copy(deep=True)
-                guidance.offline_application.locations = locs
-                guidance.offline_application.available = True
-                result.scheme.custom_application_guidance = guidance
-
     from app.location_requirements import evaluate_location_requirement
     loc_requirement = evaluate_location_requirement(request.profile, results)
 

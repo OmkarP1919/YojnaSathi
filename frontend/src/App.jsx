@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from './components/Header';
 import GatewayHero from './components/GatewayHero';
 import Questionnaire from './components/Questionnaire';
 import ResultsView from './components/ResultsView';
 import SchemeDetailModal from './components/SchemeDetailModal';
 import VoiceAssistantView from './components/VoiceAssistant/VoiceAssistantView';
-import { getRecommendations } from './api';
+import { getRecommendations, checkBackendHealth } from './api';
 import { DEFAULT_LANGUAGE } from './constants/languages';
 import { getLocaleString } from './constants/strings';
 import { getActiveSteps } from './constants/questionnaires';
@@ -23,6 +23,10 @@ function App() {
   const [errorCustomMessage, setErrorCustomMessage] = useState(null);
   const [detailModal, setDetailModal] = useState({ isOpen: false, schemeId: null, schemeName: '' });
   const [voiceOpenSignal, setVoiceOpenSignal] = useState(0);
+
+  useEffect(() => {
+    checkBackendHealth().catch(() => {});
+  }, []);
 
   // Reset all search state back to Home
   const handleReset = () => {
