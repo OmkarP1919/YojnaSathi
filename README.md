@@ -63,7 +63,7 @@ Citizen  ───►  [ Web Form | Voice Assistant | CALL-E Phone ]
 * `[IMPLEMENTED]` **Full Trilingual Localization:** English, Hindi, and Marathi text in the UI, Whisper speech recognition, and ElevenLabs speech synthesis.
 * `[MVP LIMITATION]` **Curated Scope:** Curated seed dataset of 18 central and Maharashtra state welfare schemes.
 * `[MVP LIMITATION]` **Inbound Phone Number:** Inbound toll-free dialing is not currently provisioned (requires a paid inbound phone number). The website displays the Phone card as *"Coming Soon"*.
-* `[FUTURE ROADMAP]` **Location-Aware Office Discovery:** District- and Taluka-level CSC/Setu Kendra mapping and website-driven "Call Me" callbacks.
+* `[IMPLEMENTED]` **Location-Aware Application Centers:** Scheme-aware physical office guidance (Tahsil Offices/Setu Kendras, District Agriculture Offices, Civil Hospitals, Collectorates) resolved by state, district, and taluka from a curated official-source dataset.
 
 ---
 
@@ -182,6 +182,7 @@ YojnaSathi ensures citizens know their concrete next steps after discovering a s
 * **Source Portals:** Secondary links to official scheme informational portals (e.g., `https://www.myscheme.gov.in/`).
 * **Required Documentation Checklist:** Specific document lists for each scheme (Aadhaar, Land 7/12 extract, bank passbook, income certificate, caste certificate).
 * **Offline Channel Notes:** Guidance on visiting designated local authorities (e.g., Gram Panchayat, Agriculture Officer, CSC centers) where offline applications are supported.
+* **Location-Aware Application Centers:** `GET /api/locations` returns scheme-aware physical offices for a given `state`/`district`/`taluka` (e.g., Tahsil Office &amp; Setu Kendra, District Agriculture Office, Civil Hospital, Collectorate) with trilingual names and addresses, contact numbers, working hours, and official source links.
 
 ---
 
@@ -258,9 +259,11 @@ YojnaSathi/
 │   │   ├── main.py                  # FastAPI application entry point & routes
 │   │   ├── schemas.py               # Pydantic data models (CitizenProfile, Scheme, etc.)
 │   │   ├── matching.py              # Deterministic rule-based scheme matching engine
+│   │   ├── locations.py             # Curated physical application-center lookup
 │   │   └── ai.py                    # LLM chat & profile merging service
 │   ├── data/
-│   │   └── schemes.json             # 18 curated government schemes dataset
+│   │   ├── schemes.json             # 18 curated government schemes dataset
+│   │   └── locations.json           # Curated physical application-center dataset
 │   └── services/
 │       ├── calle/                   # CALL-E phone channel integration
 │       │   ├── routes.py            # /api/calle/call, /api/calle/webhook
@@ -308,9 +311,8 @@ YojnaSathi/
             └── VoiceAssistant/
                 ├── VoiceAssistantView.jsx  # Floating launcher & panel orchestrator
                 ├── VoicePanel.jsx          # Expanded conversation & microphone dock
-                ├── RobotAvatar.jsx         # Inline state-driven SVG avatar
-                ├── FloatingRobot.jsx       # Floating action button
                 ├── MessageBubble.jsx       # Conversation turns with audio replay
+                ├── ThinkingIndicator.jsx   # Processing/typing indicator
                 └── ConversationInputDock.jsx# Text input fallback dock
 ```
 
@@ -323,6 +325,7 @@ YojnaSathi/
 | `GET` | `/api/health` | Service health status check | None |
 | `GET` | `/api/schemes` | Retrieve all schemes with optional filters | Query: `category`, `state`, `target_group` |
 | `GET` | `/api/schemes/{id}` | Retrieve a single verified scheme by ID | Path: `id` (e.g., `pm-kisan`) |
+| `GET` | `/api/locations` | Verified physical application centers/offices for a jurisdiction | Query: `state` (required), `scheme_id`, `district`, `taluka` |
 | `POST` | `/api/recommend` | Deterministic scheme matching for profile | Body: `{ "profile": {...}, "category": "farmers" }` |
 | `POST` | `/api/chat` | Conversational text assistant with Gemini | Body: `{ "message": "...", "profile": {...} }` |
 | `POST` | `/api/voice/start` | Agent-first voice session start (greeting + 1st question) | Body: `{ "session_id": "...", "language": "hi" }` |
@@ -431,6 +434,9 @@ The repository includes a comprehensive test suite covering matching logic, tele
 * `backend/test_providers.py`: Mock/real STT and TTS provider contracts, content type checks, and audio encoding.
 * `backend/test_voice_agent.py`: Agent-first start, LangGraph state progression, criteria-aware discovery, and FREE_QA turn tests.
 * `backend/test_voice_audio_endpoint.py`: Multipart `/api/voice/process/audio` round-trip tests with WAV/MP3 uploads.
+* `backend/test_voice_conversation.py`: End-to-end conversational voice flow coverage.
+* `backend/test_locations.py`: Location lookup, `/api/locations`, and recommendation integration.
+* `backend/test_application_guidance.py`: Scheme application-guidance resolution.
 
 ```powershell
 # Run backend test suite (from backend directory)
@@ -444,7 +450,7 @@ npm run build
 ```
 
 > **Verification Status:**
-> *Previously verified during development:* 46/46 unit and integration tests passing in `pytest -q`, and clean production frontend bundle compiled in `npm run build` with 0 errors. *(Note: Full test suites were not re-executed during this documentation task).*
+> *Previously verified during development:* the pytest suite passing and a clean production frontend bundle compiled via `npm run build` with 0 errors. *(Note: Full test suites were not re-executed during this documentation task).*
 
 ---
 
@@ -464,14 +470,14 @@ To maintain strict hackathon honesty, the following constraints are acknowledged
 1. **Curated Dataset:** Covers 18 high-priority central and Maharashtra state schemes rather than an exhaustive index of all national programs.
 2. **Advisory Matching Only:** YojnaSathi identifies *potentially relevant schemes*; it does not make binding or legal eligibility determinations.
 3. **Inbound Telephony Public Line:** Autonomous inbound public calling is not currently provisioned because a dedicated paid carrier telephone number has not been allocated.
-4. **No Taluka/District Mapping:** Geolocation-aware filtering down to specific Talukas, Gram Panchayats, or physical Common Service Center (CSC) offices is not yet implemented.
+4. **Limited Location Coverage:** Physical application centers are served from a curated starter dataset covering the Nashik and Pune districts plus state-level agriculture offices; dynamic discovery across all districts and talukas is not yet implemented.
 
 ---
 
 ## 20. Future Roadmap
 
-* **Phase Next: District &amp; Taluka Localization:**
-  * Collect District and Taluka during discovery to map citizens directly to nearby Setu Kendras, CSC centers, and Taluka Agriculture Offices.
+* **Location Coverage Expansion:**
+  * Extend the curated application-center dataset to every district/taluka and add dynamic discovery from official district portals.
 * **Website "Call Me" Flow:**
   * Add a web form allowing citizens to input their mobile number to receive an instant outbound call from CALL-E without needing a smartphone browser.
 * **Inbound Toll-Free Line:**
