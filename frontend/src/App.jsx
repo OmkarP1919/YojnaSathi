@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import Header from './components/Header';
-import CategoryGrid from './components/CategoryGrid';
+import GatewayHero from './components/GatewayHero';
 import Questionnaire from './components/Questionnaire';
 import ResultsView from './components/ResultsView';
 import SchemeDetailModal from './components/SchemeDetailModal';
+import VoiceAssistantView from './components/VoiceAssistant/VoiceAssistantView';
 import { getRecommendations } from './api';
 import { DEFAULT_LANGUAGE } from './constants/languages';
 import { getLocaleString } from './constants/strings';
@@ -21,6 +22,7 @@ function App() {
   const [errorKey, setErrorKey] = useState(null);
   const [errorCustomMessage, setErrorCustomMessage] = useState(null);
   const [detailModal, setDetailModal] = useState({ isOpen: false, schemeId: null, schemeName: '' });
+  const [voiceOpenSignal, setVoiceOpenSignal] = useState(0);
 
   // Reset all search state back to Home
   const handleReset = () => {
@@ -34,6 +36,11 @@ function App() {
     setErrorKey(null);
     setErrorCustomMessage(null);
     setDetailModal({ isOpen: false, schemeId: null, schemeName: '' });
+  };
+
+  // Open the existing floating voice assistant from the homepage gateway.
+  const handleOpenVoice = () => {
+    setVoiceOpenSignal((prev) => prev + 1);
   };
 
   // Start guided questionnaire for selected category
@@ -145,9 +152,10 @@ function App() {
       />
 
       <main className="main-content" role="main">
-        {/* VIEW 1: Home / Category Grid */}
+        {/* VIEW 1: Home / Three Gateways + Quick Topics */}
         {currentView === 'home' && (
-          <CategoryGrid
+          <GatewayHero
+            onOpenVoice={handleOpenVoice}
             onSelectCategory={handleSelectCategory}
             lang={lang}
           />
@@ -220,6 +228,14 @@ function App() {
           </>
         )}
       </main>
+
+      {/* Floating Voice Agent (kept mounted so the conversation and session persist across navigation) */}
+      <VoiceAssistantView
+        lang={lang}
+        openSignal={voiceOpenSignal}
+        onViewDetails={handleViewDetails}
+        onLanguageChange={setLang}
+      />
 
       {/* Scheme Details Modal */}
       {detailModal.isOpen && (
