@@ -534,5 +534,4 @@ Step 5: Post-Match Free Q&A (FREE_QA)
 
 Developed with ❤️ for Indian citizens by:
 
-* **Omkar** — Web Platform, React Architecture, FastAPI Backend, LangGraph Orchestration &amp; Scheme Matching Core.
-* **Aditya** — Voice &amp; Telephony Pipeline, Groq Whisper / ElevenLabs Integration &amp; CALL-E Service.
+* **Omkar** and **Aditya**
