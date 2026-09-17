@@ -10,9 +10,11 @@ from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile, statu
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.ai import process_chat_message
+from app.locations import find_locations
 from app.matching import match_schemes
 from app.schemas import (
     DISCLAIMER_MAP,
+    ApplicationLocation,
     ChatRequest,
     ChatResponse,
     RecommendationRequest,
@@ -158,13 +160,30 @@ def get_schemes(
 
 
 @app.get("/api/schemes/{scheme_id}", response_model=SingleSchemeResponse)
-def get_scheme_by_id(scheme_id: str):
-    """Retrieve a single scheme by its unique identifier."""
+def get_scheme_by_id(
+    scheme_id: str,
+    state: Optional[str] = Query(None, description="Optional state to resolve application locations"),
+    district: Optional[str] = Query(None, description="Optional district to resolve application locations"),
+    taluka: Optional[str] = Query(None, description="Optional taluka to resolve application locations"),
+):
+    """Retrieve a single scheme by its unique identifier with optional location resolution."""
     schemes = load_schemes_data()
     target_id = scheme_id.strip().lower()
 
     for s in schemes:
         if s.id.lower() == target_id:
+            if state:
+                locs = find_locations(
+                    scheme_id=s.id,
+                    state=state,
+                    district=district,
+                    taluka=taluka,
+                )
+                if locs:
+                    guidance = s.application_guidance.model_copy(deep=True)
+                    guidance.offline_application.locations = locs
+                    guidance.offline_application.available = True
+                    s.custom_application_guidance = guidance
             return SingleSchemeResponse(
                 success=True,
                 scheme=s,
@@ -176,6 +195,34 @@ def get_scheme_by_id(scheme_id: str):
     )
 
 
+@app.get("/api/locations", response_model=List[ApplicationLocation])
+def get_locations_endpoint(
+    scheme_id: Optional[str] = Query(None, description="Filter by scheme ID"),
+    state: str = Query(..., description="State (e.g., maharashtra)"),
+    district: Optional[str] = Query(None, description="District (e.g., nashik)"),
+    taluka: Optional[str] = Query(None, description="Taluka (e.g., dindori)"),
+):
+    """Retrieve verified physical application centers/offices for a jurisdiction."""
+    if scheme_id:
+        return find_locations(scheme_id=scheme_id, state=state, district=district, taluka=taluka)
+    from app.locations import load_locations_data
+    pool = load_locations_data()
+    s_state = state.strip().lower()
+    s_dist = district.strip().lower() if district and district.strip() else None
+    s_tal = taluka.strip().lower() if taluka and taluka.strip() else None
+
+    matches = []
+    for loc in pool:
+        if loc.state.strip().lower() != s_state:
+            continue
+        if s_dist and loc.district and loc.district.strip().lower() != s_dist:
+            continue
+        if s_tal and loc.taluka and loc.taluka.strip().lower() != s_tal:
+            continue
+        matches.append(loc)
+    return matches
+
+
 @app.post("/api/recommend", response_model=RecommendationResponse)
 def recommend_schemes(request: RecommendationRequest):
     """
@@ -184,6 +231,23 @@ def recommend_schemes(request: RecommendationRequest):
     """
     schemes = load_schemes_data()
     results = match_schemes(request.profile, schemes, category=request.category)
+
+    # Attach location-aware physical application centers if citizen state is provided
+    if request.profile.state:
+        for result in results:
+            locs = find_locations(
+                scheme_id=result.scheme.id,
+                state=request.profile.state,
+                district=request.profile.district,
+                taluka=request.profile.taluka,
+            )
+            result.locations = locs
+            if locs:
+                guidance = result.scheme.application_guidance.model_copy(deep=True)
+                guidance.offline_application.locations = locs
+                guidance.offline_application.available = True
+                result.scheme.custom_application_guidance = guidance
+
     return RecommendationResponse(
         success=True,
         count=len(results),

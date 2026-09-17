@@ -1,0 +1,199 @@
+[
+  {
+    "id": "mah-nsk-dindori-tahsil",
+    "scheme_ids": [
+      "majhi-ladki-bahin",
+      "post-matric-sc",
+      "pm-ujjwala",
+      "pm-yasasvi",
+      "mgnrega"
+    ],
+    "categories": [
+      "women",
+      "education",
+      "employment",
+      "social welfare"
+    ],
+    "state": "maharashtra",
+    "district": "nashik",
+    "taluka": "dindori",
+    "office_name": {
+      "en": "Tahsil Office & Setu Kendra, Dindori",
+      "hi": "तहसील कार्यालय एवं सेतु केंद्र, दिंडोरी",
+      "mr": "तहसील कार्यालय व सेतू केंद्र, दिंडोरी"
+    },
+    "office_type": "tahsil_office",
+    "address": {
+      "en": "Tahsil Office, Dindori, Nashik District, Maharashtra - 422202",
+      "hi": "तहसील कार्यालय, दिंडोरी, नाशिक जिला, महाराष्ट्र - 422202",
+      "mr": "तहसील कार्यालय, दिंडोरी, नाशिक जिल्हा, महाराष्ट्र - ४२२२०२"
+    },
+    "contact_phone": "02557-221003",
+    "working_hours": {
+      "en": "Mon-Fri: 9:45 AM - 6:15 PM",
+      "hi": "सोम-शुक्र: सुबह 9:45 - शाम 6:15",
+      "mr": "सोम-शुक्र: सकाळी ९:४५ - संध्याकाळी ६:१५"
+    },
+    "source_url": "https://nashik.gov.in"
+  },
+  {
+    "id": "mah-nsk-dsao-agri",
+    "scheme_ids": [
+      "pm-kisan",
+      "pmfby"
+    ],
+    "categories": [
+      "agriculture"
+    ],
+    "state": "maharashtra",
+    "district": "nashik",
+    "taluka": null,
+    "office_name": {
+      "en": "District Superintending Agriculture Office (DSAO), Nashik",
+      "hi": "जिला अधीक्षक कृषि अधिकारी कार्यालय, नाशिक",
+      "mr": "जिल्हा अधीक्षक कृषी अधिकारी कार्यालय, नाशिक"
+    },
+    "office_type": "district_agriculture_office",
+    "address": {
+      "en": "DSAO Office, Shingada Talav, Near Gadkari Chowk, Nashik, Maharashtra - 422002",
+      "hi": "जिला अधीक्षक कृषि अधिकारी कार्यालय, शिंगाडा तालाब, गडकरी चौक के पास, नाशिक, महाराष्ट्र - 422002",
+      "mr": "जिल्हा अधीक्षक कृषी अधिकारी कार्यालय, शिंगाडा तलाव, गडकरी चौक जवळ, नाशिक, महाराष्ट्र - ४२२००२"
+    },
+    "contact_phone": "0253-2504042",
+    "working_hours": {
+      "en": "Mon-Fri: 9:45 AM - 6:15 PM",
+      "hi": "सोम-शुक्र: सुबह 9:45 - शाम 6:15",
+      "mr": "सोम-शुक्र: सकाळी ९:४५ - संध्याकाळी ६:१५"
+    },
+    "source_url": "https://nashik.gov.in"
+  },
+  {
+    "id": "mah-nsk-civil-hospital",
+    "scheme_ids": [
+      "pm-jay",
+      "mjpjay"
+    ],
+    "categories": [
+      "health"
+    ],
+    "state": "maharashtra",
+    "district": "nashik",
+    "taluka": null,
+    "office_name": {
+      "en": "District Civil Hospital (Aarogya Mitra Helpdesk), Nashik",
+      "hi": "जिला सामान्य अस्पताल (आरोग्य मित्र हेल्पडेस्क), नाशिक",
+      "mr": "जिल्हा सामान्य रुग्णालय (आरोग्य मित्र कक्ष), नाशिक"
+    },
+    "office_type": "civil_hospital",
+    "address": {
+      "en": "District Civil Hospital, Trimbak Road, Police Staff Colony, Nashik, Maharashtra - 422002",
+      "hi": "जिला सामान्य अस्पताल, त्र्यंबक रोड, पुलिस स्टाफ कॉलोनी, नाशिक, महाराष्ट्र - 422002",
+      "mr": "जिल्हा सामान्य रुग्णालय, त्र्यंबक रोड, पोलीस स्टाफ कॉलनी, नाशिक, महाराष्ट्र - ४२२००२"
+    },
+    "contact_phone": "0253-2572038",
+    "working_hours": {
+      "en": "Open 24 hours (Helpdesk: Mon-Sat 9:00 AM - 5:00 PM)",
+      "hi": "24 घंटे उपलब्ध (हेल्पडेस्क: सोम-शनि सुबह 9:00 - शाम 5:00)",
+      "mr": "२४ तास उपलब्ध (मदत कक्ष: सोम-शनि सकाळी ९:०० - संध्याकाळी ५:००)"
+    },
+    "source_url": "https://nashik.gov.in"
+  },
+  {
+    "id": "mah-pun-haveli-tahsil",
+    "scheme_ids": [
+      "majhi-ladki-bahin",
+      "post-matric-sc",
+      "pm-ujjwala",
+      "pm-yasasvi",
+      "mgnrega"
+    ],
+    "categories": [
+      "women",
+      "education",
+      "employment",
+      "social welfare"
+    ],
+    "state": "maharashtra",
+    "district": "pune",
+    "taluka": "haveli",
+    "office_name": {
+      "en": "Tahsildar Office & Setu Kendra, Haveli",
+      "hi": "तहसीलदार कार्यालय एवं सेतु केंद्र, हवेली",
+      "mr": "तहसीलदार कार्यालय व सेतू केंद्र, हवेली"
+    },
+    "office_type": "tahsil_office",
+    "address": {
+      "en": "Tahsil Office Haveli, Shukrawar Peth, Pune, Maharashtra - 411002",
+      "hi": "तहसील कार्यालय हवेली, शुक्रवार पेठ, पुणे, महाराष्ट्र - 411002",
+      "mr": "तहसील कार्यालय हवेली, शुक्रवार पेठ, पुणे, महाराष्ट्र - ४११००२"
+    },
+    "contact_phone": "020-24472348",
+    "working_hours": {
+      "en": "Mon-Fri: 9:45 AM - 6:15 PM",
+      "hi": "सोम-शुक्र: सुबह 9:45 - शाम 6:15",
+      "mr": "सोम-शुक्र: सकाळी ९:४५ - संध्याकाळी ६:१५"
+    },
+    "source_url": "https://pune.gov.in"
+  },
+  {
+    "id": "mah-pun-collectorate",
+    "scheme_ids": [
+      "*"
+    ],
+    "categories": [
+      "general"
+    ],
+    "state": "maharashtra",
+    "district": "pune",
+    "taluka": null,
+    "office_name": {
+      "en": "District Collector Office, Pune",
+      "hi": "जिला कलेक्टर कार्यालय, पुणे",
+      "mr": "जिल्हाधिकारी कार्यालय, पुणे"
+    },
+    "office_type": "collectorate",
+    "address": {
+      "en": "District Collector Office, Opposite Sassoon Hospital, Station Road, Pune, Maharashtra - 411001",
+      "hi": "जिला कलेक्टर कार्यालय, ससून अस्पताल के सामने, स्टेशन रोड, पुणे, महाराष्ट्र - 411001",
+      "mr": "जिल्हाधिकारी कार्यालय, ससून हॉस्पिटल समोर, स्टेशन रोड, पुणे, महाराष्ट्र - ४११००१"
+    },
+    "contact_phone": "020-26123370",
+    "working_hours": {
+      "en": "Mon-Fri: 9:45 AM - 6:15 PM",
+      "hi": "सोम-शुक्र: सुबह 9:45 - शाम 6:15",
+      "mr": "सोम-शुक्र: सकाळी ९:४५ - संध्याकाळी ६:१५"
+    },
+    "source_url": "https://pune.gov.in"
+  },
+  {
+    "id": "mah-state-krishi-ayuktalaya",
+    "scheme_ids": [
+      "pm-kisan",
+      "pmfby"
+    ],
+    "categories": [
+      "agriculture"
+    ],
+    "state": "maharashtra",
+    "district": null,
+    "taluka": null,
+    "office_name": {
+      "en": "Commissionerate of Agriculture, Maharashtra State",
+      "hi": "कृषि आयुक्तालय, महाराष्ट्र राज्य",
+      "mr": "कृषी आयुक्तालय, महाराष्ट्र राज्य"
+    },
+    "office_type": "state_commissionerate",
+    "address": {
+      "en": "Commissionerate of Agriculture, 2nd Floor, Central Building, Pune Station, Pune, Maharashtra - 411001",
+      "hi": "कृषि आयुक्तालय, दूसरा तल, मध्यवर्ती इमारत, पुणे स्टेशन, पुणे, महाराष्ट्र - 411001",
+      "mr": "कृषी आयुक्तालय, दुसरा मजला, मध्यवर्ती इमारत, पुणे स्टेशन, पुणे, महाराष्ट्र - ४११००१"
+    },
+    "contact_phone": "020-26123648",
+    "working_hours": {
+      "en": "Mon-Fri: 9:45 AM - 6:15 PM",
+      "hi": "सोम-शुक्र: सुबह 9:45 - शाम 6:15",
+      "mr": "सोम-शुक्र: सकाळी ९:४५ - संध्याकाळी ६:१५"
+    },
+    "source_url": "https://krishi.maharashtra.gov.in"
+  }
+]

@@ -24,10 +24,26 @@ class OnlineApplication(BaseModel):
     portal_url: Optional[str] = None
 
 
+class ApplicationLocation(BaseModel):
+    id: str
+    scheme_ids: List[str]
+    categories: List[str] = Field(default_factory=list)
+    state: str
+    district: Optional[str] = None
+    taluka: Optional[str] = None
+    office_name: LocalizedString
+    office_type: str
+    address: LocalizedString
+    contact_phone: Optional[str] = None
+    working_hours: Optional[LocalizedString] = None
+    source_url: Optional[str] = None
+
+
 class OfflineApplication(BaseModel):
     available: bool = False
     authorized_channel: Optional[str] = None
     instructions: Optional[str] = None
+    locations: List[ApplicationLocation] = Field(default_factory=list)
 
 
 class ApplicationGuidance(BaseModel):
@@ -51,6 +67,7 @@ class Scheme(BaseModel):
     source_url: str
     last_verified: str
     eligibility_criteria: Optional[SchemeEligibilityCriteria] = None
+    custom_application_guidance: Optional[ApplicationGuidance] = Field(default=None, exclude=True)
 
     @computed_field(
         return_type=ApplicationGuidance,
@@ -62,6 +79,8 @@ class Scheme(BaseModel):
     )
     @property
     def application_guidance(self) -> ApplicationGuidance:
+        if self.custom_application_guidance is not None:
+            return self.custom_application_guidance
         url = (self.application_url or "").strip()
         portal_name = None
         if url:
@@ -100,6 +119,8 @@ class CitizenProfile(BaseModel):
     age: Optional[int] = None
     gender: Optional[str] = None
     state: Optional[str] = None
+    district: Optional[str] = None
+    taluka: Optional[str] = None
     occupation: Optional[str] = None
     annual_income: Optional[float] = None
     is_student: Optional[bool] = None
@@ -123,6 +144,7 @@ class SchemeMatchResult(BaseModel):
     matched_reasons: List[str]
     reason_codes: List[ReasonCodeItem] = Field(default_factory=list)
     missing_information: LocalizedList = Field(default_factory=list)
+    locations: List[ApplicationLocation] = Field(default_factory=list)
 
 
 class RecommendationRequest(BaseModel):
