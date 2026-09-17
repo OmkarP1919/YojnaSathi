@@ -57,7 +57,18 @@ export function SchemeCard({ matchResult, profile = {}, onViewDetails, lang }) {
     <article className="scheme-result-card" aria-label={`${getLocaleString(lang, 'modalTitle')}: ${schemeName}`}>
       <div className="scheme-card-header">
         <div className="scheme-title-wrap">
-          <span className="scheme-category-badge">{categoryBadge}</span>
+          <div className="scheme-badge-row">
+            <span className="scheme-category-badge">{categoryBadge}</span>
+            {matchResult.is_web_discovered && (
+              <span
+                className="scheme-live-badge"
+                title={getLocaleString(lang, 'liveGovSourceDesc')}
+              >
+                <span className="live-pulse-dot" aria-hidden="true" />
+                {getLocaleString(lang, 'liveGovSource')}
+              </span>
+            )}
+          </div>
           <h4 className="scheme-title">{schemeName}</h4>
         </div>
         <div className="relevance-score-box">
@@ -101,7 +112,14 @@ export function SchemeCard({ matchResult, profile = {}, onViewDetails, lang }) {
         <button
           type="button"
           className="btn-view-scheme"
-          onClick={() => onViewDetails(scheme.id, schemeName)}
+          onClick={() => {
+            const schemeDataForModal = {
+              ...scheme,
+              is_web_discovered: matchResult.is_web_discovered,
+              locations: locations,
+            };
+            onViewDetails(scheme.id, schemeName, schemeDataForModal);
+          }}
           aria-label={`${getLocaleString(lang, 'viewDetails')} for ${schemeName}`}
         >
           {getLocaleString(lang, 'viewDetails')} →

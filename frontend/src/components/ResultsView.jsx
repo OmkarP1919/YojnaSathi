@@ -1,6 +1,5 @@
 import React from 'react';
 import SchemeCard from './SchemeCard';
-import WebSchemesCard from './WebSchemesCard';
 import { getLocaleString } from '../constants/strings';
 import { getLocalizedField } from '../utils/localization';
 
@@ -94,9 +93,6 @@ export function ResultsView({
           </div>
         </div>
       )}
-
-      {/* Independent web discovery (user-initiated; never blocks local results) */}
-      <WebSchemesCard profile={profile} lang={lang} />
     </section>
   );
 }

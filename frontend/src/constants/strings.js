@@ -208,6 +208,8 @@ export const STRINGS = {
     webSearchGenericError: "Web search failed. Please try again later.",
 
     // Scheme Card
+    liveGovSource: "Live • Government Source",
+    liveGovSourceDesc: "Discovered and verified from official government portals",
     matchRelevance: "Match relevance:",
     whyRelevant: "Why this may be relevant",
     infoNeeded: "Information you may need",
@@ -513,6 +515,8 @@ export const STRINGS = {
     webSearchGenericError: "वेब खोज विफल रही। कृपया बाद में पुनः प्रयास करें।",
 
     // Scheme Card
+    liveGovSource: "लाइव • सरकारी स्रोत",
+    liveGovSourceDesc: "आधिकारिक सरकारी पोर्टल से खोजा और सत्यापित किया गया",
     matchRelevance: "प्रासंगिकता स्कोर:",
     whyRelevant: "यह योजना आपके लिए क्यों प्रासंगिक हो सकती है",
     infoNeeded: "आवश्यक जानकारी व दस्तावेज",
@@ -818,6 +822,8 @@ export const STRINGS = {
     webSearchGenericError: "वेब शोध अयशस्वी झाला. कृपया नंतर पुन्हा प्रयत्न करा.",
 
     // Scheme Card
+    liveGovSource: "थेट • शासकीय स्रोत",
+    liveGovSourceDesc: "अधिकृत शासकीय पोर्टलवरून शोधलेले व पडताळलेले",
     matchRelevance: "सुसंगतता गुण:",
     whyRelevant: "ही योजना तुमच्यासाठी का उपयुक्त ठरू शकते",
     infoNeeded: "आवश्यक कागदपत्रे व माहिती",

@@ -148,11 +148,12 @@ function App() {
   };
 
   // Open scheme detail modal (triggers GET /api/schemes/{id})
-  const handleViewDetails = (schemeId, schemeName) => {
+  const handleViewDetails = (schemeId, schemeName, schemeData = null) => {
     setDetailModal({
       isOpen: true,
       schemeId,
       schemeName,
+      schemeData,
     });
   };
 
@@ -161,6 +162,7 @@ function App() {
       isOpen: false,
       schemeId: null,
       schemeName: '',
+      schemeData: null,
     });
   };
 
@@ -267,6 +269,7 @@ function App() {
         <SchemeDetailModal
           schemeId={detailModal.schemeId}
           schemeName={detailModal.schemeName}
+          schemeData={detailModal.schemeData}
           profile={profile}
           onClose={handleCloseDetails}
           lang={lang}
