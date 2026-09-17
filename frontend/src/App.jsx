@@ -6,6 +6,7 @@ import ResultsView from './components/ResultsView';
 import SchemeDetailModal from './components/SchemeDetailModal';
 import VoiceAssistantView from './components/VoiceAssistant/VoiceAssistantView';
 import { getRecommendations, checkBackendHealth } from './api';
+import { useApplicationOptions } from './hooks/useApplicationOptions';
 import { DEFAULT_LANGUAGE } from './constants/languages';
 import { getLocaleString } from './constants/strings';
 import { getActiveSteps } from './constants/questionnaires';
@@ -27,6 +28,25 @@ function App() {
   useEffect(() => {
     checkBackendHealth().catch(() => {});
   }, []);
+
+  // Lazily fetch physical application centers for displayed results via the
+  // existing GET /api/application-options endpoint. Kept out of /api/recommend
+  // so recommendations stay fast; results are cached and concurrency-limited.
+  const resultSchemeIds = results.map((matchResult) => matchResult?.scheme?.id).filter(Boolean);
+  const shouldLoadLocations = (
+    profile?.state === 'maharashtra'
+    && Boolean(profile?.district)
+    && profile.district !== 'other'
+  );
+  const locationOptions = useApplicationOptions(
+    resultSchemeIds,
+    {
+      state: profile?.state,
+      district: profile?.district,
+      taluka: profile?.taluka,
+    },
+    shouldLoadLocations,
+  );
 
   // Reset all search state back to Home
   const handleReset = () => {
@@ -250,6 +270,7 @@ function App() {
                 results={results}
                 disclaimer={disclaimer}
                 profile={profile}
+                locationOptions={locationOptions}
                 onChangeAnswers={handleChangeAnswers}
                 onReset={handleReset}
                 onViewDetails={handleViewDetails}
@@ -275,6 +296,7 @@ function App() {
           schemeName={detailModal.schemeName}
           schemeData={detailModal.schemeData}
           profile={profile}
+          locationOptions={locationOptions}
           onClose={handleCloseDetails}
           lang={lang}
         />

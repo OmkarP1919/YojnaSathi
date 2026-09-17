@@ -15,6 +15,7 @@ from services.web_scheme_discovery.schemas import (
     EvidenceItem,
     ValidationResult,
 )
+from services.web_scheme_discovery.extractor import _is_generic_title
 from services.web_scheme_discovery.source_policy import best_source_type, is_authoritative
 
 logger = logging.getLogger("yojnasathi.web_discovery.validator")
@@ -66,6 +67,9 @@ def validate_candidate(candidate: DiscoveredScheme) -> ValidationResult:
 
     if not (candidate.scheme_name or "").strip() or candidate.scheme_name.strip().lower() == "unknown scheme":
         reasons.append("Scheme name missing or unidentifiable")
+        hard_fail = True
+    elif _is_generic_title(candidate.scheme_name):
+        reasons.append("Title is a generic catalogue/landing page, not a specific scheme")
         hard_fail = True
 
     tier, source_type, best_url = best_source_type(candidate.source_urls)

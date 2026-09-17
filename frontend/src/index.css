@@ -1640,6 +1640,15 @@ html, body {
   border: 1px dashed var(--color-border);
 }
 
+.location-inline-spinner {
+  display: inline-block;
+  vertical-align: middle;
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+  margin-right: 0.5rem;
+}
+
 .scheme-card-actions {
   display: flex;
   justify-content: flex-end;

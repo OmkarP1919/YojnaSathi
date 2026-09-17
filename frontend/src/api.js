@@ -175,6 +175,23 @@ export async function fetchLocations({ schemeId, state, district, taluka } = {})
 }
 
 /**
+ * Fetch structured application options (online + physical centers) from
+ * GET /api/application-options. Reuses the existing backend location resolver;
+ * used for lazy, on-demand location loading after recommendations are shown.
+ * @param {string} schemeId - Scheme ID
+ * @param {object} [location] - { state, district, taluka }
+ * @returns {Promise<object>} - ApplicationOptionsResult { online_application, physical_locations, ... }
+ */
+export async function fetchApplicationOptions(schemeId, { state, district, taluka } = {}) {
+  const params = { scheme_id: schemeId };
+  if (state) params.state = state;
+  if (district && district !== 'other') params.district = district;
+  if (taluka && taluka !== 'other') params.taluka = taluka;
+  const response = await apiClient.get('/api/application-options', { params });
+  return response.data;
+}
+
+/**
  * Verify backend health via /api/health.
  * @returns {Promise<object>} - Health status data
  */

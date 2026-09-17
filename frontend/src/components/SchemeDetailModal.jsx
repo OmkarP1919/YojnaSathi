@@ -4,7 +4,7 @@ import { getLocaleString } from '../constants/strings';
 import { getLocalizedField, getLocalizedList } from '../utils/localization';
 import ApplicationLocationsList from './ApplicationLocationsList';
 
-export function SchemeDetailModal({ schemeId, schemeName, schemeData = null, profile = {}, onClose, lang }) {
+export function SchemeDetailModal({ schemeId, schemeName, schemeData = null, profile = {}, locationOptions = {}, onClose, lang }) {
   const [details, setDetails] = useState(schemeData || null);
   const [loading, setLoading] = useState(!schemeData);
   const [error, setError] = useState(null);
@@ -86,10 +86,16 @@ export function SchemeDetailModal({ schemeId, schemeName, schemeData = null, pro
   const detailOfflineInstructions = detailOffline && detailOffline.available && detailOffline.instructions
     ? detailOffline.instructions
     : null;
-  const detailLocations = (details?.locations && details.locations.length > 0)
-    ? details.locations
-    : ((detailOffline && detailOffline.locations && detailOffline.locations.length > 0) ? detailOffline.locations : []);
+  const lazilyFetched = locationOptions ? locationOptions[schemeId] : null;
+  const lazyLocations = Array.isArray(lazilyFetched?.locations) ? lazilyFetched.locations : [];
+  const detailLocations = lazyLocations.length > 0
+    ? lazyLocations
+    : ((details?.locations && details.locations.length > 0)
+      ? details.locations
+      : ((detailOffline && detailOffline.locations && detailOffline.locations.length > 0) ? detailOffline.locations : []));
   const isLocationSearch = profile?.state === 'maharashtra' && profile?.district && profile?.district !== 'other';
+  const detailLocationLoading = Boolean(lazilyFetched?.loading) || (isLocationSearch && !lazilyFetched);
+  const detailLocationError = Boolean(lazilyFetched?.error);
 
   return (
     <div
@@ -259,6 +265,8 @@ export function SchemeDetailModal({ schemeId, schemeName, schemeData = null, pro
                   <ApplicationLocationsList
                     locations={detailLocations}
                     isLocationSearch={isLocationSearch}
+                    loading={detailLocationLoading}
+                    error={detailLocationError}
                     lang={lang}
                     maxInitial={5}
                   />

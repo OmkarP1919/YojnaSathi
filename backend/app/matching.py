@@ -25,6 +25,19 @@ INCOME_CEILINGS = {
     "majhi-ladki-bahin": 250000.0,
 }
 
+# Domains a scheme's *category* must belong to for a given target-group signal to
+# count. For live-discovered schemes (heuristic category/target groups, no
+# structured eligibility criteria) a broad target-group hit alone must not
+# surface a scheme whose actual domain is unrelated (e.g. a girls' education
+# scholarship is not a generic women-welfare scheme).
+TARGET_GROUP_DOMAINS = {
+    "farmer": {"agriculture"},
+    "student": {"education"},
+    "women": {"women"},
+    "business": {"small businesses", "financial inclusion"},
+    "unskilled": {"employment"},
+}
+
 # Mapping of website UI categories to backend scheme categories
 CATEGORY_FILTER_MAP = {
     "farmers": {"agriculture"},
@@ -186,6 +199,9 @@ def match_schemes(
         scheme_category = scheme.category.strip().lower()
         scheme_target_groups = {tg.strip().lower() for tg in scheme.target_groups}
         crit = scheme.eligibility_criteria
+        # Live-discovered schemes use heuristically derived categories/target
+        # groups, so target-group signals must be validated against the domain.
+        is_live_discovered = scheme_id.startswith("web-")
 
         # -------------------------------------------------------------
         # Filter A: Category / Domain Filtering
@@ -298,43 +314,48 @@ def match_schemes(
         tg_matched = False
 
         if is_farmer_profile and any(tg in scheme_target_groups for tg in {"farmers", "rural citizens", "rural households"}):
-            tg_matched = True
-            relevance_score += 3
-            matched_reasons.append("Relevant for farmers and rural citizens")
-            reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_FARMER", params={}))
+            if not is_live_discovered or scheme_category in TARGET_GROUP_DOMAINS["farmer"]:
+                tg_matched = True
+                relevance_score += 3
+                matched_reasons.append("Relevant for farmers and rural citizens")
+                reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_FARMER", params={}))
 
         if is_student_profile and any(tg in scheme_target_groups for tg in {"students", "youth"}):
-            tg_matched = True
-            relevance_score += 3
-            matched_reasons.append("Relevant for students and youth")
-            reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_STUDENT", params={}))
+            if not is_live_discovered or scheme_category in TARGET_GROUP_DOMAINS["student"]:
+                tg_matched = True
+                relevance_score += 3
+                matched_reasons.append("Relevant for students and youth")
+                reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_STUDENT", params={}))
 
         if is_female_profile and any(
             tg in scheme_target_groups
             for tg in {"women", "pregnant women", "lactating mothers", "women entrepreneurs"}
         ):
-            tg_matched = True
-            relevance_score += 3
-            matched_reasons.append("Provides targeted support for women")
-            reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_WOMEN", params={}))
+            if not is_live_discovered or scheme_category in TARGET_GROUP_DOMAINS["women"]:
+                tg_matched = True
+                relevance_score += 3
+                matched_reasons.append("Provides targeted support for women")
+                reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_WOMEN", params={}))
 
         if is_business_profile and any(
             tg in scheme_target_groups
             for tg in {"street vendors", "micro entrepreneurs", "small business owners", "self-employed"}
         ):
-            tg_matched = True
-            relevance_score += 3
-            matched_reasons.append("Relevant for small businesses, vendors, and entrepreneurs")
-            reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_BUSINESS", params={}))
+            if not is_live_discovered or scheme_category in TARGET_GROUP_DOMAINS["business"]:
+                tg_matched = True
+                relevance_score += 3
+                matched_reasons.append("Relevant for small businesses, vendors, and entrepreneurs")
+                reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_BUSINESS", params={}))
 
         if is_unskilled_profile and any(
             tg in scheme_target_groups
             for tg in {"unskilled workers", "unorganized sector workers", "low-income workers"}
         ):
-            tg_matched = True
-            relevance_score += 3
-            matched_reasons.append("Relevant for unorganized and unskilled workers")
-            reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_WORKER", params={}))
+            if not is_live_discovered or scheme_category in TARGET_GROUP_DOMAINS["unskilled"]:
+                tg_matched = True
+                relevance_score += 3
+                matched_reasons.append("Relevant for unorganized and unskilled workers")
+                reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_WORKER", params={}))
 
         # -------------------------------------------------------------
         # 3. Need / Category Matching (+3)
@@ -361,7 +382,6 @@ def match_schemes(
         # target groups (no structured eligibility criteria). When the citizen
         # has expressed concrete needs, a name-derived target-group match alone
         # must not surface a scheme from an unrelated domain.
-        is_live_discovered = scheme_id.startswith("web-")
         if (
             allowed_categories is None
             and relevant_categories

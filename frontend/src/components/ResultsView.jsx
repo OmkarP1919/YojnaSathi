@@ -7,6 +7,7 @@ export function ResultsView({
   results,
   disclaimer,
   profile,
+  locationOptions = {},
   onChangeAnswers,
   onReset,
   onViewDetails,
@@ -65,6 +66,7 @@ export function ResultsView({
               key={matchResult.scheme.id}
               matchResult={matchResult}
               profile={profile}
+              locationOption={locationOptions[matchResult.scheme.id] || null}
               onViewDetails={onViewDetails}
               lang={lang}
             />

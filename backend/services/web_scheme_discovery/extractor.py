@@ -91,15 +91,38 @@ _GENERIC_TITLES = {
     "central schemes", "home", "welcome", "dashboard", "services", "citizen services",
     "schemes and programmes", "schemes programmes", "public services", "welfare",
     "schemes directory", "government portal", "official portal",
+    "schemes for welfare of women", "schemes for welfare", "schemes for women",
+    "women welfare schemes", "welfare of women", "women and child welfare schemes",
 }
+
+# Titles that are catalogue/landing-page descriptions rather than a specific
+# scheme name. These must never surface as live schemes.
+_GENERIC_TITLE_PREFIXES = (
+    "list of schemes", "all government schemes", "websites of various", "websites of",
+    "directory of", "schemes for", "scheme for", "schemes on", "scheme on",
+    "schemes related", "scheme related", "schemes regarding", "schemes under",
+    "schemes about", "government schemes", "govt schemes", "state schemes",
+    "central schemes", "various schemes", "welfare schemes", "public schemes",
+    "beneficiary schemes", "schemes available", "scheme available",
+)
+
+_GENERIC_TITLE_RE = re.compile(
+    r"^(?:the\s+)?(?:various|all|different|government|govt|state|central|public|"
+    r"welfare|social welfare|maharashtra)?\s*schemes?"
+    r"(?:\s+(?:for|on|to|of|related to|regarding|under|about)\b.*)?$"
+)
 
 
 def _is_generic_title(title: str) -> bool:
     clean = re.sub(r"[^a-z0-9\s]", " ", (title or "").lower())
     clean = " ".join(clean.split()).strip()
+    if not clean:
+        return True
     if clean in _GENERIC_TITLES:
         return True
-    if clean.startswith(("list of schemes", "all government schemes", "websites of various", "websites of", "directory of")):
+    if clean.startswith(_GENERIC_TITLE_PREFIXES):
+        return True
+    if _GENERIC_TITLE_RE.match(clean):
         return True
     return False
 

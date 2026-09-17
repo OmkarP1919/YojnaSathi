@@ -15,7 +15,7 @@ const CATEGORY_LABELS = {
   financial_services: { en: "Financial Services", hi: "वित्तीय सेवाएं", mr: "वित्तीय सेवा" },
 };
 
-export function SchemeCard({ matchResult, profile = {}, onViewDetails, lang }) {
+export function SchemeCard({ matchResult, profile = {}, locationOption = null, onViewDetails, lang }) {
   const { scheme, relevance_score, matched_reasons, reason_codes, missing_information } = matchResult;
 
   const schemeName = getLocalizedField(scheme.name, lang);
@@ -39,12 +39,19 @@ export function SchemeCard({ matchResult, profile = {}, onViewDetails, lang }) {
     ? offline.instructions
     : null;
 
-  // Resolved physical application locations from backend
-  const locations = (matchResult.locations && matchResult.locations.length > 0)
-    ? matchResult.locations
-    : (offline && offline.locations && offline.locations.length > 0 ? offline.locations : []);
-
   const isLocationSearch = profile?.state === 'maharashtra' && profile?.district && profile?.district !== 'other';
+
+  // Resolved physical application locations: prefer the lazily-fetched
+  // /api/application-options result, then any backend-provided locations.
+  const fetchedLocations = Array.isArray(locationOption?.locations) ? locationOption.locations : [];
+  const locations = fetchedLocations.length > 0
+    ? fetchedLocations
+    : (matchResult.locations && matchResult.locations.length > 0
+      ? matchResult.locations
+      : (offline && offline.locations && offline.locations.length > 0 ? offline.locations : []));
+  // A location search with no option yet is still pending the first request.
+  const locationLoading = Boolean(locationOption?.loading) || (isLocationSearch && !locationOption);
+  const locationError = Boolean(locationOption?.error);
 
   // Documents: the match result carries `missing_information`; for voice items it
   // is empty, so fall back to the verified guidance documents when available.
@@ -167,6 +174,8 @@ export function SchemeCard({ matchResult, profile = {}, onViewDetails, lang }) {
           <ApplicationLocationsList
             locations={locations}
             isLocationSearch={isLocationSearch}
+            loading={locationLoading}
+            error={locationError}
             lang={lang}
             maxInitial={5}
           />

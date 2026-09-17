@@ -127,6 +127,8 @@ export function formatPhoneNumber(phone) {
 export function ApplicationLocationsList({
   locations = [],
   isLocationSearch = false,
+  loading = false,
+  error = false,
   lang = 'en',
   maxInitial = 5,
 }) {
@@ -135,9 +137,28 @@ export function ApplicationLocationsList({
   const locList = Array.isArray(locations) ? locations : [];
   const hasLocations = locList.length > 0;
 
-  // If no locations and no location search requested, nothing to render
+  // Nothing to show: no data yet and no location search requested.
   if (!hasLocations && !isLocationSearch) {
     return null;
+  }
+
+  // Awaiting the on-demand location request, or it failed: never claim there
+  // are no centers until the request has actually resolved with an empty list.
+  if (!hasLocations && (loading || error)) {
+    return (
+      <div className="location-guidance-container">
+        <h6 className="location-guidance-title">
+          📍 {getLocaleString(lang, 'whereToApplyTitle')}
+        </h6>
+        <p className="location-empty-note" role="status">
+          {loading && <span className="loading-spinner location-inline-spinner" aria-hidden="true" />}
+          {!loading && error && <span aria-hidden="true">⚠️ </span>}
+          {loading
+            ? getLocaleString(lang, 'loadingApplicationCenters')
+            : getLocaleString(lang, 'applicationCentersError')}
+        </p>
+      </div>
+    );
   }
 
   // If no locations found for a location search
