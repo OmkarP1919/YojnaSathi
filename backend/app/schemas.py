@@ -37,6 +37,8 @@ class ApplicationLocation(BaseModel):
     contact_phone: Optional[str] = None
     working_hours: Optional[LocalizedString] = None
     source_url: Optional[str] = None
+    scheme_authorization_url: Optional[str] = None
+    application_method: str = "scheme_designated_application_center"
 
 
 class OfflineApplication(BaseModel):
@@ -145,6 +147,10 @@ class SchemeMatchResult(BaseModel):
     reason_codes: List[ReasonCodeItem] = Field(default_factory=list)
     missing_information: LocalizedList = Field(default_factory=list)
     locations: List[ApplicationLocation] = Field(default_factory=list)
+    is_web_discovered: bool = False
+    discovery_confidence: Optional[float] = None
+    discovery_source_type: Optional[str] = None
+    validation_reasons: List[str] = Field(default_factory=list)
 
 
 class RecommendationRequest(BaseModel):
@@ -159,11 +165,64 @@ DISCLAIMER_MAP = {
 }
 
 
+class LocationRequirement(BaseModel):
+    state_required_for_eligibility: bool = False
+    has_physical_offices: bool = False
+    next_needed_level: Optional[str] = None
+    supported_districts: List[str] = Field(default_factory=list)
+    supported_talukas: List[str] = Field(default_factory=list)
+
+
 class RecommendationResponse(BaseModel):
     success: bool = True
     count: int
     disclaimer: Union[str, Dict[str, str]] = Field(default_factory=lambda: dict(DISCLAIMER_MAP))
     results: List[SchemeMatchResult]
+    location_requirement: Optional[LocationRequirement] = None
+
+
+class ApplicationOptionsResult(BaseModel):
+    scheme_id: str
+    state: str
+    district: Optional[str] = None
+    taluka: Optional[str] = None
+    online_application: OnlineApplication = Field(default_factory=OnlineApplication)
+    physical_locations: List[ApplicationLocation] = Field(default_factory=list)
+    source_type: str = "none"  # "live_official_source" | "local_catalog_fallback" | "none"
+    official_source_url: Optional[str] = None
+    verification_status: str = "none"  # "live_verified" | "catalog_fallback" | "none"
+
+
+class LocationDirectoryItem(BaseModel):
+    name: str
+    source_url: Optional[str] = None
+    verified: bool = True
+
+
+class StateDirectoryResponse(BaseModel):
+    states: List[LocationDirectoryItem] = Field(default_factory=list)
+    source_type: str = "authoritative_reference"
+    available: bool = True
+    message: Optional[str] = None
+
+
+class DistrictDirectoryResponse(BaseModel):
+    state: str
+    districts: List[LocationDirectoryItem] = Field(default_factory=list)
+    source_type: str = "official_government_portal"
+    source_url: Optional[str] = None
+    available: bool = True
+    message: Optional[str] = None
+
+
+class TalukaDirectoryResponse(BaseModel):
+    state: str
+    district: str
+    talukas: List[LocationDirectoryItem] = Field(default_factory=list)
+    source_type: str = "official_district_portal"
+    source_url: Optional[str] = None
+    available: bool = True
+    message: Optional[str] = None
 
 
 class ChatSchemeItem(BaseModel):

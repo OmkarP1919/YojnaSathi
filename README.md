@@ -536,6 +536,33 @@ Step 5: Post-Match Free Q&A (FREE_QA)
 
 ---
 
+## Web Scheme Discovery (Parallel Pipeline)
+
+A **completely separate, optional** pipeline that discovers government schemes beyond the 18 curated local schemes, using Tavily web search. It never touches the existing deterministic matcher.
+
+```text
+Citizen Profile
+       ↓
+Tavily Discovery (3–6 targeted queries: state + occupation + need, central + state)
+       ↓
+Candidate Extraction (deterministic, evidence-traced — never invents facts)
+       ↓
+Source Validation (Tier 1 .gov.in / Tier 2 portals verify; blogs/forums cannot)
+       ↓
+Deduplication (normalized names + aliases + official URLs, e.g. PM-KISAN variants)
+       ↓
+Validated Web Schemes  →  (FUTURE) Final Merger with local matching.py results
+```
+
+* **Independent:** does not import or modify `backend/app/matching.py`, `backend/data/schemes.json`, `services/voice_agent/`, or `services/calle/`. If Tavily is down or unconfigured, `/api/recommend` and all voice/CALL-E routes work normally.
+* **Endpoint:** `POST /api/web-schemes/search` with `{ "profile": { "state": "Maharashtra", "occupation": "farmer", "specific_need": "crop support" } }` → `{ "status", "query_summary", "validated_schemes": [...], "rejected_candidates": [...], "metadata": {...} }`. Only `validation_status=verified` **and** `active_status=active` schemes appear in `validated_schemes`; everything else is kept in `rejected_candidates` for debugging. Health probe: `GET /api/web-schemes/health`.
+* **Code:** `backend/services/web_scheme_discovery/` (`service.py`, `schemas.py`, `tavily_search.py`, `extractor.py`, `validator.py`, `deduplicator.py`, `prompts.py`, `source_policy.py`, `cache.py`, `exceptions.py`, `routes.py`). Merger-ready interface: `discover_web_schemes(profile)` — the future merger calls this without knowing about Tavily. The final merger itself is **not** implemented yet.
+* **Environment (all optional, key never hardcoded/logged):** `TAVILY_API_KEY` (required only for live search), `TAVILY_MAX_RESULTS`, `TAVILY_SEARCH_DEPTH` (`basic` default), `WEB_SCHEME_CACHE_TTL`, `WEB_SCHEME_MAX_CANDIDATES`, `WEB_SCHEME_VALIDATION_TIMEOUT`. See `backend/.env.example`.
+* **Safety:** only the minimum query terms (state, occupation/role, need) are sent to Tavily — exact age/income/disability never leave the server. Unknown fields stay `null`, never invented. Responses use "may be relevant" phrasing only.
+* **Tests:** `backend/test_web_scheme_discovery.py` — fully mocked, no network by default (20 tests). Live check only with `RUN_TAVILY_INTEGRATION_TEST=true` plus a real key.
+
+---
+
 ## 24. Development Team & Acknowledgments
 
 Developed with ❤️ for Indian citizens by:

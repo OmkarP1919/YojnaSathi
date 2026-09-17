@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getLocaleString } from '../constants/strings';
 import { getActiveSteps } from '../constants/questionnaires';
+import { fetchLocationDistricts, fetchLocationTalukas } from '../api';
 
 export function Questionnaire({
   category,
@@ -21,10 +22,109 @@ export function Questionnaire({
   // Local validation error message
   const [errorMessage, setErrorMessage] = useState(null);
 
+  // Dynamic location options state
+  const [dynamicOptions, setDynamicOptions] = useState([]);
+  const [isLoadingDynamic, setIsLoadingDynamic] = useState(false);
+  const [dynamicError, setDynamicError] = useState(null);
+  const dynamicCacheRef = useRef({});
+
   // Clear error whenever step changes
   useEffect(() => {
     setErrorMessage(null);
   }, [currentStepIndex]);
+
+  const loadDynamicLocationOptions = useCallback(async () => {
+    if (!currentStep.isDynamic) return;
+
+    if (currentStep.dynamicType === 'district') {
+      const state = profile?.state;
+      if (!state) {
+        setDynamicOptions([]);
+        return;
+      }
+      const cacheKey = `districts:${state.toLowerCase()}`;
+      if (dynamicCacheRef.current[cacheKey]) {
+        setDynamicOptions(dynamicCacheRef.current[cacheKey]);
+        setDynamicError(null);
+        return;
+      }
+
+      setIsLoadingDynamic(true);
+      setDynamicError(null);
+      try {
+        const data = await fetchLocationDistricts(state);
+        if (data && data.available && Array.isArray(data.districts) && data.districts.length > 0) {
+          const formatted = [
+            ...data.districts.map((d) => ({
+              value: d.name.toLowerCase(),
+              label: d.name,
+            })),
+            { value: 'other', labelKey: 'otherDistrictOption' },
+          ];
+          dynamicCacheRef.current[cacheKey] = formatted;
+          setDynamicOptions(formatted);
+          setDynamicError(null);
+        } else {
+          setDynamicOptions([{ value: 'other', labelKey: 'otherDistrictOption' }]);
+          setDynamicError(getLocaleString(lang, 'errorLoadingDistricts'));
+        }
+      } catch (err) {
+        setDynamicOptions([{ value: 'other', labelKey: 'otherDistrictOption' }]);
+        setDynamicError(getLocaleString(lang, 'errorLoadingDistricts'));
+      } finally {
+        setIsLoadingDynamic(false);
+      }
+    } else if (currentStep.dynamicType === 'taluka') {
+      const state = profile?.state;
+      const district = profile?.district;
+      if (!district || district === 'other') {
+        setDynamicOptions([]);
+        return;
+      }
+      const cacheKey = `talukas:${(state || '').toLowerCase()}:${district.toLowerCase()}`;
+      if (dynamicCacheRef.current[cacheKey]) {
+        setDynamicOptions(dynamicCacheRef.current[cacheKey]);
+        setDynamicError(null);
+        return;
+      }
+
+      setIsLoadingDynamic(true);
+      setDynamicError(null);
+      try {
+        const data = await fetchLocationTalukas(state, district);
+        if (data && data.available && Array.isArray(data.talukas) && data.talukas.length > 0) {
+          const formatted = [
+            ...data.talukas.map((t) => ({
+              value: t.name.toLowerCase(),
+              label: t.name,
+            })),
+            { value: 'other', labelKey: 'otherTalukaOption' },
+          ];
+          dynamicCacheRef.current[cacheKey] = formatted;
+          setDynamicOptions(formatted);
+          setDynamicError(null);
+        } else {
+          setDynamicOptions([{ value: 'other', labelKey: 'otherTalukaOption' }]);
+          setDynamicError(getLocaleString(lang, 'errorLoadingTalukas'));
+        }
+      } catch (err) {
+        setDynamicOptions([{ value: 'other', labelKey: 'otherTalukaOption' }]);
+        setDynamicError(getLocaleString(lang, 'errorLoadingTalukas'));
+      } finally {
+        setIsLoadingDynamic(false);
+      }
+    }
+  }, [currentStep, profile?.state, profile?.district, lang]);
+
+  useEffect(() => {
+    if (currentStep.isDynamic) {
+      loadDynamicLocationOptions();
+    } else {
+      setDynamicOptions([]);
+      setDynamicError(null);
+      setIsLoadingDynamic(false);
+    }
+  }, [currentStepIndex, currentStep.id, profile?.state, profile?.district, loadDynamicLocationOptions]);
 
   const currentValue = answers[currentStep.id];
 
@@ -63,9 +163,11 @@ export function Questionnaire({
     }
   };
 
-  const selectOptions = currentStep.optionsByDistrict
-    ? (currentStep.optionsByDistrict[profile?.district] || [])
-    : (currentStep.options || []);
+  const selectOptions = currentStep.isDynamic
+    ? dynamicOptions
+    : (currentStep.optionsByDistrict
+      ? (currentStep.optionsByDistrict[profile?.district] || [])
+      : (currentStep.options || []));
 
   const progressPercent = Math.round(((currentStepIndex + 1) / totalSteps) * 100);
 
@@ -164,6 +266,7 @@ export function Questionnaire({
                 id={`select-${currentStep.id}`}
                 className="input-select"
                 value={currentValue || ''}
+                disabled={isLoadingDynamic}
                 onChange={(e) => {
                   const val = e.target.value;
                   onAnswerChange(currentStep.id, val, { [currentStep.field]: val || null });
@@ -173,7 +276,11 @@ export function Questionnaire({
                 aria-required={!currentStep.optional}
                 aria-describedby={errorMessage ? `err-${currentStep.id}` : undefined}
               >
-                <option value="">{getLocaleString(lang, currentStep.placeholderKey)}</option>
+                <option value="">
+                  {isLoadingDynamic
+                    ? getLocaleString(lang, currentStep.id === 'district' ? 'loadingDistricts' : 'loadingTalukas')
+                    : getLocaleString(lang, currentStep.placeholderKey)}
+                </option>
                 {selectOptions.map((opt) => {
                   const displayLabel = opt.labels
                     ? (opt.labels[lang] || opt.labels.en)
@@ -185,6 +292,27 @@ export function Questionnaire({
                   );
                 })}
               </select>
+
+              {/* Dynamic location loading indicator */}
+              {isLoadingDynamic && (
+                <div className="dynamic-location-status" role="status">
+                  <span>⏳ {getLocaleString(lang, currentStep.id === 'district' ? 'loadingDistricts' : 'loadingTalukas')}</span>
+                </div>
+              )}
+
+              {/* Dynamic location error with retry button */}
+              {!isLoadingDynamic && dynamicError && (
+                <div className="dynamic-location-status dynamic-location-error" role="alert">
+                  <span>⚠️ {dynamicError}</span>
+                  <button
+                    type="button"
+                    className="btn-location-retry"
+                    onClick={loadDynamicLocationOptions}
+                  >
+                    🔄 {getLocaleString(lang, 'retryLocationButton')}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

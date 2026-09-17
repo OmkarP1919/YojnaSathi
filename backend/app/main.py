@@ -15,13 +15,17 @@ from app.matching import match_schemes
 from app.schemas import (
     DISCLAIMER_MAP,
     ApplicationLocation,
+    ApplicationOptionsResult,
     ChatRequest,
     ChatResponse,
+    DistrictDirectoryResponse,
     RecommendationRequest,
     RecommendationResponse,
     Scheme,
     SchemeListResponse,
     SingleSchemeResponse,
+    StateDirectoryResponse,
+    TalukaDirectoryResponse,
     VoiceProcessRequest,
     VoiceResetRequest,
     VoiceStartRequest,
@@ -30,6 +34,16 @@ from services.calle.routes import router as calle_router
 from services.stt.service import STTService, create_stt_service
 from services.tts.service import TTSService, create_tts_service
 from services.voice_agent.agent import VoiceAgent
+
+# Independent web-scheme-discovery pipeline (Tavily). Guarded so a failure
+# here can never break the existing local/voice/CALL-E system.
+try:
+    from services.web_scheme_discovery.routes import web_scheme_router
+
+    _WEB_DISCOVERY_AVAILABLE = True
+except Exception:  # pragma: no cover - import guard
+    web_scheme_router = None  # type: ignore[assignment]
+    _WEB_DISCOVERY_AVAILABLE = False
 
 # Load environment variables. backend/.env takes precedence; the repo-root .env
 # is loaded as a non-overriding fallback so existing root-level secrets (such as
@@ -82,6 +96,10 @@ app.add_middleware(
 # Phone channel (CALL-E) - outbound scheme-discovery calls. Routed under /api/calle.
 app.include_router(calle_router)
 
+# Parallel web-scheme-discovery pipeline (optional; never required by /api/recommend).
+if _WEB_DISCOVERY_AVAILABLE and web_scheme_router is not None:
+    app.include_router(web_scheme_router)
+
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "schemes.json"
 
 # Maximum accepted audio upload size (5MB). 16-bit mono 16kHz WAV is ~32KB/s,
@@ -116,6 +134,18 @@ def load_schemes_data() -> List[Scheme]:
     with open(DATA_PATH, "r", encoding="utf-8") as f:
         raw_schemes = json.load(f)
     return [Scheme(**item) for item in raw_schemes]
+
+
+def _merge_scheme_pools(primary: List[Scheme], secondary: List[Scheme]) -> List[Scheme]:
+    """Union two candidate pools by scheme id, preserving primary order first."""
+    merged = list(primary)
+    seen_ids = {s.id.lower() for s in merged}
+    for scheme in secondary:
+        if scheme.id.lower() in seen_ids:
+            continue
+        seen_ids.add(scheme.id.lower())
+        merged.append(scheme)
+    return merged
 
 
 @app.get("/api/health")
@@ -173,12 +203,15 @@ def get_scheme_by_id(
     for s in schemes:
         if s.id.lower() == target_id:
             if state:
-                locs = find_locations(
+                from app.location_search import find_application_options
+                options = find_application_options(
                     scheme_id=s.id,
                     state=state,
                     district=district,
                     taluka=taluka,
+                    scheme=s,
                 )
+                locs = options.physical_locations or []
                 if locs:
                     guidance = s.application_guidance.model_copy(deep=True)
                     guidance.offline_application.locations = locs
@@ -195,6 +228,41 @@ def get_scheme_by_id(
     )
 
 
+@app.get("/api/locations/states", response_model=StateDirectoryResponse)
+def get_location_states_endpoint():
+    """
+    Retrieve the authoritative list of Indian States and Union Territories.
+    """
+    from app.government_locations import get_location_directory
+    directory = get_location_directory()
+    return directory.get_states()
+
+
+@app.get("/api/locations/districts", response_model=DistrictDirectoryResponse)
+def get_location_districts_endpoint(
+    state: str = Query(..., description="State name (e.g. maharashtra)"),
+):
+    """
+    Dynamically discover and verify official districts for a state from official government sources.
+    """
+    from app.government_locations import get_location_directory
+    directory = get_location_directory()
+    return directory.get_districts(state=state)
+
+
+@app.get("/api/locations/talukas", response_model=TalukaDirectoryResponse)
+def get_location_talukas_endpoint(
+    state: Optional[str] = Query(None, description="State name (e.g. maharashtra)"),
+    district: str = Query(..., description="District name (e.g. nashik)"),
+):
+    """
+    Dynamically discover and verify official talukas/tehsils for a district from official district portals.
+    """
+    from app.government_locations import get_location_directory
+    directory = get_location_directory()
+    return directory.get_talukas(state=state or "", district=district)
+
+
 @app.get("/api/locations", response_model=List[ApplicationLocation])
 def get_locations_endpoint(
     scheme_id: Optional[str] = Query(None, description="Filter by scheme ID"),
@@ -202,8 +270,11 @@ def get_locations_endpoint(
     district: Optional[str] = Query(None, description="District (e.g., nashik)"),
     taluka: Optional[str] = Query(None, description="Taluka (e.g., dindori)"),
 ):
-    """Retrieve verified physical application centers/offices for a jurisdiction."""
     if scheme_id:
+        from app.location_search import find_application_options
+        options = find_application_options(scheme_id=scheme_id, state=state, district=district, taluka=taluka)
+        if options.physical_locations:
+            return options.physical_locations
         return find_locations(scheme_id=scheme_id, state=state, district=district, taluka=taluka)
     from app.locations import load_locations_data
     pool = load_locations_data()
@@ -223,24 +294,125 @@ def get_locations_endpoint(
     return matches
 
 
+@app.get("/api/application-options", response_model=ApplicationOptionsResult)
+def get_application_options_endpoint(
+    scheme_id: str = Query(..., description="Target scheme ID"),
+    state: str = Query(..., description="State (e.g. maharashtra)"),
+    district: Optional[str] = Query(None, description="District (e.g. nashik)"),
+    taluka: Optional[str] = Query(None, description="Taluka (e.g. dindori)"),
+):
+    """
+    Retrieve structured application options (both online and physical application centers)
+    for a given scheme and location, searching official sources with verified catalog fallback.
+    """
+    from app.location_search import find_application_options
+    return find_application_options(
+        scheme_id=scheme_id,
+        state=state,
+        district=district,
+        taluka=taluka,
+    )
+
+
 @app.post("/api/recommend", response_model=RecommendationResponse)
 def recommend_schemes(request: RecommendationRequest):
     """
     Recommend potentially relevant schemes for a citizen profile using deterministic matching.
     Does not make legal eligibility determinations.
     """
-    schemes = load_schemes_data()
-    results = match_schemes(request.profile, schemes, category=request.category)
+    curated_schemes = load_schemes_data()
+    candidate_schemes = curated_schemes
+    discovery_meta = {}
+
+    if _WEB_DISCOVERY_AVAILABLE:
+        try:
+            from services.web_scheme_discovery.merger import (
+                build_live_scheme_pool,
+                get_cached_web_schemes,
+                perform_live_discovery,
+            )
+
+            # 1. Check cache first; if missing, perform ONE bounded live Tavily discovery
+            cached = get_cached_web_schemes(request.profile, category=request.category)
+            if cached:
+                usable_discoveries = cached
+            else:
+                usable_discoveries = perform_live_discovery(
+                    request.profile, category=request.category
+                )
+
+            # 2. Build live-first primary pool (discovered schemes + curated canonical versions for duplicates)
+            if usable_discoveries:
+                live_pool, live_meta = build_live_scheme_pool(
+                    curated_schemes=curated_schemes,
+                    discovered_schemes=usable_discoveries,
+                    fallback_category=request.category,
+                )
+                if live_pool:
+                    candidate_schemes = live_pool
+                    discovery_meta = live_meta
+                else:
+                    logger.info("Live discovery returned no valid active schemes; falling back to curated")
+                    candidate_schemes = curated_schemes
+                    discovery_meta = {}
+            else:
+                logger.info("Live discovery unavailable or empty; falling back to curated catalog")
+                candidate_schemes = curated_schemes
+                discovery_meta = {}
+
+        except Exception as exc:
+            logger.warning("Web scheme discovery/merger failed, falling back to curated: %s", exc)
+            candidate_schemes = curated_schemes
+            discovery_meta = {}
+
+    # Real-time Maharashtra government scheme discovery from the official MahaDBT
+    # portal. Supplements the curated baseline for Maharashtra citizens only and
+    # flows through the same validation / deduplication / match_schemes pipeline.
+    # Guarded so any failure keeps the curated schemes.json catalogue intact.
+    if request.profile.state and str(request.profile.state).strip().lower() == "maharashtra":
+        try:
+            from services.maharashtra_schemes.service import get_maharashtra_schemes
+            from services.web_scheme_discovery.merger import build_live_scheme_pool
+
+            maharashtra_discovered = get_maharashtra_schemes()
+            if maharashtra_discovered:
+                maharashtra_pool, maharashtra_meta = build_live_scheme_pool(
+                    curated_schemes=curated_schemes,
+                    discovered_schemes=maharashtra_discovered,
+                    fallback_category=request.category,
+                )
+                if maharashtra_pool:
+                    candidate_schemes = _merge_scheme_pools(candidate_schemes, maharashtra_pool)
+                    discovery_meta.update(maharashtra_meta)
+        except Exception as exc:
+            logger.warning(
+                "Maharashtra scheme discovery failed, using curated baseline: %s", exc
+            )
+
+    results = match_schemes(request.profile, candidate_schemes, category=request.category)
+
+    # Attach discovery provenance metadata to web-discovered match results
+    if discovery_meta:
+        for result in results:
+            meta = discovery_meta.get(result.scheme.id)
+            if meta:
+                result.is_web_discovered = True
+                result.discovery_confidence = meta.confidence
+                result.discovery_source_type = meta.source_type
+                result.validation_reasons = meta.validation_reasons
 
     # Attach location-aware physical application centers if citizen state is provided
     if request.profile.state:
+        from app.location_search import find_application_options
         for result in results:
-            locs = find_locations(
+            options = find_application_options(
                 scheme_id=result.scheme.id,
                 state=request.profile.state,
                 district=request.profile.district,
                 taluka=request.profile.taluka,
+                scheme=result.scheme,
             )
+            locs = options.physical_locations or []
             result.locations = locs
             if locs:
                 guidance = result.scheme.application_guidance.model_copy(deep=True)
@@ -248,11 +420,15 @@ def recommend_schemes(request: RecommendationRequest):
                 guidance.offline_application.available = True
                 result.scheme.custom_application_guidance = guidance
 
+    from app.location_requirements import evaluate_location_requirement
+    loc_requirement = evaluate_location_requirement(request.profile, results)
+
     return RecommendationResponse(
         success=True,
         count=len(results),
         disclaimer=dict(DISCLAIMER_MAP),
         results=results,
+        location_requirement=loc_requirement,
     )
 
 

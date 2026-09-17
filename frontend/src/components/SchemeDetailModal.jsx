@@ -2,10 +2,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import { fetchSchemeDetails } from '../api';
 import { getLocaleString } from '../constants/strings';
 import { getLocalizedField, getLocalizedList } from '../utils/localization';
+import ApplicationLocationsList from './ApplicationLocationsList';
 
-export function SchemeDetailModal({ schemeId, schemeName, profile = {}, onClose, lang }) {
-  const [details, setDetails] = useState(null);
-  const [loading, setLoading] = useState(true);
+export function SchemeDetailModal({ schemeId, schemeName, schemeData = null, profile = {}, onClose, lang }) {
+  const [details, setDetails] = useState(schemeData || null);
+  const [loading, setLoading] = useState(!schemeData);
   const [error, setError] = useState(null);
   const modalRef = useRef(null);
 
@@ -13,13 +14,15 @@ export function SchemeDetailModal({ schemeId, schemeName, profile = {}, onClose,
     let isMounted = true;
     async function loadData() {
       if (!schemeId) return;
-      setLoading(true);
+      if (!schemeData) {
+        setLoading(true);
+      }
       setError(null);
       try {
         const locationParams = {
-          state: profile.state,
-          district: (profile.district && profile.district !== 'other') ? profile.district : undefined,
-          taluka: (profile.taluka && profile.taluka !== 'other') ? profile.taluka : undefined,
+          state: profile?.state,
+          district: (profile?.district && profile?.district !== 'other') ? profile.district : undefined,
+          taluka: (profile?.taluka && profile?.taluka !== 'other') ? profile.taluka : undefined,
         };
         const data = await fetchSchemeDetails(schemeId, locationParams);
         if (isMounted) {
@@ -27,7 +30,11 @@ export function SchemeDetailModal({ schemeId, schemeName, profile = {}, onClose,
         }
       } catch (err) {
         if (isMounted) {
-          setError(getLocaleString(lang, 'errorGeneric'));
+          if (!schemeData) {
+            setError(getLocaleString(lang, 'errorGeneric'));
+          } else {
+            setDetails(schemeData);
+          }
         }
       } finally {
         if (isMounted) {
@@ -79,9 +86,9 @@ export function SchemeDetailModal({ schemeId, schemeName, profile = {}, onClose,
   const detailOfflineInstructions = detailOffline && detailOffline.available && detailOffline.instructions
     ? detailOffline.instructions
     : null;
-  const detailLocations = (detailOffline && detailOffline.locations && detailOffline.locations.length > 0)
-    ? detailOffline.locations
-    : [];
+  const detailLocations = (details?.locations && details.locations.length > 0)
+    ? details.locations
+    : ((detailOffline && detailOffline.locations && detailOffline.locations.length > 0) ? detailOffline.locations : []);
   const isLocationSearch = profile?.state === 'maharashtra' && profile?.district && profile?.district !== 'other';
 
   return (
@@ -104,7 +111,15 @@ export function SchemeDetailModal({ schemeId, schemeName, profile = {}, onClose,
       >
         <div className="modal-header">
           <div className="modal-title-group">
-            <span className="modal-badge">{getLocaleString(lang, 'modalTitle')}</span>
+            <div className="modal-badges-row">
+              <span className="modal-badge">{getLocaleString(lang, 'modalTitle')}</span>
+              {(details?.is_web_discovered || schemeData?.is_web_discovered) && (
+                <span className="scheme-live-badge" title={getLocaleString(lang, 'liveGovSourceDesc')}>
+                  <span className="live-pulse-dot" aria-hidden="true" />
+                  {getLocaleString(lang, 'liveGovSource')}
+                </span>
+              )}
+            </div>
             <h3 id="modal-scheme-title" className="modal-scheme-name">
               {displayName}
             </h3>
@@ -241,77 +256,12 @@ export function SchemeDetailModal({ schemeId, schemeName, profile = {}, onClose,
                   </div>
 
                   {/* Physical Application Locations */}
-                  {detailLocations.length > 0 && (
-                    <div className="location-guidance-container modal-locations">
-                      <h5 className="location-guidance-title">
-                        🏛️ {getLocaleString(lang, 'whereToApplyTitle')}
-                      </h5>
-                      <div className="location-cards-list">
-                        {detailLocations.map((loc) => {
-                          const officeName = getLocalizedField(loc.office_name, lang);
-                          const address = getLocalizedField(loc.address, lang);
-                          const hours = loc.working_hours ? getLocalizedField(loc.working_hours, lang) : null;
-                          return (
-                            <div key={loc.id} className="location-card-item">
-                              <div className="location-card-header">
-                                <strong className="location-office-name">{officeName}</strong>
-                                <div className="location-badge-group">
-                                  {loc.district && (
-                                    <span className="location-jurisdiction-badge">
-                                      {loc.district.charAt(0).toUpperCase() + loc.district.slice(1)}
-                                    </span>
-                                  )}
-                                  {loc.taluka && (
-                                    <span className="location-jurisdiction-badge">
-                                      {loc.taluka.charAt(0).toUpperCase() + loc.taluka.slice(1)}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              {address && (
-                                <p className="location-address-text">
-                                  📍 {address}
-                                </p>
-                              )}
-                              <div className="location-meta-row">
-                                {loc.contact_phone && (
-                                  <a href={`tel:${loc.contact_phone}`} className="location-phone-link">
-                                    📞 {loc.contact_phone}
-                                  </a>
-                                )}
-                                {hours && (
-                                  <span className="location-hours-text">
-                                    🕒 {hours}
-                                  </span>
-                                )}
-                                {loc.source_url && (
-                                  <a
-                                    href={loc.source_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="location-source-link"
-                                  >
-                                    {getLocaleString(lang, 'officeOfficialSource')} ↗
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {detailLocations.length === 0 && isLocationSearch && (
-                    <div className="location-guidance-container modal-locations">
-                      <h5 className="location-guidance-title">
-                        🏛️ {getLocaleString(lang, 'whereToApplyTitle')}
-                      </h5>
-                      <p className="location-empty-note">
-                        ℹ️ {getLocaleString(lang, 'noLocationsFound')}
-                      </p>
-                    </div>
-                  )}
+                  <ApplicationLocationsList
+                    locations={detailLocations}
+                    isLocationSearch={isLocationSearch}
+                    lang={lang}
+                    maxInitial={5}
+                  />
                 </div>
               )}
 
