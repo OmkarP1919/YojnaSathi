@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import re
-from typing import Dict, List
+from typing import Dict, List, Optional
 from urllib.parse import urlparse
 
+from app.schemas import Scheme
 from services.web_scheme_discovery.schemas import DiscoveredScheme
 
 # Known alias groups (normalized token sets that mean the same scheme).
@@ -119,3 +120,89 @@ def deduplicate(candidates: List[DiscoveredScheme]) -> List[DiscoveredScheme]:
             existing.source_url = cand.source_url or existing.source_url
         existing.confidence = max(existing.confidence, cand.confidence)
     return list(grouped.values())
+
+
+def find_duplicate_curated_scheme(
+    candidate: DiscoveredScheme,
+    curated_schemes: List[Scheme],
+) -> Optional[Scheme]:
+    """
+    Find matching curated scheme for candidate, or None if genuinely new.
+
+    Evaluation hierarchy:
+    1. Canonical ID / known aliases match.
+    2. Normalized scheme name equality against curated names.
+    3. Official application or source URL key equivalence.
+    4. Membership in shared alias groups.
+
+    Curated schemes in schemes.json are canonical and authoritative. If a match is
+    detected, the matching curated Scheme object is returned.
+    """
+    cand_raw_name = candidate.scheme_name or ""
+    cand_norm_name = normalize_name(cand_raw_name)
+    cand_explicit_norm = normalize_name(candidate.normalized_name) if candidate.normalized_name else cand_norm_name
+    cand_aliases_norm = {normalize_name(a) for a in candidate.aliases if a}
+    all_cand_names = {cand_norm_name, cand_explicit_norm, *cand_aliases_norm} - {""}
+
+    cand_app_key = _official_key(candidate.application_url)
+    cand_src_key = _official_key(candidate.source_url)
+    cand_urls_keys = {_official_key(u) for u in candidate.source_urls if u} - {""}
+    cand_all_keys = {cand_app_key, cand_src_key, *cand_urls_keys} - {""}
+
+    for curated in curated_schemes:
+        curated_id_raw = curated.id.strip().lower()
+        curated_id_norm = normalize_name(curated.id)
+        curated_id_nodash = curated_id_raw.replace("-", "").replace("_", "")
+
+        # 1. Canonical IDs / known aliases match
+        if (
+            curated_id_raw in all_cand_names
+            or curated_id_norm in all_cand_names
+            or curated_id_nodash in all_cand_names
+        ):
+            return curated
+
+        # Extract curated localized names
+        curated_names_raw: List[str] = []
+        if isinstance(curated.name, dict):
+            curated_names_raw.extend(str(v) for v in curated.name.values() if v)
+        elif isinstance(curated.name, str):
+            curated_names_raw.append(curated.name)
+
+        curated_names_norm = {normalize_name(n) for n in curated_names_raw} - {""}
+
+        # 2. Normalized scheme names equality
+        if any(cn in all_cand_names for cn in curated_names_norm):
+            return curated
+
+        # 3. Official application/source URL equivalence
+        curated_app_key = _official_key(curated.application_url)
+        curated_src_key = _official_key(curated.source_url)
+        curated_keys = {curated_app_key, curated_src_key} - {""}
+
+        # Check for matching official host/path keys
+        for ck in cand_all_keys:
+            if ck and ck in curated_keys:
+                return curated
+
+        # 4. Existing alias groups
+        for group in _ALIAS_GROUPS:
+            curated_in_group = (
+                curated_id_norm in group
+                or curated_id_nodash in group
+                or any(cn in group for cn in curated_names_norm)
+            )
+            if curated_in_group:
+                cand_in_group = any(cn in group for cn in all_cand_names)
+                if cand_in_group:
+                    return curated
+
+    return None
+
+
+def is_duplicate_of_curated(
+    candidate: DiscoveredScheme,
+    curated_schemes: List[Scheme],
+) -> bool:
+    """Determine if candidate discovered scheme matches an existing curated scheme."""
+    return find_duplicate_curated_scheme(candidate, curated_schemes) is not None

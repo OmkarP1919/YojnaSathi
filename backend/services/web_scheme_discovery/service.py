@@ -71,12 +71,14 @@ class WebSchemeDiscoveryService:
         self,
         profile: WebDiscoveryProfile | Dict[str, Any],
         max_candidates: Optional[int] = None,
+        max_queries: Optional[int] = None,
     ) -> WebSchemeSearchResponse:
         started = time.time()
         if isinstance(profile, dict):
             profile = WebDiscoveryProfile.model_validate(profile)
         config = get_service_config()
         limit = max(1, min(max_candidates or config["max_candidates"], 30))
+        query_cap = max(1, min(max_queries or config["max_queries"], 10))
 
         cache = get_shared_cache(config["cache_ttl"])
         cache_key = profile_cache_key(profile.model_dump(), str(limit))
@@ -87,7 +89,7 @@ class WebSchemeDiscoveryService:
                 cached.metadata.cache_hit = True
                 return cached
 
-        queries = build_search_queries(profile)[: config["max_queries"]]
+        queries = build_search_queries(profile)[:query_cap]
         query_summary = (
             f"Web discovery for {profile.state or 'India'} / "
             f"{profile.specific_need or profile.need or 'welfare'} "
@@ -187,6 +189,9 @@ def get_discovery_service() -> WebSchemeDiscoveryService:
 def discover_web_schemes(
     profile: WebDiscoveryProfile | Dict[str, Any],
     max_candidates: Optional[int] = None,
+    max_queries: Optional[int] = None,
 ) -> WebSchemeSearchResponse:
     """Clean merger-ready interface (no Tavily knowledge required)."""
-    return get_discovery_service().discover(profile, max_candidates=max_candidates)
+    return get_discovery_service().discover(
+        profile, max_candidates=max_candidates, max_queries=max_queries
+    )

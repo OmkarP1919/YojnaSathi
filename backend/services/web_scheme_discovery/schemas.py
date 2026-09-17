@@ -116,6 +116,16 @@ class WebSchemeSearchResponse(BaseModel):
     errors: List[str] = Field(default_factory=list)
 
 
+class DiscoveryMetadata(BaseModel):
+    model_config = {"extra": "ignore"}
+
+    is_web_discovered: bool = True
+    confidence: Optional[float] = None
+    source_type: Optional[str] = None
+    validation_reasons: List[str] = Field(default_factory=list)
+    source_url: Optional[str] = None
+
+
 class MergerInput(BaseModel):
     """Clean interface reserved for the FUTURE merger (not implemented)."""
 

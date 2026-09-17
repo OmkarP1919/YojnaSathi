@@ -147,6 +147,10 @@ class SchemeMatchResult(BaseModel):
     reason_codes: List[ReasonCodeItem] = Field(default_factory=list)
     missing_information: LocalizedList = Field(default_factory=list)
     locations: List[ApplicationLocation] = Field(default_factory=list)
+    is_web_discovered: bool = False
+    discovery_confidence: Optional[float] = None
+    discovery_source_type: Optional[str] = None
+    validation_reasons: List[str] = Field(default_factory=list)
 
 
 class RecommendationRequest(BaseModel):

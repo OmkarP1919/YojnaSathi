@@ -302,8 +302,62 @@ def recommend_schemes(request: RecommendationRequest):
     Recommend potentially relevant schemes for a citizen profile using deterministic matching.
     Does not make legal eligibility determinations.
     """
-    schemes = load_schemes_data()
-    results = match_schemes(request.profile, schemes, category=request.category)
+    curated_schemes = load_schemes_data()
+    candidate_schemes = curated_schemes
+    discovery_meta = {}
+
+    if _WEB_DISCOVERY_AVAILABLE:
+        try:
+            from services.web_scheme_discovery.merger import (
+                build_live_scheme_pool,
+                get_cached_web_schemes,
+                perform_live_discovery,
+            )
+
+            # 1. Check cache first; if missing, perform ONE bounded live Tavily discovery
+            cached = get_cached_web_schemes(request.profile, category=request.category)
+            if cached:
+                usable_discoveries = cached
+            else:
+                usable_discoveries = perform_live_discovery(
+                    request.profile, category=request.category
+                )
+
+            # 2. Build live-first primary pool (discovered schemes + curated canonical versions for duplicates)
+            if usable_discoveries:
+                live_pool, live_meta = build_live_scheme_pool(
+                    curated_schemes=curated_schemes,
+                    discovered_schemes=usable_discoveries,
+                    fallback_category=request.category,
+                )
+                if live_pool:
+                    candidate_schemes = live_pool
+                    discovery_meta = live_meta
+                else:
+                    logger.info("Live discovery returned no valid active schemes; falling back to curated")
+                    candidate_schemes = curated_schemes
+                    discovery_meta = {}
+            else:
+                logger.info("Live discovery unavailable or empty; falling back to curated catalog")
+                candidate_schemes = curated_schemes
+                discovery_meta = {}
+
+        except Exception as exc:
+            logger.warning("Web scheme discovery/merger failed, falling back to curated: %s", exc)
+            candidate_schemes = curated_schemes
+            discovery_meta = {}
+
+    results = match_schemes(request.profile, candidate_schemes, category=request.category)
+
+    # Attach discovery provenance metadata to web-discovered match results
+    if discovery_meta:
+        for result in results:
+            meta = discovery_meta.get(result.scheme.id)
+            if meta:
+                result.is_web_discovered = True
+                result.discovery_confidence = meta.confidence
+                result.discovery_source_type = meta.source_type
+                result.validation_reasons = meta.validation_reasons
 
     # Attach location-aware physical application centers if citizen state is provided
     if request.profile.state:

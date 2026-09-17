@@ -146,10 +146,16 @@ class TavilyClient:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        timeout_seconds: float = 20.0,
+        timeout_seconds: Optional[float] = None,
     ):
         self.api_key = (api_key if api_key is not None else (os.environ.get("TAVILY_API_KEY") or "")).strip()
-        self.timeout_seconds = timeout_seconds
+        if timeout_seconds is not None:
+            self.timeout_seconds = timeout_seconds
+        else:
+            try:
+                self.timeout_seconds = float(os.environ.get("TAVILY_TIMEOUT_SECONDS", "15.0"))
+            except ValueError:
+                self.timeout_seconds = 15.0
 
     def _post(self, url: str, payload: Dict[str, Any], headers: Dict[str, str]) -> httpx.Response:
         return httpx.post(url, json=payload, headers=headers, timeout=self.timeout_seconds)
