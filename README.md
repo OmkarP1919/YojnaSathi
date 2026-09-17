@@ -26,6 +26,78 @@ Citizens often miss out on impactful government welfare schemes, grants, and sub
 * **Data:** Curated Government Schemes Dataset (JSON / structured data)
 * **Voice & Telephony:** Telephony integration (Twilio / voice agents) + SMS
 
+## 📞 CALL-E Outbound Calling Setup
+
+This MVP uses CALL-E for outbound phone calls only. The application does not currently support inbound citizen helpline calls or a public inbound number.
+
+### Required environment variables
+
+Copy the backend sample env file and add your CALL-E credentials:
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+Then set:
+
+```env
+CALLE_API_KEY=
+CALLE_BASE_URL=https://api.heycall-e.com
+CALLE_WEBHOOK_URL=https://your-domain.example.com/api/calle/webhook
+```
+
+Never expose the API key to the frontend. The key must remain on the backend only.
+
+### Start the backend
+
+```bash
+cd backend
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Test call initiation
+
+Once the backend is running, trigger a call with:
+
+```bash
+curl -X POST http://localhost:8000/api/calle/call \
+  -H "Content-Type: application/json" \
+  -d '{"phone_number": "+919876543210", "language": "hi"}'
+```
+
+Example successful response:
+
+```json
+{
+  "success": true,
+  "call_id": "call_123",
+  "status": "queued"
+}
+```
+
+### Check call status
+
+```bash
+curl http://localhost:8000/api/calle/call/call_123
+```
+
+### Webhook endpoint
+
+If you configure a webhook URL in CALL-E, terminal call events will be posted to:
+
+```text
+POST /api/calle/webhook
+```
+
+The backend validates the `CALL-E-Event-Id` header and extracts the final call status and structured result payload.
+
+### Important limitation
+
+The current implementation supports outbound calls. Inbound public helpline functionality is not implemented yet.
+
+The current CALL-E integration in this MVP is designed for outbound calls used to initiate a short scheme-discovery conversation with a citizen. It does not implement inbound public-call handling, SMS, WhatsApp, or full autonomous call-center infrastructure.
+
 ---
 
 ## 👥 Team Responsibilities
