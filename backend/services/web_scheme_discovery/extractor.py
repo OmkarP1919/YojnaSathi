@@ -1,0 +1,129 @@
+"""Deterministic heuristic extractor: Tavily results -> candidate schemes.
+
+No LLM calls here (keeps tests offline and guarantees no invented facts).
+Each Tavily result becomes one candidate; the deduplicator later merges
+candidates describing the same scheme. Every factual field is copied from
+source content or left empty/None.
+"""
+
+from __future__ import annotations
+
+import logging
+import re
+from typing import List
+from urllib.parse import urlparse
+
+from services.web_scheme_discovery.deduplicator import normalize_name
+from services.web_scheme_discovery.schemas import DiscoveredScheme, TavilyResultItem
+from services.web_scheme_discovery.source_policy import best_source_type
+
+logger = logging.getLogger("yojnasathi.web_discovery.extractor")
+
+_BENEFIT_HINTS = (
+    "benefit", "rs", "₹", "lakh", "subsidy", "assistance", "pension",
+    "scholarship", "insurance", "loan", "amount", "per year", "per month",
+)
+_ELIGIBILITY_HINTS = (
+    "eligib", "criteria", "must be", "should be", "required", "condition",
+    "age", "income", "resident", "domicile", "category", "farmer", "student",
+)
+_PROCESS_HINTS = ("apply", "application", "portal", "form", "submit", "register", "csc", "online", "offline")
+_DOC_HINTS = ("aadhaar", "document", "certificate", "passbook", "ration card", "7/12", "land record", "bank", "income proof")
+
+_SENT_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
+
+
+def _sentences(text: str, limit: int = 12) -> List[str]:
+    parts = [p.strip(" -•\t") for p in _SENT_SPLIT.split(text or "") if p and p.strip()]
+    return parts[:limit]
+
+
+def _pick_sentences(content: str, hints: tuple[str, ...], limit: int = 4) -> List[str]:
+    found: List[str] = []
+    for sent in _sentences(content):
+        low = sent.lower()
+        if any(h in low for h in hints) and len(sent) > 20:
+            cleaned = " ".join(sent.split())
+            if cleaned not in found:
+                found.append(cleaned)
+        if len(found) >= limit:
+            break
+    return found
+
+
+def _guess_application_url(item: TavilyResultItem) -> str | None:
+    url = (item.url or "").strip()
+    if not url:
+        return None
+    host = (urlparse(url).hostname or "").lower()
+    # Only trust the source URL itself as application URL when it looks official.
+    if host.endswith(".gov.in") or host.endswith(".nic.in") or "myscheme" in host:
+        return url
+    # Otherwise look for an explicit .gov.in link inside the content.
+    m = re.search(r"https?://[^\s\"']*\.gov\.in[^\s\"']*", item.content or "")
+    if m:
+        return m.group(0).rstrip(".,)")
+    return None
+
+
+def _guess_levels(item: TavilyResultItem) -> tuple[str | None, str | None, str | None]:
+    text = f"{item.title} {item.content}".lower()
+    scheme_type: str | None = None
+    state: str | None = None
+    for st in ("maharashtra", "gujarat", "bihar", "rajasthan", "karnataka",
+               "tamil nadu", "telangana", "punjab", "haryana", "uttar pradesh",
+               "madhya pradesh", "west bengal", "odisha", "kerala", "assam"):
+        if st in text:
+            scheme_type = "state"
+            state = st.title() if st != "tamil nadu" else "Tamil Nadu"
+            break
+    if any(k in text for k in ("central government", "centre ", "pradhan mantri", " pm-", "pm ", "all-india", "all india", "nationwide")):
+        if scheme_type is None:
+            scheme_type = "central"
+    if scheme_type is None and ("state government" in text or "mukhyamantri" in text or "mukhya mantri" in text):
+        scheme_type = "state"
+    return scheme_type, scheme_type, state
+
+
+def extract_candidates(results: List[TavilyResultItem]) -> List[DiscoveredScheme]:
+    """Convert raw Tavily results into structured (unvalidated) candidates."""
+    candidates: List[DiscoveredScheme] = []
+    for item in results:
+        if not isinstance(item, TavilyResultItem):
+            continue
+        url = (item.url or "").strip()
+        title = (item.title or "").strip()
+        content = (item.content or "").strip()
+        if not url and not title and not content:
+            continue  # malformed/empty result -> skip, never crash
+        name = title or url or "Unknown scheme"
+        # Trim obvious suffixes ("... | MyScheme", "- Apply Online").
+        name = re.split(r"\s+[|\-–]\s+", name)[0].strip()[:200] or "Unknown scheme"
+        scheme_type, gov_level, state = _guess_levels(item)
+        _tier, source_type, _best = best_source_type([url] if url else [])
+        candidates.append(
+            DiscoveredScheme(
+                scheme_name=name,
+                normalized_name=normalize_name(name),
+                aliases=[],
+                scheme_type=scheme_type,  # type: ignore[arg-type]
+                government_level=gov_level,  # type: ignore[arg-type]
+                state=state,
+                description=" ".join(content.split())[:800] or None,
+                benefits=_pick_sentences(content, _BENEFIT_HINTS),
+                eligibility=_pick_sentences(content, _ELIGIBILITY_HINTS),
+                exclusions=[],
+                application_process=_pick_sentences(content, _PROCESS_HINTS, limit=3),
+                documents_required=_pick_sentences(content, _DOC_HINTS, limit=4),
+                application_url=_guess_application_url(item),
+                source_url=url or None,
+                source_urls=[url] if url else [],
+                source_type=source_type,
+                active_status="unknown",
+                validation_status="rejected",
+                validation_reasons=[],
+                confidence=0.0,
+            )
+        )
+    logger.info("Extractor produced %d candidates from %d results", len(candidates), len(results))
+    return candidates

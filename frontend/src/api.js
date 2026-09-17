@@ -189,4 +189,29 @@ export async function fetchLocationTalukas(state, district) {
   return response.data;
 }
 
+/**
+ * Discover additional government schemes on the web via POST /api/web-schemes/search.
+ * Independent parallel pipeline (Tavily) — never replaces /api/recommend.
+ * User-initiated only: the backend may take ~15-30s for live discovery.
+ * @param {object} profile - Citizen profile (state, district, age, gender, occupation,
+ *   is_farmer/is_student mapped to farmer/student, annual_income, social_category, need)
+ * @returns {Promise<object>} - { status, query_summary, validated_schemes, rejected_candidates, metadata, errors }
+ */
+export async function searchWebSchemes(profile = {}) {
+  const webProfile = { ...(profile || {}) };
+  // Map local matcher field names to the web-discovery profile names.
+  if (webProfile.is_farmer !== undefined && webProfile.farmer === undefined) {
+    webProfile.farmer = webProfile.is_farmer;
+  }
+  if (webProfile.is_student !== undefined && webProfile.student === undefined) {
+    webProfile.student = webProfile.is_student;
+  }
+  const response = await apiClient.post(
+    '/api/web-schemes/search',
+    { profile: webProfile },
+    { timeout: 90000 },
+  );
+  return response.data;
+}
+
 export default apiClient;
