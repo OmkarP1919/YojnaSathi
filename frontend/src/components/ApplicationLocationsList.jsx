@@ -131,14 +131,15 @@ export function ApplicationLocationsList({
   error = false,
   lang = 'en',
   maxInitial = 5,
+  hideTitle = false,
 }) {
   const [expanded, setExpanded] = useState(false);
 
   const locList = Array.isArray(locations) ? locations : [];
   const hasLocations = locList.length > 0;
 
-  // Nothing to show: no data yet and no location search requested.
-  if (!hasLocations && !isLocationSearch) {
+  // Nothing to show: no data yet and no location search requested (and not in an explicitly opened panel).
+  if (!hasLocations && !isLocationSearch && !hideTitle) {
     return null;
   }
 
@@ -147,9 +148,11 @@ export function ApplicationLocationsList({
   if (!hasLocations && (loading || error)) {
     return (
       <div className="location-guidance-container">
-        <h6 className="location-guidance-title">
-          📍 {getLocaleString(lang, 'whereToApplyTitle')}
-        </h6>
+        {!hideTitle && (
+          <h6 className="location-guidance-title">
+            📍 {getLocaleString(lang, 'whereToApplyTitle')}
+          </h6>
+        )}
         <p className="location-empty-note" role="status">
           {loading && <span className="loading-spinner location-inline-spinner" aria-hidden="true" />}
           {!loading && error && <span aria-hidden="true">⚠️ </span>}
@@ -161,13 +164,15 @@ export function ApplicationLocationsList({
     );
   }
 
-  // If no locations found for a location search
-  if (!hasLocations && isLocationSearch) {
+  // If no locations found for a location search or explicitly opened panel
+  if (!hasLocations && (isLocationSearch || hideTitle)) {
     return (
       <div className="location-guidance-container">
-        <h6 className="location-guidance-title">
-          📍 {getLocaleString(lang, 'whereToApplyTitle')}
-        </h6>
+        {!hideTitle && (
+          <h6 className="location-guidance-title">
+            📍 {getLocaleString(lang, 'whereToApplyTitle')}
+          </h6>
+        )}
         <p className="location-empty-note">
           ℹ️ {getLocaleString(lang, 'noLocationsFound')}
         </p>
@@ -180,16 +185,18 @@ export function ApplicationLocationsList({
 
   return (
     <div className="location-guidance-container">
-      <div className="location-guidance-header-row">
-        <h6 className="location-guidance-title">
-          📍 {getLocaleString(lang, 'whereToApplyTitle')}
-        </h6>
-        {hasMore && (
-          <span className="location-count-badge">
-            {locList.length}
-          </span>
-        )}
-      </div>
+      {!hideTitle && (
+        <div className="location-guidance-header-row">
+          <h6 className="location-guidance-title">
+            📍 {getLocaleString(lang, 'whereToApplyTitle')}
+          </h6>
+          {hasMore && (
+            <span className="location-count-badge">
+              {locList.length}
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="location-cards-list">
         {visibleLocations.map((loc, idx) => {

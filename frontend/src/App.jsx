@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Header from './components/Header';
 import GatewayHero from './components/GatewayHero';
 import Questionnaire from './components/Questionnaire';
@@ -20,33 +20,43 @@ function App() {
   const [profile, setProfile] = useState({});
   const [results, setResults] = useState([]);
   const [disclaimer, setDisclaimer] = useState('');
+  const [loading, setLoading] = useState(false);
   const [errorKey, setErrorKey] = useState(null);
   const [errorCustomMessage, setErrorCustomMessage] = useState(null);
   const [detailModal, setDetailModal] = useState({ isOpen: false, schemeId: null, schemeName: '' });
   const [voiceOpenSignal, setVoiceOpenSignal] = useState(0);
+  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+  // Track which schemes the citizen has explicitly requested physical centers for
+  const [requestedLocationSchemeIds, setRequestedLocationSchemeIds] = useState([]);
 
+  // Check backend health on initial mount
   useEffect(() => {
     checkBackendHealth().catch(() => {});
   }, []);
 
-  // Lazily fetch physical application centers for displayed results via the
-  // existing GET /api/application-options endpoint. Kept out of /api/recommend
-  // so recommendations stay fast; results are cached and concurrency-limited.
-  const resultSchemeIds = results.map((matchResult) => matchResult?.scheme?.id).filter(Boolean);
+  // On-demand fetch of physical application centers: only requests options
+  // when a citizen explicitly clicks "View Nearby Centers" for that scheme.
   const shouldLoadLocations = (
     profile?.state === 'maharashtra'
     && Boolean(profile?.district)
     && profile.district !== 'other'
   );
   const locationOptions = useApplicationOptions(
-    resultSchemeIds,
+    requestedLocationSchemeIds,
     {
       state: profile?.state,
       district: profile?.district,
       taluka: profile?.taluka,
     },
-    shouldLoadLocations,
+    shouldLoadLocations && requestedLocationSchemeIds.length > 0,
   );
+
+  const handleRequestLocations = useCallback((schemeId) => {
+    if (!schemeId) return;
+    setRequestedLocationSchemeIds((prev) => (
+      prev.includes(schemeId) ? prev : [...prev, schemeId]
+    ));
+  }, []);
 
   // Reset all search state back to Home
   const handleReset = () => {
@@ -60,11 +70,13 @@ function App() {
     setErrorKey(null);
     setErrorCustomMessage(null);
     setDetailModal({ isOpen: false, schemeId: null, schemeName: '' });
+    setRequestedLocationSchemeIds([]);
   };
 
   // Open the existing floating voice assistant from the homepage gateway.
   const handleOpenVoice = () => {
     setVoiceOpenSignal((prev) => prev + 1);
+    setIsVoiceOpen(true);
   };
 
   // Start guided questionnaire for selected category
@@ -193,7 +205,7 @@ function App() {
   const activeError = errorCustomMessage || (errorKey ? getLocaleString(lang, errorKey) : null);
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout${isVoiceOpen ? ' voice-desktop-split' : ''}`}>
       <Header
         currentView={currentView}
         onReset={handleReset}
@@ -271,6 +283,7 @@ function App() {
                 disclaimer={disclaimer}
                 profile={profile}
                 locationOptions={locationOptions}
+                onRequestLocations={handleRequestLocations}
                 onChangeAnswers={handleChangeAnswers}
                 onReset={handleReset}
                 onViewDetails={handleViewDetails}
@@ -287,6 +300,7 @@ function App() {
         openSignal={voiceOpenSignal}
         onViewDetails={handleViewDetails}
         onLanguageChange={setLang}
+        onPanelOpenChange={setIsVoiceOpen}
       />
 
       {/* Scheme Details Modal */}

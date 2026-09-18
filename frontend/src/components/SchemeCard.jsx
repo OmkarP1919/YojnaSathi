@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { getLocaleString } from '../constants/strings';
 import { getLocalizedField, getLocalizedList, getLocalizedReason } from '../utils/localization';
 import ApplicationLocationsList from './ApplicationLocationsList';
@@ -15,8 +15,16 @@ const CATEGORY_LABELS = {
   financial_services: { en: "Financial Services", hi: "वित्तीय सेवाएं", mr: "वित्तीय सेवा" },
 };
 
-export function SchemeCard({ matchResult, profile = {}, locationOption = null, onViewDetails, lang }) {
+export function SchemeCard({
+  matchResult,
+  profile = {},
+  locationOption = null,
+  onRequestLocations,
+  onViewDetails,
+  lang,
+}) {
   const { scheme, relevance_score, matched_reasons, reason_codes, missing_information } = matchResult;
+  const [showCenters, setShowCenters] = useState(false);
 
   const schemeName = getLocalizedField(scheme.name, lang);
   const catObj = CATEGORY_LABELS[scheme.category];
@@ -49,9 +57,17 @@ export function SchemeCard({ matchResult, profile = {}, locationOption = null, o
     : (matchResult.locations && matchResult.locations.length > 0
       ? matchResult.locations
       : (offline && offline.locations && offline.locations.length > 0 ? offline.locations : []));
-  // A location search with no option yet is still pending the first request.
-  const locationLoading = Boolean(locationOption?.loading) || (isLocationSearch && !locationOption);
+  // Location loading is only active when this scheme's centers are being requested or fetched
+  const locationLoading = Boolean(locationOption?.loading) || (showCenters && isLocationSearch && !locationOption);
   const locationError = Boolean(locationOption?.error);
+
+  const handleToggleCenters = () => {
+    const nextState = !showCenters;
+    setShowCenters(nextState);
+    if (nextState && onRequestLocations) {
+      onRequestLocations(scheme.id);
+    }
+  };
 
   // Documents: the match result carries `missing_information`; for voice items it
   // is empty, so fall back to the verified guidance documents when available.
@@ -149,16 +165,29 @@ export function SchemeCard({ matchResult, profile = {}, locationOption = null, o
             )}
           </ol>
           <div className="guidance-actions">
-            {portalUrl && (
-              <a
-                href={portalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-link-apply guidance-apply-link"
+            <div className="guidance-buttons-row">
+              {portalUrl && (
+                <a
+                  href={portalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-link-apply guidance-apply-link"
+                >
+                  {getLocaleString(lang, 'applyOnlineButton')}
+                </a>
+              )}
+              <button
+                type="button"
+                className={`btn-view-centers ${showCenters ? 'is-active' : ''}`}
+                onClick={handleToggleCenters}
+                aria-expanded={showCenters}
+                aria-controls={`centers-panel-${scheme.id}`}
               >
-                {getLocaleString(lang, 'applyOnlineButton')}
-              </a>
-            )}
+                {showCenters
+                  ? (getLocaleString(lang, 'hideNearbyCenters') || '📍 Hide Nearby Centers')
+                  : (getLocaleString(lang, 'viewNearbyCenters') || '📍 View Nearby Centers')}
+              </button>
+            </div>
             {offlineChannel && (
               <p className="guidance-offline-note">
                 <strong>{getLocaleString(lang, 'applyOfflineLabel')}:</strong> {offlineChannel}
@@ -170,15 +199,39 @@ export function SchemeCard({ matchResult, profile = {}, locationOption = null, o
             )}
           </div>
 
-          {/* Location-Aware Physical Application Guidance */}
-          <ApplicationLocationsList
-            locations={locations}
-            isLocationSearch={isLocationSearch}
-            loading={locationLoading}
-            error={locationError}
-            lang={lang}
-            maxInitial={5}
-          />
+          {/* On-Demand Expandable Physical Application Centers Panel */}
+          {showCenters && (
+            <div
+              id={`centers-panel-${scheme.id}`}
+              className="scheme-centers-expandable-panel"
+            >
+              <div className="centers-panel-header">
+                <span className="centers-panel-title">
+                  📍 {getLocaleString(lang, 'whereToApplyTitle')}
+                  {profile?.district && profile.district !== 'other'
+                    ? ` • ${profile.district.charAt(0).toUpperCase() + profile.district.slice(1)}`
+                    : ''}
+                </span>
+                <button
+                  type="button"
+                  className="btn-close-centers-panel"
+                  onClick={handleToggleCenters}
+                  aria-label={getLocaleString(lang, 'closeModal') || 'Close'}
+                >
+                  ✕ {getLocaleString(lang, 'closeModal') || 'Close'}
+                </button>
+              </div>
+              <ApplicationLocationsList
+                locations={locations}
+                isLocationSearch={Boolean(isLocationSearch || profile?.state === 'maharashtra')}
+                loading={locationLoading}
+                error={locationError}
+                lang={lang}
+                maxInitial={5}
+                hideTitle={true}
+              />
+            </div>
+          )}
         </div>
       )}
     </article>
