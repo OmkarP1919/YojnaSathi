@@ -19,19 +19,6 @@ from services.web_scheme_discovery.schemas import DiscoveredScheme
 
 logger = logging.getLogger("yojnasathi.web_discovery.adapter")
 
-VALID_CATEGORIES: Set[str] = {
-    "agriculture",
-    "education",
-    "health",
-    "housing",
-    "employment",
-    "small businesses",
-    "financial inclusion",
-    "women",
-    "insurance",
-    "social welfare",
-}
-
 CATEGORY_KEYWORD_RULES = [
     ("agriculture", ["farm", "kisan", "crop", "fasal", "cultivat", "krishi", "agriculture", "fertilizer", "tractor", "seed"]),
     ("education", ["student", "scholarship", "vidyarthi", "school", "college", "tuition", "education", "study", "exam", "hostel"]),
@@ -121,17 +108,11 @@ def discovered_to_canonical_scheme(
     if category_scores:
         derived_category = max(category_scores.items(), key=lambda item: item[1])[0]
 
-    if not derived_category and fallback_category:
-        clean_fallback = fallback_category.strip().lower()
-        if clean_fallback in VALID_CATEGORIES:
-            derived_category = clean_fallback
-        elif clean_fallback in ("farmers",):
-            derived_category = "agriculture"
-        elif clean_fallback in ("business",):
-            derived_category = "small businesses"
-        elif clean_fallback in ("healthcare",):
-            derived_category = "health"
-
+    # Never inherit the citizen's selected UI category (fallback_category) when
+    # the scheme's own evidence has no category match: doing so mislabels
+    # unrelated schemes (e.g. Marathi-transliterated education/hostel schemes)
+    # as e.g. "women". Schemes without recognizable domain evidence stay under
+    # the neutral "social welfare" bucket instead.
     if not derived_category:
         derived_category = "social welfare"
 
