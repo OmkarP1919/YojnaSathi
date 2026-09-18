@@ -16,6 +16,17 @@ class SchemeEligibilityCriteria(BaseModel):
     social_categories: Optional[List[str]] = None
     rural_or_urban: Optional[str] = None
     requires_no_pucca_house: Optional[bool] = None
+    requires_disability: Optional[bool] = None
+    minority_communities: Optional[List[str]] = None
+    residence: Optional[str] = None
+    education_level: Optional[List[str]] = None
+    requires_special_status: Optional[List[str]] = None
+    course_types: Optional[List[str]] = None
+    min_percentage: Optional[float] = None
+    requires_merit_rank: Optional[bool] = None
+    requires_hostel: Optional[bool] = None
+    requires_specific_institution: Optional[bool] = None
+    requires_cap_admission: Optional[bool] = None
 
 
 class OnlineApplication(BaseModel):
@@ -133,6 +144,15 @@ class CitizenProfile(BaseModel):
     social_category: Optional[str] = None
     rural_or_urban: Optional[str] = None
     needs: Optional[List[str]] = None
+    disability: Optional[bool] = None
+    is_minority: Optional[bool] = None
+    education_level: Optional[str] = None
+    residence: Optional[str] = None
+    special_status: Optional[List[str]] = None
+    course_type: Optional[str] = None
+    percentage: Optional[float] = None
+    is_hosteller: Optional[bool] = None
+    institution: Optional[str] = None
 
 
 class ReasonCodeItem(BaseModel):

@@ -49,10 +49,13 @@ def discovered_to_canonical_scheme(
     """
     Convert a verified, active DiscoveredScheme into a canonical Scheme model.
 
-    Safety & Determinism Rules:
+    safety & Determinism Rules:
     - Rejects unverified or inactive candidates.
     - Preserves discovered text, URLs, and state scoping.
-    - Leaves eligibility_criteria as None to prevent fabricating unsupported constraints.
+    - Derives eligibility_criteria ONLY for official portal catalogues (e.g.
+      MahaDBT), and only from the official detail-page text via a generic parser.
+      Candidates from secondary/search sources keep eligibility_criteria=None:
+      fabricating constraints from unstructured snippets is never allowed.
     - Derives category and target_groups conservatively from evidence text.
     """
     if candidate.validation_status != "verified" or candidate.active_status != "active":
@@ -201,6 +204,21 @@ def discovered_to_canonical_scheme(
             ),
         )
 
+    # 7. Structured eligibility only for official-portal catalogues whose detail
+    #    text was parsed by the service layer (never from secondary snippets).
+    eligibility_criteria = None
+    if candidate.source_type == "official_government_portal":
+        from services.web_scheme_discovery.eligibility_parser import (
+            derive_eligibility_criteria,
+        )
+
+        eligibility_criteria = derive_eligibility_criteria(
+            name=candidate.scheme_name,
+            eligibility_lines=candidate.eligibility,
+            overview=candidate.description,
+            benefits=candidate.benefits,
+        )
+
     return Scheme(
         id=scheme_id,
         name=name,
@@ -215,6 +233,6 @@ def discovered_to_canonical_scheme(
         application_url=app_url,
         source_url=src_url,
         last_verified=last_verified,
-        eligibility_criteria=None,  # Intentionally None: never fabricate criteria
+        eligibility_criteria=eligibility_criteria,
         custom_application_guidance=custom_guidance,
     )

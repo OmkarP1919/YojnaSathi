@@ -38,6 +38,79 @@ TARGET_GROUP_DOMAINS = {
     "unskilled": {"employment"},
 }
 
+# Social-category equivalence buckets. "open" and "general" are the same
+# unreserved beneficiary category in Maharashtra; VJNT/DNT labels overlap and
+# are treated as interchangeable for allow-list membership.
+SOCIAL_CATEGORY_EQUIVALENCE = {
+    "general": {"general", "open", "ebc"},
+    "open": {"general", "open", "ebc"},
+    "ebc": {"general", "open", "ebc"},
+    "vjnt": {"vjnt", "dnt", "nt"},
+    "dnt": {"vjnt", "dnt", "nt"},
+    "nt": {"vjnt", "dnt", "nt"},
+}
+_RESIDENCE_HOSTEL_VALUES = {"hosteller", "hostel", "hostel resident", "living in hostel"}
+
+
+_EDU_LEVEL_MAP = {
+    "10th": "secondary",
+    "ssc": "secondary",
+    "secondary": "secondary",
+    "11th": "higher_secondary",
+    "12th": "higher_secondary",
+    "hsc": "higher_secondary",
+    "junior college": "higher_secondary",
+    "junior_college": "higher_secondary",
+    "higher secondary": "higher_secondary",
+    "higher_secondary": "higher_secondary",
+    "diploma": "diploma",
+    "polytechnic": "diploma",
+    "graduation": "undergraduate",
+    "undergraduate": "undergraduate",
+    "degree": "undergraduate",
+    "ug": "undergraduate",
+    "bachelor": "undergraduate",
+    "postgraduate": "postgraduate",
+    "post graduate": "postgraduate",
+    "pg": "postgraduate",
+    "master": "postgraduate",
+    "doctorate": "doctorate",
+    "phd": "doctorate",
+    "ph.d": "doctorate",
+    "research": "doctorate",
+}
+
+
+def _normalize_edu_level(raw: Optional[str]) -> Optional[str]:
+    if not raw:
+        return None
+    raw_l = raw.strip().lower()
+    for k, v in _EDU_LEVEL_MAP.items():
+        if k in raw_l:
+            return v
+    return raw_l
+
+
+def _normalize_social_category(cat: Optional[str]) -> str:
+    return (cat or "").strip().lower()
+
+
+def _social_categories_overlap(candidate: str, valid_cats: Set[str]) -> bool:
+    candidate_set = SOCIAL_CATEGORY_EQUIVALENCE.get(candidate, {candidate})
+    for valid in valid_cats:
+        valid_set = SOCIAL_CATEGORY_EQUIVALENCE.get(valid, {valid})
+        if candidate_set & valid_set:
+            return True
+    return False
+
+
+def _append_missing_info(missing_information, note: str):
+    """Append a follow-up note to missing_information without mutating shared
+    scheme objects (scheme.required_information is cached across requests)."""
+    if isinstance(missing_information, dict):
+        return {lang: list(items) + [note] for lang, items in missing_information.items()}
+    return list(missing_information or []) + [note]
+
 # Mapping of website UI categories to backend scheme categories
 CATEGORY_FILTER_MAP = {
     "farmers": {"agriculture"},
@@ -161,6 +234,8 @@ def match_schemes(
     profile_occupation = profile.occupation.strip().lower() if profile.occupation else None
     profile_social_cat = profile.social_category.strip().lower() if profile.social_category else None
     profile_rural_urban = profile.rural_or_urban.strip().lower() if profile.rural_or_urban else None
+    profile_residence = profile.residence.strip().lower() if profile.residence else None
+    profile_education_level = profile.education_level.strip().lower() if profile.education_level else None
 
     is_farmer_profile = (
         profile.is_farmer is True
@@ -214,6 +289,9 @@ def match_schemes(
         relevance_score = 0
         matched_reasons: List[str] = []
         reason_codes: List[ReasonCodeItem] = []
+        # Missing-information checklist starts from the scheme's documented
+        # document requirements; eligibility follow-ups are appended below.
+        missing_info = scheme.required_information
 
         # -------------------------------------------------------------
         # Filter B: State Compatibility
@@ -264,23 +342,31 @@ def match_schemes(
             if crit.requires_student is True and profile.is_student is False:
                 continue
 
-            # 4. Social category (e.g., SC for Post-Matric SC, OBC for PM-YASASVI)
+            # 4. Social category (e.g., SC for Post-Matric SC, OBC for PM-YASASVI).
+            #    ``social_categories`` is the scheme's ALLOW-LIST; a general/open
+            #    profile passes schemes that admit the unreserved category (e.g.
+            #    Shikshan Shulkh admits General + SEBC) and is excluded only when
+            #    the scheme is restricted to reserved categories.
             if crit.social_categories:
                 valid_cats = {c.strip().lower() for c in crit.social_categories}
-                if profile_social_cat is not None and profile_social_cat != "general":
-                    if profile_social_cat in valid_cats:
+                if profile_social_cat is not None:
+                    if _social_categories_overlap(profile_social_cat, valid_cats):
                         relevance_score += 2
-                        matched_reasons.append(f"Matches your social category ({profile.social_category.upper()})")
-                        reason_codes.append(ReasonCodeItem(code="SOCIAL_CATEGORY_MATCH", params={"category": profile.social_category}))
+                        matched_reasons.append(
+                            f"Matches your social category ({profile.social_category.upper()})"
+                        )
+                        reason_codes.append(
+                            ReasonCodeItem(code="SOCIAL_CATEGORY_MATCH", params={"category": profile.social_category})
+                        )
                     else:
-                        # Belongs to a different specific reserved category that does not match this scheme
+                        # Belongs to a category outside this scheme's allow-list.
                         continue
-                elif profile_social_cat == "general":
-                    # General category cannot access SC/OBC specific scholarship schemes
-                    continue
                 else:
                     # Unknown/Not specified: remains candidate, missing info noted
-                    pass
+                    missing_info = _append_missing_info(
+                        missing_info,
+                        "Confirm your social category (this scheme is restricted to specific categories)",
+                    )
 
             # 5. Rural / Urban area requirement (e.g., PMAY-G vs PMAY-U)
             if crit.rural_or_urban:
@@ -304,12 +390,153 @@ def match_schemes(
                     reason_codes.append(ReasonCodeItem(code="HOUSING_NEED_MATCH", params={}))
 
             # 7. Gender requirement
-            if crit.gender == "female":
-                if profile_gender is not None and profile_gender in {"male", "man"}:
+            if crit.gender:
+                req_gender = crit.gender.strip().lower()
+                if req_gender == "female":
+                    if profile_gender in {"male", "man"}:
+                        continue
+                    elif is_female_profile:
+                        relevance_score += 1
+                        matched_reasons.append("Matches the scheme's female-applicant requirement")
+                        reason_codes.append(ReasonCodeItem(code="GENDER_MATCH", params={"gender": "female"}))
+                    elif profile_gender is None:
+                        missing_info = _append_missing_info(
+                            missing_info,
+                            "Confirm gender eligibility (scheme is for female applicants)",
+                        )
+                elif req_gender == "male":
+                    if is_female_profile:
+                        continue
+                    elif profile_gender in {"male", "man"}:
+                        relevance_score += 1
+                        matched_reasons.append("Matches the scheme's male-applicant requirement")
+                        reason_codes.append(ReasonCodeItem(code="GENDER_MATCH", params={"gender": "male"}))
+                    elif profile_gender is None:
+                        missing_info = _append_missing_info(
+                            missing_info,
+                            "Confirm gender eligibility (scheme is for male applicants)",
+                        )
+
+            # 8. Disability requirement (affirmative restriction: must be explicitly confirmed)
+            if crit.requires_disability is True:
+                if profile.disability is not True:
                     continue
+                relevance_score += 1
+                matched_reasons.append("Matches the scheme's disability eligibility requirement")
+                reason_codes.append(ReasonCodeItem(code="DISABILITY_MATCH", params={}))
+
+            # 8b. Specific Institution requirement (affirmative restriction)
+            if crit.requires_specific_institution is True:
+                profile_inst = (profile.institution or "").strip().lower()
+                if not profile_inst:
+                    continue
+                if not any(kw in profile_inst for kw in ["jnu", "vidyaniketan", "vidhyaniketan"]):
+                    continue
+                relevance_score += 2
+                matched_reasons.append("Matches your specific educational institution")
+                reason_codes.append(ReasonCodeItem(code="INSTITUTION_MATCH", params={"institution": profile.institution}))
+
+            # 9. Minority community requirement (affirmative restriction: must be explicitly confirmed)
+            if crit.minority_communities:
+                if profile.is_minority is not True:
+                    continue
+                relevance_score += 1
+                matched_reasons.append("Matches the scheme's minority community eligibility")
+                reason_codes.append(ReasonCodeItem(code="MINORITY_MATCH", params={}))
+
+            # 10. Special status requirement (affirmative restriction: must be explicitly confirmed)
+            if crit.requires_special_status:
+                profile_special = {sp.strip().lower() for sp in (profile.special_status or [])}
+                if not any(req in profile_special for req in crit.requires_special_status):
+                    continue
+                relevance_score += 2
+                matched_reasons.append("Matches your special eligibility status")
+                reason_codes.append(
+                    ReasonCodeItem(
+                        code="SPECIAL_STATUS_MATCH",
+                        params={"status": ", ".join(crit.requires_special_status)},
+                    )
+                )
+
+            # 11. Residence requirement (hostel schemes)
+            if crit.requires_hostel is True or (crit.residence and crit.residence.strip().lower() == "hosteller"):
+                if profile.is_hosteller is False or profile_residence in {"day_scholar", "home", "with_parents", "non_hosteller"}:
+                    continue
+                elif profile.is_hosteller is True or profile_residence in _RESIDENCE_HOSTEL_VALUES:
+                    relevance_score += 2
+                    matched_reasons.append("Matches your hostel residence status")
+                    reason_codes.append(ReasonCodeItem(code="RESIDENCE_MATCH", params={"residence": "hosteller"}))
+                else:
+                    missing_info = _append_missing_info(
+                        missing_info,
+                        "Confirm whether you reside in a hostel (scheme covers hostel residents)",
+                    )
+                    relevance_score -= 1
+
+            # 12. Education level requirement
+            if crit.education_level:
+                prof_edu = _normalize_edu_level(profile.education_level)
+                if prof_edu is not None:
+                    if prof_edu in crit.education_level or (prof_edu == "undergraduate" and "diploma" in crit.education_level):
+                        relevance_score += 2
+                        matched_reasons.append("Matches your current education level")
+                        reason_codes.append(ReasonCodeItem(code="EDUCATION_LEVEL_MATCH", params={"level": prof_edu}))
+                    else:
+                        continue
+                else:
+                    missing_info = _append_missing_info(
+                        missing_info,
+                        f"Confirm your course / education level (scheme covers: {', '.join(crit.education_level)})",
+                    )
+
+            # 13. Course / stream type requirement
+            if crit.course_types:
+                prof_course = (profile.course_type or "").strip().lower()
+                if prof_course:
+                    if any(ct in prof_course or prof_course in ct for ct in crit.course_types):
+                        relevance_score += 1
+                        matched_reasons.append("Matches your course / stream of study")
+                        reason_codes.append(ReasonCodeItem(code="COURSE_TYPE_MATCH", params={"course": prof_course}))
+                    else:
+                        continue
+                else:
+                    missing_info = _append_missing_info(
+                        missing_info,
+                        f"Confirm your course / stream (scheme applies to: {', '.join(crit.course_types)})",
+                    )
+
+            # 14. Merit / board rank requirement
+            if crit.requires_merit_rank is True:
+                missing_info = _append_missing_info(
+                    missing_info,
+                    "Confirm if you secured top rank in secondary/higher secondary divisional board examinations",
+                )
+                relevance_score -= 1
+
+            # 15. Minimum percentage requirement
+            if crit.min_percentage is not None:
+                if profile.percentage is not None:
+                    if profile.percentage >= crit.min_percentage:
+                        relevance_score += 1
+                        matched_reasons.append(f"Your academic score meets the minimum {crit.min_percentage:.0f}% threshold")
+                        reason_codes.append(ReasonCodeItem(code="PERCENTAGE_MATCH", params={"percentage": profile.percentage}))
+                    else:
+                        continue
+                else:
+                    missing_info = _append_missing_info(
+                        missing_info,
+                        f"Confirm your academic score (scheme requires minimum {crit.min_percentage:.0f}%)",
+                    )
+
+            # 16. Centralized Admission Process (CAP) requirement
+            if crit.requires_cap_admission is True:
+                missing_info = _append_missing_info(
+                    missing_info,
+                    "Confirm admission through Centralized Admission Process (CAP)",
+                )
 
         # -------------------------------------------------------------
-        # 2. Target Group Matching (+3)
+        # 2. Target Group Matching (+1 to +3)
         # -------------------------------------------------------------
         tg_matched = False
 
@@ -323,7 +550,7 @@ def match_schemes(
         if is_student_profile and any(tg in scheme_target_groups for tg in {"students", "youth"}):
             if not is_live_discovered or scheme_category in TARGET_GROUP_DOMAINS["student"]:
                 tg_matched = True
-                relevance_score += 3
+                relevance_score += 1  # calibrated: generic student gives +1 so it does not inflate score
                 matched_reasons.append("Relevant for students and youth")
                 reason_codes.append(ReasonCodeItem(code="TARGET_GROUP_STUDENT", params={}))
 
@@ -417,14 +644,20 @@ def match_schemes(
         # 5. Income Criteria (+1 or Exclusion)
         # -------------------------------------------------------------
         ceiling = crit.income_max if (crit and crit.income_max is not None) else INCOME_CEILINGS.get(scheme_id)
-        if ceiling is not None and profile.annual_income is not None:
-            if profile.annual_income <= ceiling:
-                relevance_score += 1
-                matched_reasons.append("Your income is within the scheme's threshold")
-                reason_codes.append(ReasonCodeItem(code="INCOME_CRITERIA_MATCH", params={"income": profile.annual_income}))
+        if ceiling is not None:
+            if profile.annual_income is not None:
+                if profile.annual_income <= ceiling:
+                    relevance_score += 1
+                    matched_reasons.append("Your income is within the scheme's threshold")
+                    reason_codes.append(ReasonCodeItem(code="INCOME_CRITERIA_MATCH", params={"income": profile.annual_income}))
+                else:
+                    # Exceeds genuine ceiling -> exclude
+                    continue
             else:
-                # Exceeds genuine ceiling -> exclude
-                continue
+                missing_info = _append_missing_info(
+                    missing_info,
+                    f"Confirm family annual income (scheme ceiling is Rs. {ceiling:,.0f})",
+                )
 
         # -------------------------------------------------------------
         # 6. Primary Signal & Meaningful Score Threshold
@@ -438,9 +671,6 @@ def match_schemes(
             for r in matched_reasons:
                 if r not in unique_reasons:
                     unique_reasons.append(r)
-
-            # Extract missing information
-            missing_info = scheme.required_information
 
             results.append(
                 SchemeMatchResult(
