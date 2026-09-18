@@ -94,6 +94,17 @@ OFFICIAL_DISTRICT_PORTALS: Dict[str, str] = {
     "pune": "https://pune.gov.in",
 }
 
+# Maximum wall-clock time (seconds) allowed for ALL live government web lookups
+# inside find_application_options() before falling back to locations.json.
+# This prevents slow or unresponsive government district portals (e.g. pune.gov.in
+# from Render cloud egress) from blocking the request handler beyond the
+# frontend's 30-second axios timeout. Kept comfortably below 30s.
+LIVE_DISCOVERY_BUDGET_SECONDS: float = 5.0
+
+# Per-request timeout used when probing candidate government web pages.
+# Lower than the budget so multiple URLs can be tried within the budget.
+LIVE_REQUEST_TIMEOUT_SECONDS: float = 2.0
+
 
 # ---------------------------------------------------------------------------
 # 1. Official Government Domain & URL Verification
@@ -147,18 +158,17 @@ def get_standard_district_directory_urls(district: str, state: str = "maharashtr
     """
     Resolves official NIC S3WaaS district directory endpoints.
     NIC standardizes district contact directories at /whos-who/ and /en/whos-who/.
+
+    Only the 3 highest-probability canonical paths are returned so that a
+    slow or firewalled district portal cannot consume more than
+    3 × LIVE_REQUEST_TIMEOUT_SECONDS of the live-discovery budget.
     """
     s_dist = district.strip().lower()
     base = OFFICIAL_DISTRICT_PORTALS.get(s_dist, f"https://{s_dist}.gov.in")
     return [
         f"{base}/en/whos-who/",
         f"{base}/whos-who/",
-        f"{base}/en/about-district/administrative-setup/tehsil/",
-        f"{base}/about-district/administrative-setup/tehsil/",
         f"{base}/directory/",
-        f"{base}/citizen-services/",
-        f"{base}/en/service/",
-        f"{base}/service/",
     ]
 
 
@@ -663,7 +673,7 @@ class OfficialPortalLocationProvider(LocationSearchProvider):
     def __init__(
         self,
         client: Optional[httpx.Client] = None,
-        timeout: float = 5.0,
+        timeout: float = LIVE_REQUEST_TIMEOUT_SECONDS,
     ):
         self._client = client
         self._timeout = timeout
@@ -1431,7 +1441,7 @@ class GovernmentWebSearchProvider(LocationSearchProvider):
         self,
         backend: Optional[SearchBackend] = None,
         http_client: Optional[httpx.Client] = None,
-        timeout: float = 5.0,
+        timeout: float = LIVE_REQUEST_TIMEOUT_SECONDS,
     ):
         self.backend = backend or ExternalSearchAPIProvider()
         self._client = http_client
@@ -1893,8 +1903,12 @@ def find_application_options(
         return result
 
     # -------------------------------------------------------------
-    # Step 1: Attempt Live Official Source Search
+    # Step 1: Attempt Live Official Source Search (time-bounded)
     # -------------------------------------------------------------
+    # All live provider attempts are guarded by a strict wall-clock budget.
+    # If a government portal is slow or unreachable (common on cloud egress),
+    # we break out of the loop immediately and fall through to locations.json
+    # rather than letting a single request hang for 30+ seconds.
     live_providers: List[LocationSearchProvider] = []
     if live_provider is not None:
         live_providers = [live_provider]
@@ -1907,7 +1921,14 @@ def find_application_options(
             OfficialPortalLocationProvider(),
         ]
 
+    live_deadline = time.monotonic() + LIVE_DISCOVERY_BUDGET_SECONDS
     for provider in live_providers:
+        if time.monotonic() >= live_deadline:
+            logger.info(
+                "Live discovery budget exhausted for %s (%s); skipping remaining providers.",
+                s_id, s_state,
+            )
+            break
         try:
             try:
                 live_locations = provider.search(
@@ -1940,7 +1961,10 @@ def find_application_options(
                     _LOCATION_CACHE.set(s_id, s_state, s_dist, s_tal, result)
                 return result
         except Exception as exc:
-            logger.warning("Live location search error via %s for %s (%s): %s", type(provider).__name__, s_id, s_state, exc)
+            logger.warning(
+                "Live location search error via %s for %s (%s): %s",
+                type(provider).__name__, s_id, s_state, exc,
+            )
 
     # -------------------------------------------------------------
     # Step 2: Fallback to Local Verified Catalog (locations.json)

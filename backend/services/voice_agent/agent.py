@@ -137,6 +137,9 @@ class VoiceAgent:
                     "reason_codes": [rc.model_dump() for rc in (result.reason_codes or [])],
                     "application_url": result.scheme.application_url,
                     "application_guidance": result.scheme.application_guidance.model_dump(),
+                    "is_web_discovered": getattr(result, "is_web_discovered", False),
+                    "discovery_confidence": getattr(result, "discovery_confidence", None),
+                    "discovery_source_type": getattr(result, "discovery_source_type", None),
                 }
                 for result in state.get("retrieved_schemes", [])
             ],

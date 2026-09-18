@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.ai import process_chat_message
 from app.locations import find_locations
 from app.matching import match_schemes
+from app.scheme_discovery import _merge_scheme_pools, discover_and_match_schemes
 from app.schemas import (
     DISCLAIMER_MAP,
     ApplicationLocation,
@@ -135,17 +136,6 @@ def load_schemes_data() -> List[Scheme]:
         raw_schemes = json.load(f)
     return [Scheme(**item) for item in raw_schemes]
 
-
-def _merge_scheme_pools(primary: List[Scheme], secondary: List[Scheme]) -> List[Scheme]:
-    """Union two candidate pools by scheme id, preserving primary order first."""
-    merged = list(primary)
-    seen_ids = {s.id.lower() for s in merged}
-    for scheme in secondary:
-        if scheme.id.lower() in seen_ids:
-            continue
-        seen_ids.add(scheme.id.lower())
-        merged.append(scheme)
-    return merged
 
 
 @app.get("/api/health")
@@ -321,85 +311,11 @@ def recommend_schemes(request: RecommendationRequest):
     Does not make legal eligibility determinations.
     """
     curated_schemes = load_schemes_data()
-    candidate_schemes = curated_schemes
-    discovery_meta = {}
-
-    if _WEB_DISCOVERY_AVAILABLE:
-        try:
-            from services.web_scheme_discovery.merger import (
-                build_live_scheme_pool,
-                get_cached_web_schemes,
-                perform_live_discovery,
-            )
-
-            # 1. Check cache first; if missing, perform ONE bounded live Tavily discovery
-            cached = get_cached_web_schemes(request.profile, category=request.category)
-            if cached:
-                usable_discoveries = cached
-            else:
-                usable_discoveries = perform_live_discovery(
-                    request.profile, category=request.category
-                )
-
-            # 2. Build live-first primary pool (discovered schemes + curated canonical versions for duplicates)
-            if usable_discoveries:
-                live_pool, live_meta = build_live_scheme_pool(
-                    curated_schemes=curated_schemes,
-                    discovered_schemes=usable_discoveries,
-                    fallback_category=request.category,
-                )
-                if live_pool:
-                    candidate_schemes = live_pool
-                    discovery_meta = live_meta
-                else:
-                    logger.info("Live discovery returned no valid active schemes; falling back to curated")
-                    candidate_schemes = curated_schemes
-                    discovery_meta = {}
-            else:
-                logger.info("Live discovery unavailable or empty; falling back to curated catalog")
-                candidate_schemes = curated_schemes
-                discovery_meta = {}
-
-        except Exception as exc:
-            logger.warning("Web scheme discovery/merger failed, falling back to curated: %s", exc)
-            candidate_schemes = curated_schemes
-            discovery_meta = {}
-
-    # Real-time Maharashtra government scheme discovery from the official MahaDBT
-    # portal. Supplements the curated baseline for Maharashtra citizens only and
-    # flows through the same validation / deduplication / match_schemes pipeline.
-    # Guarded so any failure keeps the curated schemes.json catalogue intact.
-    if request.profile.state and str(request.profile.state).strip().lower() == "maharashtra":
-        try:
-            from services.maharashtra_schemes.service import get_maharashtra_schemes
-            from services.web_scheme_discovery.merger import build_live_scheme_pool
-
-            maharashtra_discovered = get_maharashtra_schemes()
-            if maharashtra_discovered:
-                maharashtra_pool, maharashtra_meta = build_live_scheme_pool(
-                    curated_schemes=curated_schemes,
-                    discovered_schemes=maharashtra_discovered,
-                    fallback_category=request.category,
-                )
-                if maharashtra_pool:
-                    candidate_schemes = _merge_scheme_pools(candidate_schemes, maharashtra_pool)
-                    discovery_meta.update(maharashtra_meta)
-        except Exception as exc:
-            logger.warning(
-                "Maharashtra scheme discovery failed, using curated baseline: %s", exc
-            )
-
-    results = match_schemes(request.profile, candidate_schemes, category=request.category)
-
-    # Attach discovery provenance metadata to web-discovered match results
-    if discovery_meta:
-        for result in results:
-            meta = discovery_meta.get(result.scheme.id)
-            if meta:
-                result.is_web_discovered = True
-                result.discovery_confidence = meta.confidence
-                result.discovery_source_type = meta.source_type
-                result.validation_reasons = meta.validation_reasons
+    results, _, _ = discover_and_match_schemes(
+        profile=request.profile,
+        category=request.category,
+        curated_schemes=curated_schemes,
+    )
 
     from app.location_requirements import evaluate_location_requirement
     loc_requirement = evaluate_location_requirement(request.profile, results)

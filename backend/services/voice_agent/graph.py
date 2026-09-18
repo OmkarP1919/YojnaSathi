@@ -8,6 +8,7 @@ from typing import Any, List, Optional
 from langgraph.graph import END, StateGraph
 
 from app.matching import AGE_BOUNDS, CATEGORY_FILTER_MAP, match_schemes
+from app.scheme_discovery import discover_and_match_schemes
 from app.schemas import CitizenProfile, Scheme, SchemeMatchResult
 from services.voice_agent.extractor import ExtractedUserInfo, ProfileExtractor
 from services.voice_agent.graph_compat import detect_language_fallback
@@ -192,11 +193,12 @@ def retrieve_schemes(state: AgentState, schemes: List[Scheme]) -> AgentState:
     if state.get("current_question"):
         return state
     category = state.get("category") or state.get("user_intent")
-    state["retrieved_schemes"] = match_schemes(
-        state["user_profile"],
-        schemes,
+    results, _, _ = discover_and_match_schemes(
+        profile=state["user_profile"],
         category=category,
-    )[:3]
+        curated_schemes=schemes,
+    )
+    state["retrieved_schemes"] = results[:3]
     logger.info(
         "MATCHING RESULT: %s",
         [

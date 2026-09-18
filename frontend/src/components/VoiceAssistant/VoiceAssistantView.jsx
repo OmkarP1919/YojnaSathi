@@ -37,8 +37,18 @@ const MIC_ERROR_KEYS = {
  * renders the expanded voice panel. The microphone remains the primary
  * interaction; the transcript is supporting.
  */
-export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLanguageChange }) {
+export function VoiceAssistantView({
+  lang,
+  openSignal = 0,
+  onViewDetails,
+  onLanguageChange,
+  onPanelOpenChange,
+}) {
   const [panelOpen, setPanelOpen] = useState(false);
+
+  useEffect(() => {
+    onPanelOpenChange?.(panelOpen);
+  }, [panelOpen, onPanelOpenChange]);
   const [turns, setTurns] = useState([]);
   const [status, setStatus] = useState('idle'); // 'idle' | 'listening' | 'processing' | 'speaking' | 'error'
   const [sessionLang, setSessionLang] = useState(null); // null = language-selection screen, string = active session language
@@ -453,7 +463,9 @@ export function VoiceAssistantView({ lang, openSignal = 0, onViewDetails, onLang
   }, [flowError, effectiveLang]);
 
   return (
-    <div className={`voice-launcher${focusMode ? ' voice-focus-mode' : ''}`}>
+    <div
+      className={`voice-launcher${focusMode ? ' voice-focus-mode' : ''}${panelOpen ? ' voice-desktop-split' : ''}`}
+    >
       <VoicePanel
         open={panelOpen}
         focusMode={focusMode}
